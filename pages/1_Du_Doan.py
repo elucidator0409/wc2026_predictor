@@ -290,28 +290,28 @@ with tab1:
 
                 st.markdown(f"**⚽ Trận {row['match_number']}: {team_a} vs {team_b}** *(Bảng/Vòng: {group_label})*")
                 
-                col1, col2, col3, col4, col5 = st.columns([1.5, 1, 0.5, 1, 1.5])
-                with col2:
-                    score_a = st.number_input(f"{team_a}", min_value=0, max_value=20, value=default_a, key=f"pred_{selected_user_id}_{m_id}_a", label_visibility="collapsed")
-                with col3:
-                     st.markdown("<h4 style='text-align: center; margin: 0;'>-</h4>", unsafe_allow_html=True)
-                with col4:
-                    score_b = st.number_input(f"{team_b}", min_value=0, max_value=20, value=default_b, key=f"pred_{selected_user_id}_{m_id}_b", label_visibility="collapsed")
+                # 1. TẦNG 1: TỈ SỐ (Chia 2 cột. Desktop nằm ngang, Mobile tự động xếp dọc cực rõ ràng)
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    # Bật lại Label, gắn kèm icon để dễ nhìn
+                    score_a = st.number_input(f"🏠 Nhà: {team_a}", min_value=0, max_value=20, value=default_a, key=f"pred_{selected_user_id}_{m_id}_a")
+                with col_b:
+                    score_b = st.number_input(f"✈️ Khách: {team_b}", min_value=0, max_value=20, value=default_b, key=f"pred_{selected_user_id}_{m_id}_b")
                 
-                with col1:
+                # 2. TẦNG 2: KNOCKOUT & CHỐT ĐƠN
+                col_ext1, col_ext2 = st.columns(2)
+                with col_ext1:
                     adv_team = "TBD"
                     if is_knockout and team_a != "TBD" and team_b != "TBD":
                         options_adv = [team_a, team_b]
                         idx_adv = options_adv.index(old_adv_name) if old_adv_name in options_adv else 0
-                        adv_team = st.selectbox("Đội đi tiếp:", options_adv, index=idx_adv, key=f"adv_{selected_user_id}_{m_id}")
-                        st.caption("*(Chỉ tính nếu dự đoán Hòa)*")
+                        adv_team = st.selectbox("Đội đi tiếp (Nếu hòa PEN):", options_adv, index=idx_adv, key=f"adv_{selected_user_id}_{m_id}")
                 
-                with col5:
+                with col_ext2:
+                    # Đẩy nút Checkbox xuống một chút để căn bằng hàng với ô Selectbox bên trái (nếu có)
+                    st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
                     dynamic_chk_key = f"chk_pred_{selected_user_id}_{m_id}_{st.session_state['chk_reset_counter']}"
-                    is_confirmed = st.checkbox("Chốt dự đoán", key=dynamic_chk_key)
-                
-                if is_confirmed:
-                    user_inputs[m_id] = (score_a, score_b, adv_team, is_knockout)
+                    is_confirmed = st.checkbox("✅ Chốt dự đoán trận này", key=dynamic_chk_key)
                     
                 st.write("---")
 

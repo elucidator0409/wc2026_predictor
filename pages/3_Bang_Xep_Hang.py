@@ -207,7 +207,8 @@ if not merged_df.empty:
         
         col1, col2 = st.columns([1.2, 1.3])
         with col1: 
-            st.dataframe(display_df, width="stretch", hide_index=True)
+            dynamic_height = (len(display_df) + 1) * 35 + 40
+            st.dataframe(display_df, width="stretch", hide_index=True, height=dynamic_height)
         with col2:
             if not display_df.empty and display_df['Tổng Điểm'].sum() > 0:
                 fig = px.bar(
