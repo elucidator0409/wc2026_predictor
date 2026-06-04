@@ -222,7 +222,7 @@ if not merged_df.empty:
                 st.info("Chưa có dữ liệu đồ thị.")
             
         st.divider()
-        with st.expander("🔍 Chi tiết lịch sử chấm điểm & Tiền phạt từng trận (Ai nợ bao nhiêu?)"):
+        with st.expander("🔍 Chi tiết lịch sử chấm điểm & Tiền phạt từng trận"):
             detail_df = pd.merge(merged_df, users_df[['user_id', 'name']], on='user_id', how='left')
             detail_df = pd.merge(detail_df, teams_df[['id', 'team_name']], left_on='home_team_id', right_on='id', how='left').rename(columns={'team_name': 'Team A'})
             detail_df = pd.merge(detail_df, teams_df[['id', 'team_name']], left_on='away_team_id', right_on='id', how='left').rename(columns={'team_name': 'Team B'})
