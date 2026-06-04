@@ -1,0 +1,11 @@
+# Bỏ qua môi trường ảo (nếu có)
+venv/
+.env/
+
+# Bỏ qua các file cache của Python
+__pycache__/
+*.pyc
+
+# 🚨 TUYỆT ĐỐI BỎ QUA FILE SECRETS VÀ KEY GCP
+.streamlit/secrets.toml
+*.json

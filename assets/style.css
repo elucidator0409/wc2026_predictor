@@ -1,0 +1,73 @@
+/* ==========================================
+   1. ẨN UI MẶC ĐỊNH (SẠCH SẼ & AN TOÀN)
+   ========================================== */
+
+/* 1. Ẩn thanh list menu mặc định (nhưng giữ lại cái khung Sidebar của bạn) */
+[data-testid="stSidebarNav"] {
+    display: none !important;
+}
+
+/* 2. CHỈ ẩn các nút bên phải (Deploy, Menu 3 chấm). TUYỆT ĐỐI KHÔNG ẩn stToolbar */
+[data-testid="stHeaderActionElements"],
+[data-testid="stAppDeployButton"],
+.stDeployButton,
+#MainMenu {
+    display: none !important;
+}
+
+/* 3. BẢO VỆ NÚT HAMBURGER MENU (Trái tim của Mobile UI) */
+[data-testid="collapsedControl"] {
+    display: flex !important; 
+}
+
+/* 4. Giữ Header trong suốt để không che mất nội dung */
+header {
+    background: transparent !important;
+}
+
+/* 5. Ẩn Footer và Text hướng dẫn thừa */
+footer, div[data-testid="InputInstructions"] {
+    display: none !important;
+}
+
+/* Đẩy nội dung lên cao gọn gàng */
+.block-container {
+    padding-top: 3rem !important;
+    padding-bottom: 2rem !important;
+}
+
+/* ==========================================
+   2. CUSTOM COMPONENT: SPINNER LOADER (Giữ nguyên)
+   ========================================== */
+.custom-loader-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3; 
+    border-top: 4px solid #3B82F6; 
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loader-text {
+    margin-top: 15px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1E3A8A;
+    font-family: sans-serif;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
