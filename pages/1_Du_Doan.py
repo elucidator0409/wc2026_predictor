@@ -311,7 +311,7 @@ with tab1:
                     # Đẩy nút Checkbox xuống một chút để căn bằng hàng với ô Selectbox bên trái (nếu có)
                     st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
                     dynamic_chk_key = f"chk_pred_{selected_user_id}_{m_id}_{st.session_state['chk_reset_counter']}"
-                    is_confirmed = st.checkbox("✅ Chốt dự đoán trận này", key=dynamic_chk_key)
+                    is_confirmed = st.checkbox("Chốt dự đoán", key=dynamic_chk_key)
                     
                 st.write("---")
 
