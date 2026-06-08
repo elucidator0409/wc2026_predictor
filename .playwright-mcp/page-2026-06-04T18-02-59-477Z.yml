@@ -1,0 +1,43 @@
+- generic [ref=e2]:
+  - generic [ref=e11]:
+    - generic [ref=e14]:
+      - generic [ref=e15]: 🏆
+      - generic [ref=e16]: WC 2026
+      - generic [ref=e17]: Predictor Platform
+    - heading "📌 Menu chính" [level=3] [ref=e22]
+    - link "Trang chủ" [ref=e26] [cursor=pointer]:
+      - /url: ""
+      - generic [ref=e28]: 🏠
+      - paragraph [ref=e31]: Trang chủ
+    - link "Khu vực dự đoán" [ref=e35] [cursor=pointer]:
+      - /url: Du_Doan
+      - generic [ref=e37]: ✍️
+      - paragraph [ref=e40]: Khu vực dự đoán
+    - link "Bảng xếp hạng" [ref=e44] [cursor=pointer]:
+      - /url: Bang_Xep_Hang
+      - generic [ref=e46]: 🏆
+      - paragraph [ref=e49]: Bảng xếp hạng
+    - link "Lịch thi đấu" [ref=e53] [cursor=pointer]:
+      - /url: Xem_Lich_Thi_Dau
+      - generic [ref=e55]: 🗓️
+      - paragraph [ref=e58]: Lịch thi đấu
+    - heading "🔒 Admin" [level=3] [ref=e63]
+    - link "Quản trị kết quả" [ref=e67] [cursor=pointer]:
+      - /url: Lich_Thi_Dau
+      - generic [ref=e69]: ⚙️
+      - paragraph [ref=e72]: Quản trị kết quả
+    - generic [ref=e75]: 💡 Nhớ chốt dự đoán trước giờ bóng lăn để không bị khóa!
+  - generic [ref=e3]:
+    - banner [ref=e78]
+    - generic [ref=e80]:
+      - generic [ref=e84]:
+        - generic [ref=e85]: Prediction Center
+        - heading "✍️ Trung tâm dự đoán" [level=1] [ref=e86]
+        - paragraph [ref=e87]: Chọn trận, nhập tỉ số và chốt trước giờ bóng lăn
+      - status [ref=e90]:
+        - generic [ref=e92]:
+          - generic [ref=e95]: 🔒
+          - paragraph [ref=e97]: Vui lòng đăng nhập để tham gia dự đoán.
+      - generic [ref=e100]:
+        - generic [ref=e101]: Đăng nhập
+        - generic [ref=e102]: Nhập thông tin để tham gia dự đoán

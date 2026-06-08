@@ -1,11 +1,14 @@
 [client]
 showSidebarNavigation = false
-
-[client]
-# Chuyển thanh công cụ sang chế độ "Người xem" (Viewer)
-# Chế độ này sẽ khóa và giấu toàn bộ các tính năng nguy hiểm (Clear Cache, Deploy...)
 toolbarMode = "viewer"
 
 [ui]
-# Tắt nút Menu 3 chấm ở góc trên bên phải
 hideTopBar = true
+
+[theme]
+base = "dark"
+primaryColor = "#fbbf24"
+backgroundColor = "#070b14"
+secondaryBackgroundColor = "#0f1629"
+textColor = "#f1f5f9"
+font = "sans serif"

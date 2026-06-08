@@ -1,0 +1,21 @@
+[     185ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8502/Bang_Xep_Hang/_stcore/health:0
+[     185ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8502/Bang_Xep_Hang/_stcore/host-config:0
+[   48565ms] [WARNING] WebSocket onclose @ http://localhost:8502/static/js/index.dkY5s53S.js:183
+[   48625ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Bang_Xep_Hang/_stcore/health:0
+[   48626ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Bang_Xep_Hang/_stcore/host-config:0
+[   48729ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/health:0
+[   48730ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/host-config:0
+[   48831ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Bang_Xep_Hang/_stcore/health:0
+[   48831ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Bang_Xep_Hang/_stcore/host-config:0
+[   49057ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/health:0
+[   49057ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/host-config:0
+[   49275ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Bang_Xep_Hang/_stcore/health:0
+[   49276ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Bang_Xep_Hang/_stcore/host-config:0
+[   49683ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/health:0
+[   49684ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/host-config:0
+[   50021ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Bang_Xep_Hang/_stcore/health:0
+[   50021ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Bang_Xep_Hang/_stcore/host-config:0
+[   50847ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/health:0
+[   50847ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/host-config:0
+[   51666ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8502/Bang_Xep_Hang/_stcore/health:0
+[   51667ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8502/Bang_Xep_Hang/_stcore/host-config:0
