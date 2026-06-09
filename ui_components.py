@@ -89,7 +89,7 @@ def render_sidebar():
         st.page_link("pages/4_Xem_Lich_Thi_Dau.py", label="Lịch thi đấu", icon="🗓️")
 
         st.markdown("### 🔒 Admin")
-        st.page_link("pages/2_Lich_Thi_Dau.py", label="Quản trị kết quả", icon="⚙️")
+        st.page_link("pages/2_Lich_Thi_Dau.py", label="Góc của Elu", icon="⚙️")
 
         _html(
             '<div class="sidebar-tip">'

@@ -13,11 +13,11 @@ render_sidebar()
 if "admin_logged_in" not in st.session_state: st.session_state["admin_logged_in"] = False
 
 if not st.session_state["admin_logged_in"]:
-    render_page_header("⚙️ Hệ thống quản trị", "Nhập mật khẩu admin để cập nhật kết quả trận đấu", variant="admin", eyebrow="Admin Panel")
+    render_page_header("⚙️ Góc của Elu", "Đăng nhập để thao túng kết quả trận đấu", variant="admin", eyebrow="Admin Panel")
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login_form"):
-            pwd = st.text_input("Mật khẩu Admin:", type="password")
+            pwd = st.text_input("Admin Password:", type="password")
             submit_login = st.form_submit_button("Đăng nhập", type="primary", width="stretch")
             if submit_login:
                 correct_admin_pass = st.secrets.get("admin_password", "")
