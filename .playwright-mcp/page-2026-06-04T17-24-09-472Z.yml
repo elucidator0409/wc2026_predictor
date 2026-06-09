@@ -1,0 +1,113 @@
+- generic:
+  - generic [ref=e2]:
+    - generic [ref=e11]:
+      - generic [ref=e14]:
+        - generic [ref=e15]: 🏆
+        - generic [ref=e16]: WC 2026
+        - generic [ref=e17]: Predictor Platform
+      - heading "📌 Menu chính" [level=3] [ref=e22]
+      - link "Trang chủ" [ref=e26] [cursor=pointer]:
+        - /url: ""
+        - generic [ref=e28]: 🏠
+        - paragraph [ref=e31]: Trang chủ
+      - link "Khu vực dự đoán" [ref=e35] [cursor=pointer]:
+        - /url: Du_Doan
+        - generic [ref=e37]: ✍️
+        - paragraph [ref=e40]: Khu vực dự đoán
+      - link "Bảng xếp hạng" [ref=e44] [cursor=pointer]:
+        - /url: Bang_Xep_Hang
+        - generic [ref=e46]: 🏆
+        - paragraph [ref=e49]: Bảng xếp hạng
+      - link "Lịch thi đấu" [ref=e53] [cursor=pointer]:
+        - /url: Xem_Lich_Thi_Dau
+        - generic [ref=e55]: 🗓️
+        - paragraph [ref=e58]: Lịch thi đấu
+      - heading "🔒 Admin" [level=3] [ref=e63]
+      - link "Quản trị kết quả" [ref=e67] [cursor=pointer]:
+        - /url: Lich_Thi_Dau
+        - generic [ref=e69]: ⚙️
+        - paragraph [ref=e72]: Quản trị kết quả
+      - generic [ref=e75]: 💡 Nhớ chốt dự đoán trước giờ bóng lăn để không bị khóa!
+    - generic [ref=e3]:
+      - banner [ref=e78]
+      - generic [ref=e80]:
+        - generic [ref=e84]:
+          - generic [ref=e85]: Leaderboard
+          - heading "🏆 Bảng vàng" [level=1] [ref=e86]
+          - paragraph [ref=e87]: Xếp hạng điểm số, quỹ phạt và phân tích phong cách dự đoán
+        - generic [ref=e89]:
+          - tablist [ref=e91]:
+            - tab "🥇 Bảng điểm & quỹ phạt" [ref=e92] [cursor=pointer]:
+              - paragraph [ref=e94]: 🥇 Bảng điểm & quỹ phạt
+            - tab "🧠 Phân tích phong cách" [active] [selected] [ref=e95] [cursor=pointer]:
+              - paragraph [ref=e97]: 🧠 Phân tích phong cách
+          - tabpanel "🧠 Phân tích phong cách" [ref=e236]:
+            - generic [ref=e237]:
+              - generic [ref=e242]: 🧬 Hồ sơ dữ liệu người chơi
+              - generic [ref=e244]:
+                - generic [ref=e246]:
+                  - paragraph [ref=e251]:
+                    - strong [ref=e252]: 🎯 Tỉ lệ bàn tay vàng (đúng tỉ số)
+                  - generic [ref=e258]:
+                    - img:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "0"
+                            - generic:
+                              - generic: "50"
+                            - generic:
+                              - generic: "100"
+                          - generic:
+                            - generic:
+                              - generic: Tony
+                            - generic:
+                              - generic: AnhMuoi
+                    - img:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic: "0"
+                            - generic:
+                              - generic: "20"
+                            - generic:
+                              - generic: "40"
+                            - generic:
+                              - generic: "60"
+                            - generic:
+                              - generic: "80"
+                            - generic:
+                              - generic: "100"
+                          - generic:
+                            - generic:
+                              - generic: Hit Rate (%)
+                        - generic:
+                          - generic: Tỉ lệ trúng tỉ số (%)
+                    - toolbar [ref=e272]:
+                      - button "Download plot as a PNG" [ref=e274] [cursor=pointer]:
+                        - img [ref=e275]
+                      - generic [ref=e277]:
+                        - button "Zoom" [ref=e278] [cursor=pointer]:
+                          - img [ref=e279]
+                        - button "Pan" [ref=e281] [cursor=pointer]:
+                          - img [ref=e282]
+                      - generic [ref=e284]:
+                        - button "Zoom in" [ref=e285] [cursor=pointer]:
+                          - img [ref=e286]
+                        - button "Zoom out" [ref=e288] [cursor=pointer]:
+                          - img [ref=e289]
+                        - button "Autoscale" [ref=e291] [cursor=pointer]:
+                          - img [ref=e292]
+                        - button "Reset axes" [ref=e294] [cursor=pointer]:
+                          - img [ref=e295]
+                      - button "Fullscreen" [ref=e298] [cursor=pointer]:
+                        - img [ref=e299]
+                    - img
+                - generic [ref=e302]:
+                  - paragraph [ref=e307]:
+                    - strong [ref=e308]: 🐺 Top Maverick (đi ngược đám đông)
+                  - status [ref=e311]:
+                    - paragraph [ref=e315]: Chưa đủ dữ liệu.
+  - img [ref=e234]

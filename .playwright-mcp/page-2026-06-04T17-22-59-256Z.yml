@@ -1,0 +1,159 @@
+- generic [active]:
+  - generic [ref=e2]:
+    - generic [ref=e15]:
+      - generic [ref=e20]:
+        - generic [ref=e21]: 🏆
+        - generic [ref=e22]: WC 2026
+        - generic [ref=e23]: Predictor Platform
+      - heading "📌 Menu chính" [level=3] [ref=e28]
+      - link "Trang chủ" [ref=e32] [cursor=pointer]:
+        - /url: ""
+        - generic [ref=e34]: 🏠
+        - paragraph [ref=e37]: Trang chủ
+      - link "Khu vực dự đoán" [ref=e41] [cursor=pointer]:
+        - /url: Du_Doan
+        - generic [ref=e43]: ✍️
+        - paragraph [ref=e46]: Khu vực dự đoán
+      - link "Bảng xếp hạng" [ref=e50] [cursor=pointer]:
+        - /url: Bang_Xep_Hang
+        - generic [ref=e52]: 🏆
+        - paragraph [ref=e55]: Bảng xếp hạng
+      - link "Lịch thi đấu" [ref=e59] [cursor=pointer]:
+        - /url: Xem_Lich_Thi_Dau
+        - generic [ref=e61]: 🗓️
+        - paragraph [ref=e64]: Lịch thi đấu
+      - heading "🔒 Admin" [level=3] [ref=e69]
+      - link "Quản trị kết quả" [ref=e73] [cursor=pointer]:
+        - /url: Lich_Thi_Dau
+        - generic [ref=e75]: ⚙️
+        - paragraph [ref=e78]: Quản trị kết quả
+      - generic [ref=e83]: 💡 Nhớ chốt dự đoán trước giờ bóng lăn để không bị khóa!
+    - generic [ref=e3]:
+      - banner [ref=e86]
+      - generic [ref=e88]:
+        - generic [ref=e94]:
+          - generic [ref=e95]: Leaderboard
+          - heading "🏆 Bảng vàng" [level=1] [ref=e97]
+          - paragraph [ref=e98]: Xếp hạng điểm số, quỹ phạt và phân tích phong cách dự đoán
+        - generic [ref=e107]:
+          - tablist [ref=e109]:
+            - tab "🥇 Bảng điểm & quỹ phạt" [selected] [ref=e110] [cursor=pointer]:
+              - paragraph [ref=e112]: 🥇 Bảng điểm & quỹ phạt
+            - tab "🧠 Phân tích phong cách" [ref=e113] [cursor=pointer]:
+              - paragraph [ref=e115]: 🧠 Phân tích phong cách
+          - tabpanel "🥇 Bảng điểm & quỹ phạt" [ref=e118]:
+            - generic [ref=e119]:
+              - generic [ref=e124]:
+                - generic [ref=e125]:
+                  - generic [ref=e126]: 🥈
+                  - generic [ref=e127]: Tony
+                  - generic [ref=e128]: 1 điểm
+                - code [ref=e133]: <div class="podium-item"> <div class="podium-bar podium-bar--1">🥇</div> <div class="podium-name">AnhMuoi</div> <div class="podium-pts">3 điểm</div> </div> <div class="podium-item"> <div class="podium-bar podium-bar--3">🥉</div> <div class="podium-name">Nghia</div> <div class="podium-pts">0 điểm</div> </div> </div>
+              - generic [ref=e138]:
+                - generic [ref=e139]:
+                  - generic [ref=e140]: "11"
+                  - generic [ref=e141]: Người chơi
+                - code [ref=e146]: <div class="stat-card"> <div class="stat-card-value"> 4</div> <div class="stat-card-label">Tổng điểm</div> </div> <div class="stat-card"> <div class="stat-card-value"> 0k</div> <div class="stat-card-label">Tổng quỹ phạt</div> </div> <div class="stat-card"> <div class="stat-card-value"> 1</div> <div class="stat-card-label">Trận đã đá</div> </div> </div>
+              - generic [ref=e148]:
+                - generic [ref=e155]:
+                  - button "Show/hide columns" [ref=e159] [cursor=pointer]:
+                    - img [ref=e160]
+                  - button "Download as CSV" [ref=e165] [cursor=pointer]:
+                    - img [ref=e166]
+                  - button "Search" [ref=e171] [cursor=pointer]:
+                    - img [ref=e172]
+                  - button "Fullscreen" [ref=e177] [cursor=pointer]:
+                    - img [ref=e178]
+                - generic [ref=e196]:
+                  - img:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - generic:
+                                    - generic: "0"
+                                  - generic:
+                                    - generic: "0"
+                                  - generic:
+                                    - generic: "0"
+                                  - generic:
+                                    - generic: "0"
+                                  - generic:
+                                    - generic: "0"
+                                  - generic:
+                                    - generic: "0"
+                                  - generic:
+                                    - generic: "0"
+                                  - generic:
+                                    - generic: "0"
+                                  - generic:
+                                    - generic: "0"
+                                  - generic:
+                                    - generic: "1"
+                                  - generic:
+                                    - generic: "3"
+                        - generic:
+                          - generic:
+                            - generic: "0"
+                          - generic:
+                            - generic: "1"
+                          - generic:
+                            - generic: "2"
+                          - generic:
+                            - generic: "3"
+                        - generic:
+                          - generic:
+                            - generic: Nghia
+                          - generic:
+                            - generic: Tan
+                          - generic:
+                            - generic: Quan
+                          - generic:
+                            - generic: Huy
+                          - generic:
+                            - generic: Nam
+                          - generic:
+                            - generic: Bao
+                          - generic:
+                            - generic: Meo
+                          - generic:
+                            - generic: Ga
+                          - generic:
+                            - generic: Hoang
+                          - generic:
+                            - generic: Tony
+                          - generic:
+                            - generic: AnhMuoi
+                  - img:
+                    - generic:
+                      - generic:
+                        - generic: Điểm số
+                  - toolbar [ref=e210]:
+                    - button "Download plot as a PNG" [ref=e212] [cursor=pointer]:
+                      - img [ref=e213]
+                    - generic [ref=e215]:
+                      - button "Zoom" [ref=e216] [cursor=pointer]:
+                        - img [ref=e217]
+                      - button "Pan" [ref=e219] [cursor=pointer]:
+                        - img [ref=e220]
+                    - generic [ref=e222]:
+                      - button "Zoom in" [ref=e223] [cursor=pointer]:
+                        - img [ref=e224]
+                      - button "Zoom out" [ref=e226] [cursor=pointer]:
+                        - img [ref=e227]
+                      - button "Autoscale" [ref=e229] [cursor=pointer]:
+                        - img [ref=e230]
+                      - button "Reset axes" [ref=e232] [cursor=pointer]:
+                        - img [ref=e233]
+                    - button "Fullscreen" [ref=e236] [cursor=pointer]:
+                      - img [ref=e237]
+                  - img
+              - group [ref=e241]:
+                - generic "keyboard_arrow_right 🔍 Chi tiết chấm điểm & tiền phạt từng trận" [ref=e242] [cursor=pointer]:
+                  - generic [ref=e243]:
+                    - generic [ref=e245]: keyboard_arrow_right
+                    - paragraph [ref=e248]: 🔍 Chi tiết chấm điểm & tiền phạt từng trận
+  - img [ref=e249]

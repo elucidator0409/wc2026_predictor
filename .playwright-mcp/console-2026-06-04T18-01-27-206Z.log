@@ -1,0 +1,21 @@
+[     284ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8502/Du_Doan/_stcore/health:0
+[     285ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8502/Du_Doan/_stcore/host-config:0
+[   49994ms] [WARNING] WebSocket onclose @ http://localhost:8502/static/js/index.dkY5s53S.js:183
+[   50004ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Du_Doan/_stcore/health:0
+[   50004ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Du_Doan/_stcore/host-config:0
+[   50105ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/health:0
+[   50106ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/host-config:0
+[   50207ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Du_Doan/_stcore/health:0
+[   50207ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Du_Doan/_stcore/host-config:0
+[   50379ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/health:0
+[   50379ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/host-config:0
+[   50544ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Du_Doan/_stcore/health:0
+[   50545ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Du_Doan/_stcore/host-config:0
+[   50971ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/health:0
+[   50971ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/host-config:0
+[   51356ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Du_Doan/_stcore/health:0
+[   51356ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Du_Doan/_stcore/host-config:0
+[   52059ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/health:0
+[   52059ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/_stcore/host-config:0
+[   52903ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Du_Doan/_stcore/health:0
+[   52903ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8502/Du_Doan/_stcore/host-config:0

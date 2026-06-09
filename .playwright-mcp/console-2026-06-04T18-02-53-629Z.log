@@ -1,0 +1,9 @@
+[      96ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8502/Du_Doan/_stcore/health:0
+[      96ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8502/Du_Doan/_stcore/host-config:0
+[    6134ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://localhost:8502/Du_Doan:0
+[ 1688567ms] [WARNING] WebSocket onclose @ http://localhost:8502/static/js/index.dkY5s53S.js:183
+[ 1688835ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8502/Du_Doan/_stcore/host-config:0
+[ 1688836ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8502/Du_Doan/_stcore/health:0
+[ 1689632ms] [WARNING] WebSocket onclose @ http://localhost:8502/static/js/index.dkY5s53S.js:183
+[ 1689698ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8502/Du_Doan/_stcore/health:0
+[ 1689699ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8502/Du_Doan/_stcore/host-config:0
