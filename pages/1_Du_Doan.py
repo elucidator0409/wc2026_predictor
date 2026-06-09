@@ -128,6 +128,7 @@ def _render_one_match(row, selected_user_id, preds_df, id_to_name):
         row["match_number"], team_a, team_b, row["match_label"], is_knockout,
         has_saved_pred=has_saved,
         team_a_fifa=team_a_fifa, team_b_fifa=team_b_fifa, name_to_fifa=name_to_fifa,
+        kickoff_vn=row.get("kickoff_vn"), kickoff_et=row.get("kickoff_et"),
     )
 
     outcome = render_outcome_picker(
@@ -170,7 +171,7 @@ with tab1:
     if upcoming_matches.empty:
         st.info("Tất cả trận hiện tại đã khóa hoặc kết thúc. Không còn trận để dự đoán!")
     else:
-        upcoming_matches = upcoming_matches.head(10)
+        upcoming_matches = upcoming_matches.sort_values(["kickoff_vn", "match_number"]).head(10)
         render_pred_page_banner(selected_user_name, len(upcoming_matches), saved_count)
         st.markdown('<div class="pred-form-actions-marker"></div>', unsafe_allow_html=True)
 
@@ -261,7 +262,7 @@ with tab2:
     else:
         display_history = pd.merge(user_history_df, matches_df, on="match_id", how="inner")
         display_history["match_number"] = pd.to_numeric(display_history["match_number"], errors="coerce")
-        display_history = display_history.sort_values(by="match_number")
+        display_history = display_history.sort_values(by=["kickoff_vn", "match_number"])
 
         def format_prediction(row):
             try: stage_id = int(float(row["stage_id"]))

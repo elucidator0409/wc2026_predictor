@@ -88,8 +88,10 @@ def prep_matches(matches_raw: pd.DataFrame, teams_df: pd.DataFrame) -> pd.DataFr
     matches_df["team_a_fifa"] = matches_df["team_a_fifa"].fillna("")
     matches_df["team_b_fifa"] = matches_df["team_b_fifa"].fillna("")
     matches_df["stage_id"] = pd.to_numeric(matches_df["stage_id"], errors="coerce").fillna(1).astype(int)
-    
-    return matches_df
+
+    from schedule_service import enrich_matches_with_schedule
+
+    return enrich_matches_with_schedule(matches_df)
 
 
 def vietnam_timestamp() -> str:

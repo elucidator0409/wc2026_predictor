@@ -8,6 +8,12 @@ import re
 import streamlit as st
 
 from scoring import normalize_pred_outcome
+from schedule_service import (
+    format_date_compact_vn,
+    format_time_vn,
+    group_color,
+    group_label_vn,
+)
 from team_flags import team_line_html
 
 DISPLAY_NAME_EMOJIS = [
@@ -116,7 +122,7 @@ def render_hero_home():
         '<div class="page-header-inner">'
         '<div class="page-header-eyebrow">FIFA World Cup · USA · Canada · Mexico</div>'
         '<h1 class="page-header-title">🏆 <span class="highlight">World Cup 2026</span> Predictor</h1>'
-        '<p class="page-header-subtitle">Hệ thống dự đoán bóng đá chuyên nghiệp — cùng tranh tài, cùng vui!</p>'
+        '<p class="page-header-subtitle">Dự đoán kết quả trận đấu — cùng tranh tài, cùng vui!</p>'
         "</div></div>"
     )
 
@@ -133,6 +139,27 @@ def render_stat_cards(stats: list[tuple[str, str, str]]):
         )
     _html(f'<div class="stats-row">{"".join(cards)}</div>')
 
+def render_home_cta_cards(cards: list[dict[str, str]]):
+    items = []
+    for card in cards:
+        href = card.get("href", "#")
+        icon = card.get("icon", "")
+        title = card.get("title", "")
+        desc = card.get("desc", "")
+        tone = card.get("tone", "blue")
+        cta = card.get("cta", "Mở")
+        items.append(
+            f'<a class="home-cta-card home-cta-card--{html.escape(tone)}" href="{html.escape(href)}">'
+            f'<span class="home-cta-icon">{html.escape(icon)}</span>'
+            f'<span class="home-cta-copy">'
+            f'<strong>{html.escape(title)}</strong>'
+            f'<small>{html.escape(desc)}</small>'
+            f"</span>"
+            f'<span class="home-cta-arrow">{html.escape(cta)} →</span>'
+            f"</a>"
+        )
+    _html(f'<div class="action-grid">{"".join(items)}</div>')
+
 def render_match_card(
     match_number,
     group_label,
@@ -144,13 +171,15 @@ def render_match_card(
     team_a_fifa=None,
     team_b_fifa=None,
     name_to_fifa=None,
+    variant="default",
 ):
     status_class = "match-card-status--done" if is_finished else "match-card-status--pending"
     status_text = "✅ Kết thúc" if is_finished else "⏳ Sắp đá"
     home_line = team_line_html(team_a, "a", fifa_code=team_a_fifa, name_to_fifa=name_to_fifa)
     away_line = team_line_html(team_b, "b", fifa_code=team_b_fifa, name_to_fifa=name_to_fifa)
+    variant_class = f" match-card--{html.escape(str(variant))}" if variant != "default" else ""
     _html(
-        f'<div class="match-card">'
+        f'<div class="match-card{variant_class}">'
         f'<div class="match-card-meta">'
         f'<div class="match-card-number">Trận {html.escape(str(match_number))}</div>'
         f'<div class="match-card-group">{html.escape(str(group_label))}</div>'
@@ -161,6 +190,87 @@ def render_match_card(
         f'<div class="match-card-status {status_class}">{status_text}</div>'
         f"</div>"
     )
+
+
+def render_fixture_day_header(date_label: str, match_count: int) -> None:
+    count_label = f"{match_count} trận" if match_count != 1 else "1 trận"
+    _html(
+        f'<div class="fixture-day-header">'
+        f'<span class="fixture-day-title">{html.escape(date_label)}</span>'
+        f'<span class="fixture-day-count">{html.escape(count_label)}</span>'
+        f"</div>"
+    )
+
+
+def render_fixture_row(
+    *,
+    match_number: int | str,
+    kickoff_vn,
+    kickoff_et: str | None = None,
+    team_a: str,
+    team_b: str,
+    team_a_fifa=None,
+    team_b_fifa=None,
+    name_to_fifa=None,
+    venue_line: str | None = None,
+    group_round: str | None = None,
+    score_a: int = 0,
+    score_b: int = 0,
+    is_finished: bool = False,
+) -> None:
+    kickoff_dt = kickoff_vn.to_pydatetime() if hasattr(kickoff_vn, "to_pydatetime") else kickoff_vn
+    time_primary = format_time_vn(kickoff_dt)
+    date_compact = format_date_compact_vn(kickoff_dt)
+    et_line = html.escape(str(kickoff_et).strip()) if kickoff_et and str(kickoff_et).strip() else ""
+    et_html = f'<div class="fixture-time-secondary">{et_line} ET</div>' if et_line else ""
+
+    home_line = team_line_html(team_a, "a", fifa_code=team_a_fifa, name_to_fifa=name_to_fifa)
+    away_line = team_line_html(team_b, "b", fifa_code=team_b_fifa, name_to_fifa=name_to_fifa)
+    venue = html.escape(str(venue_line or "—"))
+    grp_label = html.escape(group_label_vn(group_round))
+    grp_tone = html.escape(group_color(group_round))
+    status_class = "fixture-row--finished" if is_finished else "fixture-row--upcoming"
+    result_html = (
+        f'<div class="fixture-result">{score_a} – {score_b}</div>'
+        if is_finished
+        else '<div class="fixture-status">⏳ Sắp đá</div>'
+    )
+
+    _html(
+        f'<div class="fixture-row {status_class}" style="--fixture-accent:{grp_tone};">'
+        f'<div class="fixture-row-accent"></div>'
+        f'<div class="fixture-row-time">'
+        f'<div class="fixture-time-primary">{html.escape(time_primary)}</div>'
+        f'<div class="fixture-time-date">{html.escape(date_compact)}</div>'
+        f"{et_html}"
+        f"</div>"
+        f'<div class="fixture-row-match">'
+        f'<div class="fixture-teams">'
+        f"{home_line}"
+        f'<span class="fixture-vs">vs</span>'
+        f"{away_line}"
+        f"</div>"
+        f'<div class="fixture-venue">{venue}</div>'
+        f"</div>"
+        f'<div class="fixture-row-meta">'
+        f'<div class="fixture-group" style="color:{grp_tone};">'
+        f'<span class="fixture-group-dot" style="background:{grp_tone};"></span>'
+        f"{grp_label}"
+        f"</div>"
+        f'<div class="fixture-match-no">#{html.escape(str(match_number))}</div>'
+        f"{result_html}"
+        f"</div>"
+        f"</div>"
+    )
+
+
+def render_fixture_schedule_open() -> None:
+    _html('<div class="fixture-schedule">')
+
+
+def render_fixture_schedule_close() -> None:
+    _html("</div>")
+
 
 def render_podium(top3: list[tuple[str, int]]):
     if not top3: return
@@ -417,11 +527,28 @@ def render_pred_match_header(
     team_a_fifa=None,
     team_b_fifa=None,
     name_to_fifa=None,
+    kickoff_vn=None,
+    kickoff_et: str | None = None,
 ):
     ko_badge = '<span class="pred-ko-badge">KNOCK-OUT</span>' if is_knockout else ""
     saved_badge = '<span class="pred-saved-badge">Đã dự đoán</span>' if has_saved_pred else ""
     side_a = team_line_html(team_a, "a", fifa_code=team_a_fifa, name_to_fifa=name_to_fifa)
     side_b = team_line_html(team_b, "b", fifa_code=team_b_fifa, name_to_fifa=name_to_fifa)
+    kickoff_html = ""
+    if kickoff_vn is not None:
+        try:
+            kickoff_dt = kickoff_vn.to_pydatetime() if hasattr(kickoff_vn, "to_pydatetime") else kickoff_vn
+            et_line = html.escape(str(kickoff_et).strip()) if kickoff_et and str(kickoff_et).strip() else ""
+            et_suffix = f' · <span class="pred-kickoff-et">{et_line} ET</span>' if et_line else ""
+            kickoff_html = (
+                f'<div class="pred-card-kickoff">'
+                f'🕐 {html.escape(format_time_vn(kickoff_dt))} UTC+7'
+                f' · {html.escape(format_date_compact_vn(kickoff_dt))}'
+                f"{et_suffix}"
+                f"</div>"
+            )
+        except (AttributeError, TypeError, ValueError):
+            kickoff_html = ""
     _html(
         f'<div class="pred-card-header">'
         f'<div class="pred-card-meta">'
@@ -429,6 +556,7 @@ def render_pred_match_header(
         f'<span class="pred-card-group">{html.escape(str(group_label))}</span>'
         f"{ko_badge}{saved_badge}"
         f"</div>"
+        f"{kickoff_html}"
         f'<div class="pred-card-matchup">'
         f'<div class="pred-card-side pred-card-side--a">'
         f'<span class="pred-side-tag">Đội A</span>'

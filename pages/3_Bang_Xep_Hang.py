@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from data_service import init_connection, normalize_predictions_df, read_sheet
+from data_service import init_connection, normalize_predictions_df, prep_matches, read_sheet
 from team_flags import build_name_to_fifa, flag_emoji
 from scoring import _parse_stage, calculate_fines, calculate_points, format_pred_display, format_real_display, normalize_pred_outcome, outcome_to_analytics_key
 from ui_components import apply_global_styles, custom_loader, render_page_header, render_podium, render_sidebar, render_stat_cards, sync_auth_session
@@ -19,11 +19,11 @@ render_page_header("🏆 Bảng vàng", "Xếp hạng điểm số, quỹ phạt
 def load_data_for_ranking():
     sh = init_connection()
     users_df, preds_df = read_sheet(sh, "users"), read_sheet(sh, "predictions")
-    matches_df, teams_df = read_sheet(sh, "matches"), read_sheet(sh, "teams")
-
-    for df in (users_df, matches_df): df.replace("", pd.NA, inplace=True)
+    matches_raw, teams_df = read_sheet(sh, "matches"), read_sheet(sh, "teams")
+    users_df.replace("", pd.NA, inplace=True)
     preds_df = normalize_predictions_df(preds_df)
-    if "real_advanced_team_id" not in matches_df.columns: matches_df["real_advanced_team_id"] = None
+    teams_df.replace("", pd.NA, inplace=True)
+    matches_df = prep_matches(matches_raw, teams_df)
     return users_df, preds_df, matches_df, teams_df
 
 with custom_loader("Đang thống kê điểm số và quỹ phạt..."):

@@ -2,6 +2,7 @@ import streamlit as st
 
 from ui_components import (
     apply_global_styles,
+    render_home_cta_cards,
     render_hero_home,
     render_sidebar,
     render_stat_cards,
@@ -12,7 +13,7 @@ st.set_page_config(
     page_title="World Cup 2026 Predictor",
     page_icon="🏆",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 apply_global_styles()
@@ -22,7 +23,7 @@ render_sidebar()
 render_hero_home()
 
 render_stat_cards([
-    ("3", "Điểm / đúng kết quả"),
+    ("+3", "Điểm / đúng kết quả"),
     ("+1", "Điểm / đúng PEN"),
     ("10k", "Phạt / sai kết quả"),
     ("104", "Trận đấu WC 2026"),
@@ -37,7 +38,7 @@ st.markdown(
             <h3>🟢 Hệ thống tính điểm</h3>
             <ul>
                 <li><strong>Đoán đúng kết quả</strong> (Đội A thắng / Hòa / Đội B thắng): +3 điểm</li>
-                <li><strong>Knock-out (Penalty):</strong> Đoán đúng đội đi tiếp khi chọn Hòa: +1 điểm</li>
+                <li><strong>Vòng Knock-out</strong> (Đoán đúng đội đi tiếp (Hiệp phụ/Penalty) khi chọn Hòa): +1 điểm</li>
             </ul>
         </div>
         <div class="rule-card rule-card--fines">
@@ -54,14 +55,39 @@ st.markdown(
 )
 
 st.markdown('<div class="section-title">🚀 Bắt đầu ngay</div>', unsafe_allow_html=True)
-st.caption("Chọn trang bên sidebar hoặc dùng phím tắt bên dưới:")
+st.caption("Chọn nhanh khu vực bạn muốn vào. Sidebar vẫn luôn có sẵn nếu cần điều hướng chi tiết.")
 
-c1, c2, c3, c4 = st.columns(4)
-with c1:
-    st.page_link("pages/1_Du_Doan.py", label="Dự đoán", icon="✍️", width="stretch")
-with c2:
-    st.page_link("pages/3_Bang_Xep_Hang.py", label="Bảng xếp hạng", icon="🥇", width="stretch")
-with c3:
-    st.page_link("pages/4_Xem_Lich_Thi_Dau.py", label="Lịch thi đấu", icon="🗓️", width="stretch")
-with c4:
-    st.page_link("pages/2_Lich_Thi_Dau.py", label="Admin", icon="⚙️", width="stretch")
+render_home_cta_cards([
+    {
+        "href": "/Du_Doan",
+        "icon": "✍️",
+        "title": "Dự đoán ngay",
+        "desc": "Chọn A thắng / Hòa / B thắng và chốt trước giờ bóng lăn.",
+        "tone": "blue",
+        "cta": "Vào dự đoán",
+    },
+    {
+        "href": "/Xem_Lich_Thi_Dau",
+        "icon": "🗓️",
+        "title": "Xem lịch thi đấu",
+        "desc": "Tra cứu 104 trận, đội tham gia, bảng đấu và kết quả.",
+        "tone": "green",
+        "cta": "Xem lịch",
+    },
+    {
+        "href": "/Bang_Xep_Hang",
+        "icon": "🏆",
+        "title": "Bảng xếp hạng",
+        "desc": "Theo dõi điểm số, quỹ phạt và phong cách dự đoán.",
+        "tone": "gold",
+        "cta": "Xem BXH",
+    },
+    {
+        "href": "/Lich_Thi_Dau",
+        "icon": "⚙️",
+        "title": "Góc của Elu",
+        "desc": "Cập nhật kết quả, khóa trận và quản trị vòng đấu.",
+        "tone": "purple",
+        "cta": "Admin",
+    },
+])
