@@ -22,9 +22,9 @@ render_sidebar()
 render_hero_home()
 
 render_stat_cards([
-    ("3", "Điểm / đúng tỉ số"),
-    ("1", "Điểm / đúng kết quả"),
-    ("10k", "Phạt / đoán sai đội thắng"),
+    ("3", "Điểm / đúng kết quả"),
+    ("+1", "Điểm / đúng PEN"),
+    ("10k", "Phạt / sai kết quả"),
     ("104", "Trận đấu WC 2026"),
 ])
 
@@ -36,16 +36,15 @@ st.markdown(
         <div class="rule-card rule-card--points">
             <h3>🟢 Hệ thống tính điểm</h3>
             <ul>
-                <li><strong>Đoán đúng tỉ số:</strong> +3 điểm</li>
-                <li><strong>Đoán đúng kết quả</strong> (Thắng/Thua/Hòa): +1 điểm</li>
-                <li><strong>Knock-out (Penalty):</strong> Đoán đúng đội thắng luân lưu khi hòa: +1 điểm</li>
+                <li><strong>Đoán đúng kết quả</strong> (Đội A thắng / Hòa / Đội B thắng): +3 điểm</li>
+                <li><strong>Knock-out (Penalty):</strong> Đoán đúng đội đi tiếp khi chọn Hòa: +1 điểm</li>
             </ul>
         </div>
         <div class="rule-card rule-card--fines">
             <h3>🔴 Quỹ phạt</h3>
             <ul>
-                <li><strong>Đoán đúng đội thắng / đi tiếp:</strong> 0k</li>
-                <li><strong>Đoán sai đội thắng / đi tiếp:</strong> đóng 10k vào quỹ</li>
+                <li><strong>Đoán đúng kết quả:</strong> 0k</li>
+                <li><strong>Đoán sai kết quả:</strong> đóng 10k vào quỹ</li>
                 <li>Tổng phạt tự động tính sau khi có kết quả chính thức</li>
             </ul>
         </div>
