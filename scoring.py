@@ -102,6 +102,14 @@ def outcome_to_analytics_key(outcome: str) -> str:
     return {"A": "Win_A", "D": "Draw", "B": "Win_B"}.get(normalized or "", "Unknown")
 
 
+def _matchup_line(flag_a: str, team_a: str, flag_b: str, team_b: str) -> str:
+    return f"{flag_a} {team_a} - {flag_b} {team_b}"
+
+
+def _pred_result_line(matchup: str, result: str) -> str:
+    return f"{matchup} → {result}"
+
+
 def format_pred_display(
     outcome,
     team_a: str = "",
@@ -119,11 +127,23 @@ def format_pred_display(
         return "—"
 
     if outcome == "A" and team_a:
-        base = f"{flag_emoji(team_a_fifa, team_a, name_to_fifa)} {team_a} thắng"
+        flag_a = flag_emoji(team_a_fifa, team_a, name_to_fifa)
+        flag_b = flag_emoji(team_b_fifa, team_b, name_to_fifa)
+        matchup = _matchup_line(flag_a, team_a, flag_b, team_b)
+        base = _pred_result_line(matchup, f"{flag_a} {team_a} thắng")
     elif outcome == "B" and team_b:
-        base = f"{flag_emoji(team_b_fifa, team_b, name_to_fifa)} {team_b} thắng"
+        flag_a = flag_emoji(team_a_fifa, team_a, name_to_fifa)
+        flag_b = flag_emoji(team_b_fifa, team_b, name_to_fifa)
+        matchup = _matchup_line(flag_a, team_a, flag_b, team_b)
+        base = _pred_result_line(matchup, f"{flag_b} {team_b} thắng")
     elif outcome == "D":
-        base = "🤝 Hòa"
+        if team_a and team_b:
+            flag_a = flag_emoji(team_a_fifa, team_a, name_to_fifa)
+            flag_b = flag_emoji(team_b_fifa, team_b, name_to_fifa)
+            matchup = _matchup_line(flag_a, team_a, flag_b, team_b)
+            base = _pred_result_line(matchup, "🤝 Hòa")
+        else:
+            base = "🤝 Hòa"
     else:
         base = OUTCOME_LABELS.get(outcome, outcome)
 
@@ -143,7 +163,7 @@ def format_real_display(score_a, score_b, adv_name: str | None = None, stage: in
 def outcome_label_for_team(outcome: str, team_a: str, team_b: str) -> str:
     outcome = normalize_pred_outcome(outcome)
     if outcome == "A":
-        return f"{team_a} thắng"
+        return _pred_result_line(f"{team_a} - {team_b}", f"{team_a} thắng")
     if outcome == "B":
-        return f"{team_b} thắng"
+        return _pred_result_line(f"{team_a} - {team_b}", f"{team_b} thắng")
     return "Hòa"
