@@ -34,6 +34,165 @@ def apply_global_styles():
     else:
         st.warning("⚠️ Không tìm thấy file assets/style.css")
 
+    _SIDEBAR_OVERLAY_BOOT = """
+<script>
+(function () {
+  const topWin = window.top;
+  const WC_SIDEBAR_OVERLAY_VERSION = 2;
+  if (topWin.__wcSidebarOverlayVersion === WC_SIDEBAR_OVERLAY_VERSION) {
+    topWin.__wcSidebarOverlaySync?.();
+    return;
+  }
+  topWin.__wcSidebarOverlayVersion = WC_SIDEBAR_OVERLAY_VERSION;
+  topWin.__wcSidebarOverlayInit = false;
+  topWin.__wcSidebarOverlayObserver?.disconnect();
+  topWin.document.getElementById("wc-sidebar-backdrop")?.remove();
+  topWin.document.getElementById("wc-sidebar-overlay-boot")?.remove();
+  const boot = topWin.document.createElement("script");
+  boot.id = "wc-sidebar-overlay-boot";
+  boot.textContent = `
+(function () {
+  const MQ = matchMedia("(max-width: 1330px)");
+  let syncQueued = false;
+
+  function isSidebarOpen() {
+    const sidebar = document.querySelector('[data-testid="stSidebar"]');
+    return !!(MQ.matches && sidebar && sidebar.getAttribute("aria-expanded") === "true");
+  }
+
+  function collapseSidebar() {
+    const btn =
+      document.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
+      document.querySelector('[data-testid="stSidebarCollapseButton"]');
+    if (!btn) return;
+
+    const reactKey = Object.keys(btn).find((k) => k.startsWith("__reactProps"));
+    const reactOnClick = reactKey && btn[reactKey]?.onClick;
+    if (typeof reactOnClick === "function") {
+      reactOnClick({
+        preventDefault() {},
+        stopPropagation() {},
+        target: btn,
+        currentTarget: btn,
+        type: "click",
+        nativeEvent: new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        }),
+      });
+      return;
+    }
+
+    btn.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true, view: window })
+    );
+  }
+
+  function setSidebarOpenClass(open) {
+    document.documentElement.classList.toggle("wc-sidebar-open", open);
+    document.body.classList.toggle("wc-sidebar-open", open);
+    document.querySelector('[data-testid="stApp"]')?.classList.toggle("wc-sidebar-open", open);
+  }
+
+  function syncBackdrop() {
+    syncQueued = false;
+    const open = isSidebarOpen();
+    setSidebarOpenClass(open);
+
+    let backdrop = document.getElementById("wc-sidebar-backdrop");
+    if (!open) {
+      backdrop?.remove();
+      return;
+    }
+
+    if (!backdrop) {
+      backdrop = document.createElement("button");
+      backdrop.id = "wc-sidebar-backdrop";
+      backdrop.type = "button";
+      backdrop.setAttribute("aria-label", "Đóng menu");
+      backdrop.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        collapseSidebar();
+      });
+      document.body.appendChild(backdrop);
+    }
+  }
+
+  function queueSyncBackdrop() {
+    if (syncQueued) return;
+    syncQueued = true;
+    requestAnimationFrame(syncBackdrop);
+  }
+
+  function onOutsidePointer(e) {
+    if (!isSidebarOpen()) return;
+    const sidebar = document.querySelector('[data-testid="stSidebar"]');
+    const target = e.target;
+    if (!sidebar || !target) return;
+    if (target.id === "wc-sidebar-backdrop") return;
+    if (sidebar.contains(target)) return;
+    if (target.closest?.('[data-testid="stSidebar"]')) return;
+    if (target.closest?.('[data-testid="collapsedControl"]')) return;
+    if (target.closest?.('[data-testid="stSidebarCollapseButton"]')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    collapseSidebar();
+  }
+
+  function handlePageChange() {
+    const path = location.pathname;
+    const prev = window.__wcSidebarLastPath;
+    window.__wcSidebarLastPath = path;
+    if (prev !== undefined && prev !== path) {
+      document.getElementById("wc-sidebar-backdrop")?.remove();
+      setSidebarOpenClass(false);
+      if (isSidebarOpen()) collapseSidebar();
+      setTimeout(queueSyncBackdrop, 120);
+      return;
+    }
+    queueSyncBackdrop();
+  }
+
+  function bindSidebarObserver() {
+    const sidebar = document.querySelector('[data-testid="stSidebar"]');
+    if (!sidebar || sidebar === window.__wcSidebarOverlayNode) return;
+    window.__wcSidebarOverlayObserver?.disconnect();
+    window.__wcSidebarOverlayNode = sidebar;
+    window.__wcSidebarOverlayObserver = new MutationObserver(queueSyncBackdrop);
+    window.__wcSidebarOverlayObserver.observe(sidebar, {
+      attributes: true,
+      attributeFilter: ["aria-expanded"],
+    });
+  }
+
+  window.__wcSidebarOverlaySync = queueSyncBackdrop;
+  window.__wcSidebarOverlayInit = true;
+
+  window.addEventListener("resize", queueSyncBackdrop);
+  window.addEventListener("popstate", handlePageChange);
+  document.addEventListener("click", onOutsidePointer, true);
+  document.addEventListener("touchend", onOutsidePointer, true);
+  new MutationObserver(() => {
+    handlePageChange();
+    bindSidebarObserver();
+  }).observe(document.body, { childList: true, subtree: true });
+
+  handlePageChange();
+  bindSidebarObserver();
+  queueSyncBackdrop();
+})();
+`;
+  topWin.document.head.appendChild(boot);
+})();
+</script>
+"""
+
+    import streamlit.components.v1 as components
+
+    components.html(_SIDEBAR_OVERLAY_BOOT, height=0, scrolling=False)
+
 @contextlib.contextmanager
 def custom_loader(text="Đang xử lý dữ liệu..."):
     loader_placeholder = st.empty()
@@ -374,7 +533,7 @@ def render_emoji_name_picker(draft_key: str, saved_name: str):
         if st.button("↩️ Reset", key=f"emoji_reset_{draft_key}", width="stretch"):
             _queue_name_draft(draft_key, saved_name)
     with btn3:
-        if st.button("🧹 Add", key=f"emoji_clear_{draft_key}", width="stretch"):
+        if st.button("🧹 Thêm", key=f"emoji_clear_{draft_key}", width="stretch"):
             cleaned = re.sub(r"[\U0001F300-\U0001FAFF\U00002600-\U000027BF]+", "", _draft_name(draft_key, saved_name)).strip()
             _queue_name_draft(draft_key, cleaned or saved_name)
 
@@ -418,7 +577,6 @@ def render_user_account_panel(
         f'<div class="account-meta">'
         f'<div class="account-label">Đang đăng nhập</div>'
         f'<div class="account-name">{html.escape(user_name)}</div>'
-        f'<div class="account-hint">Icon lấy từ emoji trong tên hiển thị</div>'
         f"</div></div></div>"
     )
 
@@ -528,7 +686,6 @@ def render_pred_match_header(
     team_b_fifa=None,
     name_to_fifa=None,
     kickoff_vn=None,
-    kickoff_et: str | None = None,
 ):
     ko_badge = '<span class="pred-ko-badge">KNOCK-OUT</span>' if is_knockout else ""
     saved_badge = '<span class="pred-saved-badge">Đã dự đoán</span>' if has_saved_pred else ""
@@ -538,13 +695,12 @@ def render_pred_match_header(
     if kickoff_vn is not None:
         try:
             kickoff_dt = kickoff_vn.to_pydatetime() if hasattr(kickoff_vn, "to_pydatetime") else kickoff_vn
-            et_line = html.escape(str(kickoff_et).strip()) if kickoff_et and str(kickoff_et).strip() else ""
-            et_suffix = f' · <span class="pred-kickoff-et">{et_line} ET</span>' if et_line else ""
             kickoff_html = (
                 f'<div class="pred-card-kickoff">'
-                f'🕐 {html.escape(format_time_vn(kickoff_dt))} UTC+7'
+                f'<div class="pred-kickoff-primary">'
+                f'🕐 {html.escape(format_time_vn(kickoff_dt))}'
                 f' · {html.escape(format_date_compact_vn(kickoff_dt))}'
-                f"{et_suffix}"
+                f"</div>"
                 f"</div>"
             )
         except (AttributeError, TypeError, ValueError):

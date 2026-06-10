@@ -60,7 +60,7 @@ def load_and_prep_data():
     matches_df = prep_matches(matches_raw, teams_df)
     return users_df, matches_df, preds_df, teams_df
 
-with custom_loader("Đang tải dữ liệu từ trung tâm dự đoán..."):
+with custom_loader("Đang tải dữ liệu ..."):
     users_df, matches_df, preds_df, teams_df = load_and_prep_data()
 
 name_to_id = {row["team_name"]: row["id"] for _, row in teams_df.iterrows()}
@@ -71,8 +71,8 @@ user_names = users_df["name"].tolist()
 
 if not st.session_state["authenticated_user_id"]:
     _html('<div class="login-page-wrap">')
-    col1, col2, col3 = st.columns([1, 2.2, 1])
-    with col2:
+    login_col = st.container()
+    with login_col:
         render_login_branding(title="Đăng nhập", eyebrow="Khu vực dự đoán", icon="✍️")
         _html('<div class="login-form-marker"></div>')
         with st.container(border=True):
@@ -128,7 +128,7 @@ def _render_one_match(row, selected_user_id, preds_df, id_to_name):
         row["match_number"], team_a, team_b, row["match_label"], is_knockout,
         has_saved_pred=has_saved,
         team_a_fifa=team_a_fifa, team_b_fifa=team_b_fifa, name_to_fifa=name_to_fifa,
-        kickoff_vn=row.get("kickoff_vn"), kickoff_et=row.get("kickoff_et"),
+        kickoff_vn=row.get("kickoff_vn"),
     )
 
     outcome = render_outcome_picker(
@@ -171,7 +171,7 @@ with tab1:
     if upcoming_matches.empty:
         st.info("Tất cả trận hiện tại đã khóa hoặc kết thúc. Không còn trận để dự đoán!")
     else:
-        upcoming_matches = upcoming_matches.sort_values(["kickoff_vn", "match_number"]).head(10)
+        upcoming_matches = upcoming_matches.sort_values(["kickoff_vn", "match_number"]).head(6)
         render_pred_page_banner(selected_user_name, len(upcoming_matches), saved_count)
         st.markdown('<div class="pred-form-actions-marker"></div>', unsafe_allow_html=True)
 
@@ -179,7 +179,7 @@ with tab1:
             user_inputs = {}
             use_two_cols = len(upcoming_matches) >= 3
             cols = st.columns(2, gap="large") if use_two_cols else [st.container()]
-            
+
             for i, (_, row) in enumerate(upcoming_matches.iterrows()):
                 col = cols[i % 2] if use_two_cols else cols[0]
                 with col:
@@ -286,5 +286,15 @@ with tab2:
 
         display_history["Dự đoán"] = display_history.apply(format_prediction, axis=1)
         final_table = display_history[["match_number", "match_label", "Dự đoán", "timestamp"]].rename(columns={"match_number": "Trận", "match_label": "Bảng/Vòng", "timestamp": "Thời gian"})
-        st.dataframe(final_table, width="stretch", hide_index=True)
+        st.dataframe(
+            final_table,
+            width="stretch",
+            hide_index=True,
+            column_config={
+                "Trận": st.column_config.NumberColumn("Trận", format="%d", width="small"),
+                "Bảng/Vòng": st.column_config.TextColumn("Bảng/Vòng", width="small"),
+                "Dự đoán": st.column_config.TextColumn("Dự đoán", width="large"),
+                "Thời gian": st.column_config.TextColumn("Thời gian", width="medium"),
+            },
+        )
     _html("</div>")

@@ -31,6 +31,8 @@
 
     --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
     --shadow-glow: 0 0 40px rgba(251, 191, 36, 0.08);
+
+    --login-panel-max-width: 480px;
 }
 
 /* ── Streamlit chrome cleanup ── */
@@ -51,7 +53,9 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
 .block-container {
     padding-top: 2rem !important;
     padding-bottom: 3rem !important;
-    max-width: 1280px;
+    max-width: min(1280px, 100%) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 /* ── Hamburger menu (mobile) ── */
@@ -336,8 +340,8 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     font-weight: 700 !important;
 }
 
-/* Mobile: sidebar emoji pills */
-@media (max-width: 768px) {
+/* Mobile / iPad portrait (≤769px): sidebar emoji pills */
+@media (max-width: 769px) {
     [data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPills"] button {
         flex: 0 0 calc(20% - 0.28rem) !important;
         min-width: 1.85rem !important;
@@ -1103,7 +1107,7 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
 [data-testid="stVerticalBlock"]:has(.pred-card-header),
 [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) {
     padding: 0 !important;
-    overflow: hidden;
+    overflow: visible;
     background: linear-gradient(180deg, rgba(15, 22, 41, 0.98) 0%, rgba(8, 12, 22, 0.99) 100%) !important;
     border-color: rgba(255, 255, 255, 0.09) !important;
     border-radius: var(--radius-lg) !important;
@@ -1138,6 +1142,8 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     padding: 0.9rem 1.1rem 0;
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(99, 102, 241, 0.05) 45%, transparent 100%);
     margin-bottom: 0;
+    overflow: hidden;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .pred-card-divider {
@@ -1174,15 +1180,19 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
 }
 
 .pred-card-kickoff {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
     margin: 0.15rem 0 0.65rem;
+    text-align: center;
+}
+
+.pred-kickoff-primary {
     font-size: 0.76rem;
     font-weight: 650;
     color: var(--text-secondary);
-}
-
-.pred-kickoff-et {
-    color: var(--text-muted);
-    font-weight: 600;
+    line-height: 1.35;
 }
 
 .pred-ko-badge {
@@ -1231,11 +1241,13 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
 }
 
 .pred-side-name {
-    font-size: 1.15rem;
+    font-size: 1.02rem;
     font-weight: 900;
     color: var(--text-primary);
-    line-height: 1.1;
-    word-break: break-word;
+    line-height: 1.2;
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
     display: block;
     width: 100%;
 }
@@ -1244,11 +1256,20 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     font-size: inherit;
     font-weight: inherit;
     color: inherit;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: inherit;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .pred-side-name .team-line-name {
     font-size: inherit;
     font-weight: inherit;
+    word-break: normal;
+    overflow-wrap: break-word;
+    min-width: 0;
+    flex: 1 1 auto;
 }
 
 .pred-card-vs-ring {
@@ -1275,7 +1296,7 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
 .pred-card-body ~ [data-testid="stElementContainer"],
 [data-testid="stVerticalBlock"]:has(.pred-card-body) [data-testid="stElementContainer"],
 [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-body) [data-testid="stElementContainer"] {
-    padding-left: 1.1rem !important;
+    /* padding-left: 1.1rem !important; */
     padding-right: 1.1rem !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
@@ -1350,6 +1371,15 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     background: rgba(255, 255, 255, 0.06) !important;
     color: var(--text-primary) !important;
     border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_control"]:focus:not([data-testid="stBaseButton-segmented_controlActive"]),
+[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_control"]:focus:not([data-testid="stBaseButton-segmented_controlActive"]) {
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: var(--text-secondary) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.28) !important;
+    outline: none !important;
 }
 
 /* Selected — override Streamlit primaryColor (#fbbf24) via stBaseButton-segmented_controlActive */
@@ -1559,10 +1589,27 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
 .pred-form-actions {
     position: sticky;
     bottom: 0;
-    z-index: 10;
-    background: linear-gradient(180deg, transparent 0%, var(--bg-primary) 30%);
-    padding: 1rem 0 0.5rem;
-    margin-top: 0.5rem;
+    z-index: 20;
+    background: linear-gradient(180deg, rgba(7, 11, 20, 0) 0%, rgba(7, 11, 20, 0.88) 35%, var(--bg-primary) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.85rem 0 0.65rem;
+    margin-top: 0.75rem;
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+}
+
+[data-testid="stForm"]:has(.pred-form-actions) {
+    padding-bottom: 0.25rem;
+    overflow: visible !important;
+}
+
+[data-testid="stForm"]:has(.pred-form-actions) [data-testid="stFormSubmitButton"] button,
+[data-testid="stForm"]:has(.pred-form-actions) [data-testid="stFormSubmitButton"] > button {
+    min-height: 2.85rem !important;
+    font-weight: 750 !important;
+    box-shadow: 0 8px 24px rgba(251, 191, 36, 0.18) !important;
 }
 
 .pred-match-block {
@@ -1590,11 +1637,21 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
 
 /* ── Login screen (Du_Doan) ── */
 .login-page-wrap {
-    margin: 0.5rem 0 2rem;
+    margin: 0.5rem auto 2rem;
+    max-width: min(var(--login-panel-max-width), 100%);
+    width: 100%;
+}
+
+/* Streamlit login column — align form with header card width */
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .login-form-marker) {
+    max-width: min(var(--login-panel-max-width), 100%);
+    width: 100%;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
 
 .login-shell {
-    max-width: 480px;
+    max-width: var(--login-panel-max-width);
     margin: 0 auto;
 }
 
@@ -1681,9 +1738,8 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     border-radius: 999px;
 }
 
-.login-form-marker + div[data-testid="stVerticalBlockBorderWrapper"] {
-    max-width: 480px;
-    margin: 0 auto !important;
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .login-form-marker)
+[data-testid="stVerticalBlock"]:has([data-testid="stForm"]) {
     border-radius: 0 0 var(--radius-xl) var(--radius-xl) !important;
     border-color: var(--border-subtle) !important;
     background: var(--bg-card) !important;
@@ -1691,7 +1747,8 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     box-shadow: var(--shadow-card);
 }
 
-.login-form-marker + div[data-testid="stVerticalBlockBorderWrapper"] label {
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .login-form-marker)
+[data-testid="stVerticalBlock"]:has([data-testid="stForm"]) label {
     font-size: 0.78rem !important;
     font-weight: 600 !important;
     color: var(--text-secondary) !important;
@@ -1699,13 +1756,15 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     letter-spacing: 0.06em;
 }
 
-.login-form-marker + div[data-testid="stVerticalBlockBorderWrapper"] input {
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .login-form-marker)
+[data-testid="stVerticalBlock"]:has([data-testid="stForm"]) input {
     border-radius: 10px !important;
     background: rgba(255, 255, 255, 0.04) !important;
     border-color: var(--border-subtle) !important;
 }
 
-.login-form-marker + div[data-testid="stVerticalBlockBorderWrapper"] .stButton > button[kind="primary"] {
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .login-form-marker)
+[data-testid="stVerticalBlock"]:has([data-testid="stForm"]) .stButton > button[kind="primary"] {
     margin-top: 0.35rem !important;
     min-height: 2.75rem !important;
     font-weight: 700 !important;
@@ -1715,7 +1774,8 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
 }
 
-.login-form-marker + div[data-testid="stVerticalBlockBorderWrapper"] .stButton > button[kind="primary"]:hover {
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .login-form-marker)
+[data-testid="stVerticalBlock"]:has([data-testid="stForm"]) .stButton > button[kind="primary"]:hover {
     box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45) !important;
     transform: translateY(-1px);
 }
@@ -1746,7 +1806,7 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
 
 /* Legacy alias */
 .login-card {
-    max-width: 480px;
+    max-width: var(--login-panel-max-width);
     margin: 0 auto;
 }
 
@@ -1968,11 +2028,112 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
 }
 
 /* ── Responsive ── */
-@media (max-width: 768px) {
-    .block-container {
+
+/* Sidebar overlay ≤1330px: main không co/giãn khi open/close sidebar */
+@media (max-width: 1330px) {
+    [data-testid="stSidebar"] {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        z-index: 1000001 !important;
+        width: min(320px, 28vw) !important;
+        min-width: min(320px, 28vw) !important;
+        max-width: min(320px, 28vw) !important;
+    }
+
+    [data-testid="stSidebarCollapseButton"] {
+        position: relative !important;
+        z-index: 1000003 !important;
+    }
+
+    [data-testid="stSidebarCollapseButton"] button,
+    [data-testid="stSidebarCollapseButton"] [data-testid="stBaseButton-headerNoPadding"] {
+        position: relative !important;
+        z-index: 1000003 !important;
+        pointer-events: auto !important;
+    }
+
+    #wc-sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 11, 20, 0.55);
+        z-index: 1000000;
+        cursor: pointer;
+        border: none;
+        padding: 0;
+        animation: wc-backdrop-in 0.2s ease;
+        pointer-events: auto !important;
+    }
+
+    html.wc-sidebar-open [data-testid="stAppViewContainer"] > :not([data-testid="stSidebar"]),
+    body.wc-sidebar-open [data-testid="stAppViewContainer"] > :not([data-testid="stSidebar"]),
+    .wc-sidebar-open [data-testid="stMain"],
+    .wc-sidebar-open [data-testid="stMainBlockContainer"] {
+        pointer-events: none !important;
+    }
+
+    html.wc-sidebar-open [data-testid="stSidebar"],
+    body.wc-sidebar-open [data-testid="stSidebar"],
+    html.wc-sidebar-open #wc-sidebar-backdrop,
+    body.wc-sidebar-open #wc-sidebar-backdrop {
+        pointer-events: auto !important;
+    }
+
+    [data-testid="stSidebar"][aria-expanded="true"] {
+        transform: none !important;
+    }
+
+    header,
+    [data-testid="stHeader"],
+    [data-testid="stToolbar"] {
+        z-index: 998 !important;
+    }
+
+    @keyframes wc-backdrop-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    [data-testid="stAppViewContainer"] > [data-testid="stMain"],
+    [data-testid="stAppViewContainer"] > section[data-testid="stMain"],
+    [data-testid="stAppViewContainer"] > .main,
+    section.main {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 100% !important;
+    }
+
+    [data-testid="stAppViewContainer"] {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .stApp [data-testid="stMainBlockContainer"],
+    .stApp .main .block-container {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 769px) {
+    .block-container,
+    .stApp .main .block-container,
+    [data-testid="stMainBlockContainer"] {
+        max-width: 100% !important;
+        width: 100% !important;
         padding-top: 4.5rem !important;
         padding-left: 1rem !important;
         padding-right: 1rem !important;
+        box-sizing: border-box !important;
+    }
+
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMain"],
+    section.main > div {
+        max-width: 100% !important;
     }
 
     [data-testid="stSidebar"] {
@@ -2042,17 +2203,63 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
         font-size: 0.72rem !important;
     }
 
-    [data-testid="stForm"] > div > div[data-testid="stHorizontalBlock"] {
-        flex-direction: column !important;
+    [data-testid="stForm"]:has(.pred-form-actions) {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-bottom: 5.5rem;
+        overflow: visible !important;
     }
 
-    [data-testid="stForm"] > div > div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] {
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"],
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > div[data-testid="column"] {
         width: 100% !important;
         min-width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 100% !important;
+    }
+
+    [data-testid="stVerticalBlock"]:has(.pred-card-header),
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-bottom: 1.25rem !important;
+        overflow: visible !important;
+    }
+
+    .pred-card-matchup {
+        gap: 0.5rem;
+    }
+
+    .pred-card-side {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .pred-side-name .team-line {
+        flex-wrap: nowrap !important;
+        align-items: center;
+    }
+
+    .pred-side-name .team-line--a {
+        justify-content: flex-end;
+    }
+
+    .pred-side-name .team-line--b {
+        justify-content: flex-start;
     }
 
     .pred-side-name {
         font-size: 0.95rem;
+    }
+
+    .pred-kickoff-primary {
+        font-size: 0.74rem;
     }
 
     .team-flag--md {
@@ -2079,6 +2286,13 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) > div > [data-testid="stElementContainer"] {
         padding-left: 0.85rem !important;
         padding-right: 0.85rem !important;
+    }
+
+    .pred-form-actions {
+        margin-left: -1rem;
+        margin-right: -1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
     .match-card {
@@ -2157,7 +2371,8 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
         font-size: 0.85rem;
     }
 
-    .login-form-marker + div[data-testid="stVerticalBlockBorderWrapper"] {
+    [data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .login-form-marker)
+    [data-testid="stVerticalBlock"]:has([data-testid="stForm"]) {
         padding: 1.1rem 1rem 1.25rem !important;
         border-radius: 0 0 var(--radius-lg) var(--radius-lg) !important;
     }
@@ -2175,6 +2390,81 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
 @media (min-width: 1200px) {
     .block-container {
         max-width: 1360px;
+    }
+}
+
+@media (min-width: 770px) and (max-width: 1100px) {
+    [data-testid="stVerticalBlock"]:has(.pred-card-header),
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) {
+        overflow: visible !important;
+    }
+
+    .pred-card-vs-ring {
+        width: 2.35rem;
+        height: 2.35rem;
+        flex-shrink: 0;
+    }
+
+    .pred-side-name {
+        font-size: 0.94rem;
+    }
+
+    .pred-side-name .team-line {
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+}
+
+@media (min-width: 770px) and (max-width: 1100px) {
+    .block-container,
+    .stApp .main .block-container,
+    [data-testid="stMainBlockContainer"] {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+    }
+
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMain"],
+    section.main > div {
+        max-width: 100% !important;
+    }
+
+    .pred-form-actions {
+        margin-left: -1.5rem;
+        margin-right: -1.5rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+@media (min-width: 770px) {
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        align-items: flex-start !important;
+        gap: 1.25rem !important;
+    }
+
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"],
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        flex: 1 1 0 !important;
+    }
+
+    .pred-side-name {
+        font-size: 1.02rem;
+    }
+
+    .pred-card-matchup {
+        gap: 0.55rem;
+    }
+
+    .pred-card-vs-ring {
+        width: 2.5rem;
+        height: 2.5rem;
     }
 }
 
