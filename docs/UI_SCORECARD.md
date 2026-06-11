@@ -314,10 +314,12 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 | 2 | FAB đóng: hamburger CSS, ẩn SVG Streamlit | `style.css` | Done |
 | 3 | FAB mở: collapse `✕` cùng style, góc phải sidebar | `style.css` | Done |
 | 4 | `wc-sidebar-open` ẩn expand FAB | `style.css` + boot v5 | Done |
-| 5 | Desktop ≥901px: pill + label **Menu** | `style.css` | Done |
+| 5 | Desktop ≥901px: pill + label **Menu** | `style.css` | ~~Done~~ → **removed 2.25** |
 | 6 | Tests + verify script | `tests/`, `scripts/` | Done |
 
-**Verify:** FAB nổi trên nền tối · mở sidebar → FAB ẩn, nút ✕ hiện · click-outside ≤1330px OK
+**Sprint 2.25 (post-deploy):** FAB icon-only mọi breakpoint · sidebar overlay + backdrop + click-outside **mọi viewport** (bỏ giới hạn ≤1330px / push reflow desktop) · boot v6.
+
+**Verify:** FAB hamburger icon-only · mở sidebar → FAB ẩn, nút ✕ hiện · click-outside mọi width OK
 
 **Hotfix 2.2b (audit user):** Streamlit ≥1.58 gán `stExpandSidebarButton` trực tiếp lên `<button>` (không còn wrapper). CSS cũ chỉ target `… button` → lúc đóng vẫn hiện chevron `>>` 28px. Đã thêm selector trực tiếp + ẩn `stIconMaterial`.
 
@@ -331,31 +333,105 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 
 ---
 
-## Tiếp theo (Sprint 2.3+)
+## Sprint 2.25 — Sidebar overlay all viewports (2026-06-11)
 
-- [x] **Sprint 2.2 — Menu button redesign** *(user feedback P1)*
-- [x] Card layout mobile + equal height (Sprint 2.15)
-- [x] Push Sprint 2.x production (`70c2094` + `34cde55`)
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 1 | Bỏ label "Menu" — FAB icon-only mọi breakpoint | `assets/style.css` | ✅ Done |
+| 2 | Overlay + click-outside mọi viewport (không còn ≤1330px) | `assets/style.css`, `ui_components.py` boot v6 | ✅ Done |
 
-### Sprint 2.3 — Interaction polish (P1, ~1–2 ngày)
+---
 
-| # | Việc | File | Effort |
-|---|------|------|--------|
-| 1 | Badge "Đã dự đoán" sync real-time với picker | `ui_components.py`, `pages/1_Du_Doan.py` | S |
-| 2 | Caption lịch sử momentum ("3/5 trận đúng tuần này") | `pages/1_Du_Doan.py`, `scoring.py` | S |
+## Sprint 2.5 — Admin scorecard (2026-06-11)
 
-### Sprint 2.4 — Infra resilience (~nửa ngày)
+### Audit — TRƯỚC fix
 
-| # | Việc | File | Effort |
-|---|------|------|--------|
-| 1 | GitHub Action: `pytest` + `verify_sidebar_overlay.py` on push | `.github/workflows/` | S |
-| 2 | Migrate `components.html` → `st.iframe` (deprecation 2026-06-01) | `ui_components.py` | S |
+| Tiêu chí | Desktop | Tablet | Mobile | Ghi chú |
+|----------|---------|--------|--------|---------|
+| Visual design | 6.5 | 6.5 | 6.0 | Kickoff `UTC+7` lệch app |
+| Form density | 5.5 | 5.0 | 4.5 | Tab Sửa/Khóa render 104 rows |
+| Interaction safety | 5.0 | 5.0 | 5.0 | Default 0–0, KO submit all |
+| **Tổng** | **5.7** | **5.5** | **5.2** | Risk cao trước kickoff |
+
+### Fix áp dụng
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| B1 | Kickoff `02:00 · T6, 12/06` (bỏ UTC+7) | `pages/2_Lich_Thi_Dau.py` | ✅ Done |
+| B2 | Chống submit 0–0 / thiếu tỉ số | `pages/2_Lich_Thi_Dau.py` | ✅ Done |
+| B3 | Pagination tab Sửa + Khóa (slider 5–50) | `pages/2_Lich_Thi_Dau.py` | ✅ Done |
+| B4 | Preview trước submit | `pages/2_Lich_Thi_Dau.py` | ✅ Done |
+| B5 | Knockout tab checkbox xác nhận | `pages/2_Lich_Thi_Dau.py` | ✅ Done |
+| B6 | Login form ~480px | `login-form-marker` reuse | ✅ Done |
+
+### Điểm sau Sprint 2.5
+
+| Tiêu chí | Desktop | Tablet | Mobile |
+|----------|---------|--------|--------|
+| Visual design | **8.0** | 7.8 | 7.5 |
+| Form density | **8.5** | 8.0 | 8.0 |
+| Interaction safety | **8.5** | 8.5 | 8.0 |
+| **Tổng** | **8.3** | **8.1** | **7.8** |
+
+---
+
+## Sprint 2.3 — Interaction polish (2026-06-11)
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 1 | Badge sync: `Đã dự đoán` / `Chưa lưu` | `ui_components.py`, `pages/1_Du_Doan.py` | ✅ Done |
+| 2 | Caption momentum lịch sử | `scoring.py`, `pages/1_Du_Doan.py` | ✅ Done |
+
+**Interaction clarity target:** 9.2
+
+---
+
+## Sprint 2.4 — Infra resilience (2026-06-11)
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 1 | GitHub Action pytest + Playwright | `.github/workflows/ci.yml` | ✅ Done |
+| 2 | Boot sidebar v6; giữ `components.html` (iframe `srcdoc` lỗi trên Streamlit 1.58) | `ui_components.py` | ✅ Done |
+
+**CI gate:** ✅
+
+---
+
+## Sprint 3 — Bảng đấu (2026-06-11)
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 3a | `compute_group_standings()` + tests | `group_standings_service.py` | ✅ Done |
+| 3b | Group dot màu card dự đoán | `ui_components.py` (đã có `pred-card-group-dot`) | ✅ Done |
+| 3b | Trang Bảng đấu grid 12 bảng | `pages/5_Bang_Dau.py` | ✅ Done |
+| 3c | Cross-link → Lịch thi đấu `?group=A` | `pages/4_Xem_Lich_Thi_Dau.py` | ✅ Done |
+
+---
+
+## Sprint 4 — Growth hooks (2026-06-11)
+
+| # | Việc | Trạng thái |
+|---|------|------------|
+| Share card + copy text | `render_share_card()`, tab Dự đoán + Lịch sử | ✅ Done |
+| Leaderboard Δ / snapshot | — | ❌ Bỏ (cần thao tác manual, không auto trên Cloud) |
+| Home rank teaser | — | ❌ Bỏ (phụ thuộc snapshot) |
+| Email/push digest | — | ❌ Bỏ (closed group) |
+
+---
+
+## Tiếp theo
+
+- [x] Sprint 2.5 Admin audit + fix
+- [x] Sprint 2.3 badge + momentum
+- [x] Sprint 2.4 CI
+- [x] Sprint 3 bảng đấu
+- [x] Sprint 4 share card *(rank Δ bỏ)*
 
 ### Backlog P2
 
-- [ ] Group label dot màu trên card dự đoán *(reuse `GROUP_COLORS` — chuẩn bị Sprint 3)*
-- [ ] Audit trang Lịch thi đấu (scorecard riêng)
-- [ ] Admin bulk score UX (risk cao trước kickoff WC)
+- [ ] Audit scorecard riêng: Lịch thi đấu, Home
+- [ ] Thứ tự card iPad stack (0,2,4,1,3)
+- [ ] Knockout bracket 32 đội (Sprint 3d)
 
 ---
 
@@ -422,6 +498,11 @@ flowchart TB
 | 2026-06-11 | Lịch sử — sprint 2.1 | **8.9** | **8.7** | **8.8** | Split columns, verdict, FIFA compact |
 | 2026-06-11 | Polish — sprint 2.15 | 8.8 | 8.8 | **9.0** | Sidebar fix, card layout, cờ VS, knockout label |
 | 2026-06-11 | Menu button — sprint 2.2b | 8.7 | 8.7 | **9.0** | Streamlit 1.58 direct-button FAB fix |
+| 2026-06-11 | Sidebar — sprint 2.25 | 8.7 | 8.7 | **9.0** | Overlay all viewports, icon-only FAB |
+| 2026-06-11 | Admin — sprint 2.5 | **8.3** | 8.1 | 7.8 | Pagination, preview, kickoff sync |
+| 2026-06-11 | Interaction — sprint 2.3 | **8.9** | 8.8 | 8.8 | Badge draft/saved, momentum caption |
+| 2026-06-11 | Bảng đấu — sprint 3 | — | — | — | 12 groups + cross-link fixtures |
+| 2026-06-11 | Growth — sprint 4 | — | — | — | Share card *(rank Δ bỏ)* |
 
 ---
 
@@ -429,11 +510,11 @@ flowchart TB
 
 1. **Dự đoán** — card trận ✅, tabs, lịch sử table ✅ (split columns + verdict Sprint 2.1)
 2. **Lịch thi đấu** — fixture rows ✅, filter toolbar (chưa scorecard)
-3. **Bảng đấu** — 12 groups visualize *(Sprint 3 — planned)*
+3. **Bảng đấu** — 12 groups visualize ✅ *(Sprint 3)*
 4. **Home** — CTA grid, rules
 5. **Bảng xếp hạng** — podium, charts, detail table
-6. **Admin** — form density, kickoff display
-7. **Global** — sidebar overlay ✅, click-outside ✅, login ✅, **menu FAB ✅ (2.2)**
+6. **Admin** — pagination, preview, kickoff ✅ *(Sprint 2.5)*
+7. **Global** — sidebar overlay all viewports ✅, login ✅, menu FAB icon-only ✅
 
 ---
 

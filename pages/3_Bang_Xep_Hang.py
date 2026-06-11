@@ -71,7 +71,9 @@ if not merged_df.empty:
         leaderboard["points"], leaderboard["fines"] = leaderboard["points"].fillna(0).astype(int), leaderboard["fines"].fillna(0).astype(int)
         leaderboard = leaderboard.sort_values(by=["points", "fines"], ascending=[False, True]).reset_index(drop=True)
         leaderboard["Hạng"] = leaderboard.index + 1
-        display_df = leaderboard[["Hạng", "name", "points", "fines"]].rename(columns={"name": "Người chơi", "points": "Tổng điểm", "fines": "Tiền phạt (k)"})
+        display_df = leaderboard[["Hạng", "name", "points", "fines"]].rename(
+            columns={"name": "Người chơi", "points": "Tổng điểm", "fines": "Tiền phạt (k)"}
+        )
 
         if len(display_df) >= 1: render_podium([(display_df.iloc[i]["Người chơi"], int(display_df.iloc[i]["Tổng điểm"])) for i in range(min(3, len(display_df)))])
         render_stat_cards([

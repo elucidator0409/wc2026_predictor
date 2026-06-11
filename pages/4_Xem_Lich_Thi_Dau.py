@@ -24,12 +24,17 @@ apply_global_styles()
 sync_auth_session()
 render_sidebar()
 
+group_filter_param = st.query_params.get("group", "").strip().upper()
+
 render_page_header(
     "🏟️ Lịch thi đấu & kết quả",
     "104 trận World Cup 2026 — giờ Việt Nam (UTC+7)",
     variant="fix",
     eyebrow="Fixtures & Results",
 )
+
+if group_filter_param:
+    st.info(f"Đang lọc **Bảng {group_filter_param}** — [Xem tất cả](?group=)")
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -65,8 +70,13 @@ st.markdown(
 tab1, tab2 = st.tabs(["⚽ Các trận sắp tới", "✅ Các trận đã kết thúc"])
 
 
-def _filter_matches(df: pd.DataFrame, search: str, stage_filter: str) -> pd.DataFrame:
+def _filter_matches(df: pd.DataFrame, search: str, stage_filter: str, group_letter: str = "") -> pd.DataFrame:
     filtered = df.copy()
+    if group_letter:
+        filtered = filtered[
+            filtered["group_round"].astype(str).str.upper().str.contains(f"GROUP {group_letter}", na=False)
+            | filtered["match_label"].astype(str).str.upper().str.contains(f"BẢNG {group_letter}", na=False)
+        ]
     if stage_filter == "Vòng bảng":
         filtered = filtered[filtered.apply(lambda r: is_group_stage(r.get("group_round"), r.get("stage_id")), axis=1)]
     elif stage_filter == "Knock-out":
@@ -108,7 +118,7 @@ def render_matches_list(df: pd.DataFrame, is_finished: bool = False) -> None:
             width="stretch",
         )
 
-    filtered = _filter_matches(df, search, stage_filter)
+    filtered = _filter_matches(df, search, stage_filter, group_filter_param)
     if filtered.empty:
         st.warning("Không tìm thấy trận phù hợp.")
         return

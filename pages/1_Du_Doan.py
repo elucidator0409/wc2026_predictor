@@ -10,6 +10,7 @@ from schedule_service import match_round_label_vn
 from scoring import (
     calculate_fines,
     calculate_points,
+    format_history_momentum,
     format_history_timestamp,
     format_history_verdict,
     format_matchup_display,
@@ -27,6 +28,8 @@ from ui_components import (
     render_pred_confirm_checkbox,
     render_pred_match_header,
     render_pred_page_banner,
+    render_pred_history_desktop_table,
+    render_pred_history_mobile_section,
     render_pred_tabs,
     render_sidebar,
     render_user_account_panel,
@@ -132,7 +135,18 @@ def _render_one_match(row, selected_user_id, preds_df, id_to_name):
     old_adv_id = old_pred["pred_advanced_team_id"].values[0] if not old_pred.empty and pd.notna(old_pred["pred_advanced_team_id"].values[0]) else None
     old_adv_name = id_to_name.get(str(old_adv_id), "TBD") if old_adv_id else team_a
 
-    has_saved = not old_pred.empty and bool(normalize_pred_outcome(old_pred["pred_outcome"].values[0]))
+    saved_outcome = normalize_pred_outcome(old_pred["pred_outcome"].values[0]) if not old_pred.empty else None
+    has_saved = saved_outcome is not None
+    picker_key = f"outcome_{selected_user_id}_{m_id}"
+    current_outcome = normalize_pred_outcome(st.session_state.get(picker_key, default_outcome))
+
+    pred_badge = None
+    if has_saved and current_outcome == saved_outcome:
+        pred_badge = "saved"
+    elif has_saved and current_outcome != saved_outcome:
+        pred_badge = "draft"
+    elif not has_saved and current_outcome and current_outcome != default_outcome:
+        pred_badge = "draft"
 
     render_pred_match_header(
         row["match_number"], team_a, team_b,
@@ -140,6 +154,7 @@ def _render_one_match(row, selected_user_id, preds_df, id_to_name):
         stage_id=row.get("stage_id"),
         is_knockout=is_knockout,
         has_saved_pred=has_saved,
+        pred_badge=pred_badge,
         team_a_fifa=team_a_fifa, team_b_fifa=team_b_fifa, name_to_fifa=name_to_fifa,
         kickoff_vn=row.get("kickoff_vn"),
     )
@@ -275,14 +290,17 @@ with tab1:
                 st.session_state["chk_reset_counter"] += 1
                 st.cache_data.clear()
 
-                if ignored_matches: st.session_state["success_msg_pred"] = "⚠️ Một số trận đã bị khóa trước khi lưu. Các trận còn lại đã cập nhật!"
-                else: st.session_state["success_msg_pred"] = "🎉 Đã lưu dự đoán lên Cloud thành công!"
+                if ignored_matches:
+                    st.session_state["success_msg_pred"] = "⚠️ Một số trận đã bị khóa trước khi lưu. Các trận còn lại đã cập nhật!"
+                else:
+                    st.session_state["success_msg_pred"] = "🎉 Đã lưu dự đoán lên Cloud thành công!"
                 st.rerun()
 
 with tab2:
+    _html('<div class="pred-history-panel-marker" aria-hidden="true"></div>')
     _html(
-        f'<div class="pred-history-panel">'
         f'<div class="pred-history-title">📜 Lịch sử — {html.escape(selected_user_name)}</div>'
+        f'<div class="pred-history-caption">Số trận chính thức · chỉ hiện trận bạn đã dự đoán</div>'
     )
     user_history_df = preds_df[preds_df["user_id"] == selected_user_id].copy()
 
@@ -364,22 +382,10 @@ with tab2:
         if total_fines > 0:
             summary_parts.append(f"phạt {total_fines}k")
         summary_text = " · ".join(summary_parts)
+        momentum = format_history_momentum(display_history)
+        if momentum:
+            summary_text = f"{momentum} · {summary_text}"
 
-        final_table = display_history[
-            ["match_number", "Bảng", "Trận đấu", "Dự đoán", "Kết quả", "Thời gian dự đoán"]
-        ].rename(columns={"match_number": "Trận"})
-        st.dataframe(
-            final_table,
-            width="stretch",
-            hide_index=True,
-            column_config={
-                "Trận": st.column_config.NumberColumn("Trận", format="%d", width="small"),
-                "Bảng": st.column_config.TextColumn("Bảng", width="small"),
-                "Trận đấu": st.column_config.TextColumn("Trận đấu", width="medium"),
-                "Dự đoán": st.column_config.TextColumn("Dự đoán", width="small"),
-                "Kết quả": st.column_config.TextColumn("Kết quả", width="medium"),
-                "Thời gian dự đoán": st.column_config.TextColumn("Thời gian dự đoán", width="small"),
-            },
-        )
+        render_pred_history_mobile_section(display_history)
+        render_pred_history_desktop_table(display_history)
         _html(f'<div class="pred-history-summary">{html.escape(summary_text)}</div>')
-    _html("</div>")

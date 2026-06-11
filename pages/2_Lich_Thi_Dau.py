@@ -3,7 +3,15 @@ import streamlit as st
 
 from data_service import init_connection, prep_matches, read_sheet
 from schedule_service import format_date_compact_vn, format_time_vn
-from ui_components import apply_global_styles, custom_loader, render_page_header, render_sidebar, sync_auth_session, _get_col_letter
+from ui_components import (
+    _get_col_letter,
+    apply_global_styles,
+    custom_loader,
+    render_page_header,
+    render_sidebar,
+    sync_auth_session,
+    _html,
+)
 
 st.set_page_config(page_title="Admin - Cập Nhật Kết Quả", page_icon="🔒", layout="wide")
 
@@ -11,10 +19,12 @@ apply_global_styles()
 sync_auth_session()
 render_sidebar()
 
-if "admin_logged_in" not in st.session_state: st.session_state["admin_logged_in"] = False
+if "admin_logged_in" not in st.session_state:
+    st.session_state["admin_logged_in"] = False
 
 if not st.session_state["admin_logged_in"]:
     render_page_header("⚙️ Góc của Elu", "Đăng nhập để thao túng kết quả trận đấu", variant="admin", eyebrow="Admin Panel")
+    _html('<div class="login-form-marker admin-login-marker"></div>')
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login_form"):
@@ -22,12 +32,14 @@ if not st.session_state["admin_logged_in"]:
             submit_login = st.form_submit_button("Đăng nhập", type="primary", width="stretch")
             if submit_login:
                 correct_admin_pass = st.secrets.get("admin_password", "")
-                if not correct_admin_pass: st.error("⚠️ Chưa cấu hình mật khẩu Admin (thiếu secrets.toml).")
+                if not correct_admin_pass:
+                    st.error("⚠️ Chưa cấu hình mật khẩu Admin (thiếu secrets.toml).")
                 elif pwd == correct_admin_pass:
                     st.session_state["admin_logged_in"] = True
                     st.success("Đăng nhập thành công!")
                     st.rerun()
-                else: st.error("❌ Sai mật khẩu.")
+                else:
+                    st.error("❌ Sai mật khẩu.")
     st.stop()
 
 col_title, col_logout = st.columns([8, 1])
@@ -42,6 +54,7 @@ if "success_msg" in st.session_state:
 
 render_page_header("⚙️ Quản trị kết quả", "Cập nhật tỉ số, cặp knock-out và khóa trận đấu", variant="admin", eyebrow="Admin Panel")
 
+
 @st.cache_data(ttl=300, show_spinner=False)
 def load_matches_data():
     sh = init_connection()
@@ -49,6 +62,7 @@ def load_matches_data():
     teams_df = read_sheet(sh, "teams")
     teams_df.replace("", pd.NA, inplace=True)
     return prep_matches(matches_raw, teams_df), teams_df
+
 
 with custom_loader("Đang đồng bộ dữ liệu quản trị..."):
     matches_df, teams_df = load_matches_data()
@@ -61,17 +75,6 @@ id_to_name = {str(row["id"]): row["team_name"] for _, row in teams_df.iterrows()
 pending_matches = matches_df[matches_df["real_score_a"].isna() | matches_df["real_score_b"].isna()]
 finished_matches = matches_df[matches_df["real_score_a"].notna() & matches_df["real_score_b"].notna()]
 
-def _kickoff_label(row) -> str:
-    kickoff = row.get("kickoff_vn")
-    if kickoff is None:
-        return ""
-    try:
-        dt = kickoff.to_pydatetime() if hasattr(kickoff, "to_pydatetime") else kickoff
-        return f"🕐 {format_time_vn(dt)} UTC+7 · {format_date_compact_vn(dt)}"
-    except (AttributeError, TypeError, ValueError):
-        return ""
-
-
 pending_matches = pending_matches.sort_values(["kickoff_vn", "match_number"])
 finished_matches = finished_matches.sort_values(["kickoff_vn", "match_number"])
 knockout_matches_sorted = matches_df[matches_df["stage_id"] > 1].sort_values(["kickoff_vn", "match_number"])
@@ -79,9 +82,30 @@ to_lock_matches_sorted = matches_df[
     (matches_df["real_score_a"].isna() | matches_df["real_score_b"].isna())
 ].sort_values(["kickoff_vn", "match_number"])
 
-tab_options = ["🔴 Chờ cập nhật", "🟢 Chỉnh sửa đã đá", "⚙️ Vòng Knock-out", "🔒 Khóa trận"]
-active_tab = st.radio("Chọn chức năng:", tab_options, horizontal=True, key="active_tab", label_visibility="collapsed")
-st.write("---")
+
+def _kickoff_label(row) -> str:
+    kickoff = row.get("kickoff_vn")
+    if kickoff is None:
+        return ""
+    try:
+        dt = kickoff.to_pydatetime() if hasattr(kickoff, "to_pydatetime") else kickoff
+        return f"🕐 {format_time_vn(dt)} · {format_date_compact_vn(dt)}"
+    except (AttributeError, TypeError, ValueError):
+        return ""
+
+
+def _match_id(row) -> str:
+    return str(row["match_id"] if "match_id" in row else row["id"])
+
+
+def _score_preview_line(team_a: str, team_b: str, ra, rb, adv_team: str = "TBD") -> str:
+    if ra is None or rb is None:
+        return f"Trận {team_a} vs {team_b}: chưa nhập tỉ số"
+    line = f"{team_a} {int(ra)}–{int(rb)} {team_b}"
+    if adv_team and adv_team != "TBD":
+        line += f" (PEN: {adv_team})"
+    return line
+
 
 def _apply_admin_updates(admin_inputs_dict, update_type="score"):
     sh = init_connection()
@@ -91,21 +115,24 @@ def _apply_admin_updates(admin_inputs_dict, update_type="score"):
     raw_df.replace("", pd.NA, inplace=True)
     id_col = "id" if "id" in raw_df.columns else "match_id"
 
-    # Đảm bảo các cột cần thiết tồn tại
     for col in ("real_score_a", "real_score_b", "real_advanced_team_id", "home_team_id", "away_team_id", "is_locked"):
-        if col not in raw_df.columns: raw_df[col] = None
+        if col not in raw_df.columns:
+            raw_df[col] = None
 
     updates = []
     for m_id, payload in admin_inputs_dict.items():
         idx_list = raw_df.index[raw_df[id_col].astype(str) == m_id].tolist()
-        if not idx_list: continue
+        if not idx_list:
+            continue
         idx = idx_list[0]
-        
+
         if update_type == "score":
             ra, rb, adv_t, is_ko = payload
             raw_df.loc[idx, "real_score_a"] = str(ra)
             raw_df.loc[idx, "real_score_b"] = str(rb)
-            raw_df.loc[idx, "real_advanced_team_id"] = str(name_to_id[adv_t]) if is_ko and ra == rb and adv_t != "TBD" else None
+            raw_df.loc[idx, "real_advanced_team_id"] = (
+                str(name_to_id[adv_t]) if is_ko and ra == rb and adv_t != "TBD" else None
+            )
         elif update_type == "knockout":
             team_a_name, team_b_name = payload
             raw_df.loc[idx, "home_team_id"] = str(name_to_id[team_a_name])
@@ -117,129 +144,257 @@ def _apply_admin_updates(admin_inputs_dict, update_type="score"):
         row_data = raw_df.iloc[idx].fillna("").values.tolist()
         sheet_row = int(idx) + 2
         col_letter = _get_col_letter(len(row_data))
-        updates.append({'range': f'A{sheet_row}:{col_letter}{sheet_row}', 'values': [row_data]})
+        updates.append({"range": f"A{sheet_row}:{col_letter}{sheet_row}", "values": [row_data]})
 
-    if updates: ws_matches.batch_update(updates)
+    if updates:
+        ws_matches.batch_update(updates)
     st.cache_data.clear()
     st.rerun()
 
 
+def _render_score_row(row, key_prefix: str, default_a=None, default_b=None, require_score: bool = True):
+    m_id = _match_id(row)
+    team_a, team_b = row["team_a"], row["team_b"]
+    is_knockout = int(float(row["stage_id"])) > 1
+
+    kickoff = _kickoff_label(row)
+    kickoff_html = f' <span>· {kickoff}</span>' if kickoff else ""
+    st.markdown(
+        f'<div class="pred-match-header">⚽ Trận {row["match_number"]}: {team_a} vs {team_b} '
+        f'<span>· {row["match_label"]}</span>{kickoff_html}</div>',
+        unsafe_allow_html=True,
+    )
+    col1, col2, col3, col4, col5 = st.columns([1.5, 1, 0.5, 1, 2])
+    with col2:
+        real_a = st.number_input(
+            f"{team_a}",
+            min_value=0,
+            max_value=20,
+            value=None if require_score else (default_a if default_a is not None else 0),
+            placeholder="0",
+            key=f"{key_prefix}_{m_id}_a",
+            label_visibility="collapsed",
+        )
+    with col3:
+        st.markdown("<h4 style='text-align:center;margin:0;'>–</h4>", unsafe_allow_html=True)
+    with col4:
+        real_b = st.number_input(
+            f"{team_b}",
+            min_value=0,
+            max_value=20,
+            value=None if require_score else (default_b if default_b is not None else 0),
+            placeholder="0",
+            key=f"{key_prefix}_{m_id}_b",
+            label_visibility="collapsed",
+        )
+    with col1:
+        adv_team = "TBD"
+        if is_knockout and team_a != "TBD" and team_b != "TBD":
+            adv_team = st.selectbox("PEN:", [team_a, team_b], key=f"adv_{key_prefix}_{m_id}")
+    with col5:
+        is_confirmed = st.checkbox("Xác nhận", key=f"confirm_{key_prefix}_{m_id}")
+
+    return m_id, team_a, team_b, real_a, real_b, adv_team, is_knockout, is_confirmed
+
+
+def _collect_confirmed_scores(rows_df, key_prefix: str, require_score: bool = True):
+    collected = {}
+    missing_scores = []
+    zero_zero_warnings = []
+
+    for _, row in rows_df.iterrows():
+        m_id, team_a, team_b, ra, rb, adv_team, is_ko, confirmed = _render_score_row(
+            row,
+            key_prefix,
+            default_a=int(float(row["real_score_a"])) if pd.notna(row.get("real_score_a")) else 0,
+            default_b=int(float(row["real_score_b"])) if pd.notna(row.get("real_score_b")) else 0,
+            require_score=require_score,
+        )
+        st.write("---")
+        if not confirmed:
+            continue
+        if require_score and (ra is None or rb is None):
+            missing_scores.append(f"Trận {row['match_number']}: {team_a} vs {team_b}")
+            continue
+        if require_score and ra == 0 and rb == 0:
+            zero_zero_warnings.append(f"Trận {row['match_number']}: {team_a} vs {team_b}")
+        collected[m_id] = (ra, rb, adv_team, is_ko)
+
+    return collected, missing_scores, zero_zero_warnings
+
+
+def _render_submit_preview(lines: list[str], title: str):
+    if not lines:
+        return
+    with st.expander(title, expanded=True):
+        for line in lines:
+            st.markdown(f"- {line}")
+
+
+tab_options = ["🔴 Chờ cập nhật", "🟢 Chỉnh sửa đã đá", "⚙️ Vòng Knock-out", "🔒 Khóa trận"]
+active_tab = st.radio("Chọn chức năng:", tab_options, horizontal=True, key="active_tab", label_visibility="collapsed")
+st.write("---")
+
 if active_tab == tab_options[0]:
     st.markdown('<div class="content-card-title">Các trận chờ kết quả</div>', unsafe_allow_html=True)
     display_limit = st.slider("Số trận hiển thị", min_value=5, max_value=50, value=15, step=5)
+    batch = pending_matches.head(display_limit)
+
     with st.form("update_score_form"):
-        admin_inputs = {}
-        for _, row in pending_matches.head(display_limit).iterrows():
-            m_id = str(row["match_id"] if "match_id" in row else row["id"])
-            team_a, team_b = row["team_a"], row["team_b"]
-            is_knockout = int(float(row["stage_id"])) > 1
+        admin_inputs, missing, zero_warn = _collect_confirmed_scores(batch, "real", require_score=True)
 
-            kickoff = _kickoff_label(row)
-            kickoff_html = f' <span>· {kickoff}</span>' if kickoff else ""
-            st.markdown(
-                f'<div class="pred-match-header">⚽ Trận {row["match_number"]}: {team_a} vs {team_b} '
-                f'<span>· {row["match_label"]}</span>{kickoff_html}</div>',
-                unsafe_allow_html=True,
-            )
-            col1, col2, col3, col4, col5 = st.columns([1.5, 1, 0.5, 1, 2])
-            with col2: real_a = st.number_input(f"{team_a}", min_value=0, max_value=20, value=0, key=f"real_{m_id}_a", label_visibility="collapsed")
-            with col3: st.markdown("<h4 style='text-align:center;margin:0;'>–</h4>", unsafe_allow_html=True)
-            with col4: real_b = st.number_input(f"{team_b}", min_value=0, max_value=20, value=0, key=f"real_{m_id}_b", label_visibility="collapsed")
-            with col1:
-                adv_team = "TBD"
-                if is_knockout and team_a != "TBD" and team_b != "TBD": adv_team = st.selectbox("PEN:", [team_a, team_b], key=f"adv_{m_id}")
-            with col5: is_confirmed = st.checkbox("Xác nhận", key=f"confirm_{m_id}")
-
-            if is_confirmed: admin_inputs[m_id] = (real_a, real_b, adv_team, is_knockout)
-            st.write("---")
+        if admin_inputs:
+            preview = []
+            for _, row in batch.iterrows():
+                m_id = _match_id(row)
+                if m_id in admin_inputs:
+                    ra, rb, adv, _ = admin_inputs[m_id]
+                    preview.append(_score_preview_line(row["team_a"], row["team_b"], ra, rb, adv))
+            _render_submit_preview(preview, f"📋 Sẽ cập nhật {len(admin_inputs)} trận")
 
         if st.form_submit_button("🔥 Cập nhật lên Cloud", type="primary", width="stretch"):
-            if not admin_inputs: st.warning("Chưa xác nhận trận nào!")
+            if missing:
+                st.warning("Một số trận đã xác nhận nhưng chưa nhập tỉ số: " + "; ".join(missing))
+            elif not admin_inputs:
+                st.warning("Chưa xác nhận trận nào!")
+            elif zero_warn:
+                st.warning("⚠️ Có trận 0–0 — kiểm tra lại: " + "; ".join(zero_warn))
             else:
-                st.session_state["success_msg"] = "✅ Đã cập nhật tỉ số thành công!"
+                st.session_state["success_msg"] = f"✅ Đã cập nhật {len(admin_inputs)} trận thành công!"
                 _apply_admin_updates(admin_inputs, "score")
 
 elif active_tab == tab_options[1]:
     st.markdown('<div class="content-card-title">Chỉnh sửa trận đã có kết quả</div>', unsafe_allow_html=True)
-    if finished_matches.empty: st.info("Chưa có trận nào được cập nhật kết quả.")
+    if finished_matches.empty:
+        st.info("Chưa có trận nào được cập nhật kết quả.")
     else:
+        display_limit = st.slider(
+            "Số trận hiển thị",
+            min_value=5,
+            max_value=50,
+            value=15,
+            step=5,
+            key="edit_display_limit",
+        )
+        batch = finished_matches.head(display_limit)
+
         with st.form("edit_score_form"):
-            edit_inputs = {}
-            for _, row in finished_matches.iterrows():
-                m_id = str(row["match_id"] if "match_id" in row else row["id"])
-                team_a, team_b = row["team_a"], row["team_b"]
-                is_knockout = int(float(row["stage_id"])) > 1
-                current_a = int(float(row["real_score_a"])) if pd.notna(row["real_score_a"]) else 0
-                current_b = int(float(row["real_score_b"])) if pd.notna(row["real_score_b"]) else 0
-                current_adv_id = str(row.get("real_advanced_team_id", "")).strip()
-                current_adv_name = id_to_name.get(current_adv_id, "TBD") if current_adv_id else "TBD"
+            edit_inputs, missing, _ = _collect_confirmed_scores(batch, "edit", require_score=False)
 
-                kickoff = _kickoff_label(row)
-                kickoff_suffix = f" · {kickoff}" if kickoff else ""
-                st.markdown(f"**✏️ Trận {row['match_number']}: {team_a} vs {team_b}** *({row['match_label']})*{kickoff_suffix}")
-                col1, col2, col3, col4, col5 = st.columns([1.5, 1, 0.5, 1, 2])
-                with col2: edit_a = st.number_input(f"{team_a}", min_value=0, max_value=20, value=current_a, key=f"edit_{m_id}_a", label_visibility="collapsed")
-                with col3: st.markdown("<h4 style='text-align:center;margin:0;'>–</h4>", unsafe_allow_html=True)
-                with col4: edit_b = st.number_input(f"{team_b}", min_value=0, max_value=20, value=current_b, key=f"edit_{m_id}_b", label_visibility="collapsed")
-                with col1:
-                    adv_team = "TBD"
-                    if is_knockout and team_a != "TBD" and team_b != "TBD":
-                        options_adv = [team_a, team_b]
-                        idx_adv = options_adv.index(current_adv_name) if current_adv_name in options_adv else 0
-                        adv_team = st.selectbox("PEN:", options_adv, index=idx_adv, key=f"adv_edit_{m_id}")
-                with col5: is_edited = st.checkbox("Xác nhận sửa", key=f"check_edit_{m_id}")
-
-                if is_edited: edit_inputs[m_id] = (edit_a, edit_b, adv_team, is_knockout)
-                st.write("---")
+            if edit_inputs:
+                preview = []
+                for _, row in batch.iterrows():
+                    m_id = _match_id(row)
+                    if m_id in edit_inputs:
+                        ra, rb, adv, _ = edit_inputs[m_id]
+                        preview.append(_score_preview_line(row["team_a"], row["team_b"], ra, rb, adv))
+                _render_submit_preview(preview, f"📋 Sẽ sửa {len(edit_inputs)} trận")
 
             if st.form_submit_button("💾 Lưu thay đổi", type="primary", width="stretch"):
-                if not edit_inputs: st.warning("Chưa chọn trận nào để sửa.")
+                if missing:
+                    st.warning("Một số trận đã xác nhận nhưng thiếu tỉ số.")
+                elif not edit_inputs:
+                    st.warning("Chưa chọn trận nào để sửa.")
                 else:
-                    st.session_state["success_msg"] = "✅ Đã sửa kết quả thành công!"
+                    st.session_state["success_msg"] = f"✅ Đã sửa {len(edit_inputs)} trận thành công!"
                     _apply_admin_updates(edit_inputs, "score")
 
 elif active_tab == tab_options[2]:
     st.markdown('<div class="content-card-title">Cài đặt cặp đấu Knock-out</div>', unsafe_allow_html=True)
     knockout_matches = knockout_matches_sorted.copy()
+    display_limit = st.slider(
+        "Số trận hiển thị",
+        min_value=5,
+        max_value=50,
+        value=min(15, len(knockout_matches)),
+        step=5,
+        key="ko_display_limit",
+    )
+    batch = knockout_matches.head(display_limit)
 
     with st.form("setup_knockout_form"):
         setup_inputs = {}
-        for _, row in knockout_matches.iterrows():
-            m_id = str(row["match_id"] if "match_id" in row else row["id"])
+        preview = []
+        for _, row in batch.iterrows():
+            m_id = _match_id(row)
             idx_a = team_names_list.index(row["team_a"]) if row["team_a"] in team_names_list else 0
             idx_b = team_names_list.index(row["team_b"]) if row["team_b"] in team_names_list else 0
 
             st.markdown(f"**🛡️ Trận {row['match_number']} ({row['match_label']})**")
-            col1, col2, col3 = st.columns([2, 0.5, 2])
-            with col1: sel_a = st.selectbox("Nhà", team_names_list, index=idx_a, key=f"ko_a_{m_id}", label_visibility="collapsed")
-            with col2: st.markdown("<h4 style='text-align:center;margin:0;'>VS</h4>", unsafe_allow_html=True)
-            with col3: sel_b = st.selectbox("Khách", team_names_list, index=idx_b, key=f"ko_b_{m_id}", label_visibility="collapsed")
-            setup_inputs[m_id] = (sel_a, sel_b)
+            col1, col2, col3, col4 = st.columns([2, 0.5, 2, 1])
+            with col1:
+                sel_a = st.selectbox("Nhà", team_names_list, index=idx_a, key=f"ko_a_{m_id}", label_visibility="collapsed")
+            with col2:
+                st.markdown("<h4 style='text-align:center;margin:0;'>VS</h4>", unsafe_allow_html=True)
+            with col3:
+                sel_b = st.selectbox("Khách", team_names_list, index=idx_b, key=f"ko_b_{m_id}", label_visibility="collapsed")
+            with col4:
+                is_confirmed = st.checkbox("Xác nhận", key=f"ko_confirm_{m_id}")
+
+            if is_confirmed:
+                setup_inputs[m_id] = (sel_a, sel_b)
+                preview.append(f"Trận {row['match_number']}: {sel_a} vs {sel_b}")
             st.write("---")
 
+        if preview:
+            _render_submit_preview(preview, f"📋 Sẽ cập nhật {len(preview)} cặp đấu")
+
         if st.form_submit_button("💾 Lưu cặp đấu", type="primary", width="stretch"):
-            st.session_state["success_msg"] = "🏆 Đã cập nhật cặp đấu Knock-out!"
-            _apply_admin_updates(setup_inputs, "knockout")
+            if not setup_inputs:
+                st.warning("Chưa xác nhận cặp đấu nào!")
+            else:
+                st.session_state["success_msg"] = f"🏆 Đã cập nhật {len(setup_inputs)} cặp đấu Knock-out!"
+                _apply_admin_updates(setup_inputs, "knockout")
 
 elif active_tab == tab_options[3]:
     st.markdown('<div class="content-card-title">🔒 Quản lý khóa dự đoán</div>', unsafe_allow_html=True)
     to_lock_matches = to_lock_matches_sorted.copy()
 
-    if to_lock_matches.empty: st.info("Tất cả trận đã có kết quả.")
+    if to_lock_matches.empty:
+        st.info("Tất cả trận đã có kết quả.")
     else:
+        display_limit = st.slider(
+            "Số trận hiển thị",
+            min_value=5,
+            max_value=50,
+            value=15,
+            step=5,
+            key="lock_display_limit",
+        )
+        batch = to_lock_matches.head(display_limit)
+
         with st.form("lock_matches_form"):
             lock_inputs = {}
-            for _, row in to_lock_matches.iterrows():
-                m_id = str(row["match_id"] if "match_id" in row else row["id"])
+            preview = []
+            for _, row in batch.iterrows():
+                m_id = _match_id(row)
                 is_currently_locked = str(row["is_locked"]).strip().upper() == "TRUE"
                 col1, col2 = st.columns([3, 1])
                 kickoff = _kickoff_label(row)
                 kickoff_suffix = f" · {kickoff}" if kickoff else ""
-                with col1: st.markdown(f"**⚽ Trận {row['match_number']}: {row['team_a']} vs {row['team_b']}**{kickoff_suffix}")
-                with col2: lock_check = st.checkbox("Khóa", value=is_currently_locked, key=f"lock_{m_id}")
+                with col1:
+                    st.markdown(f"**⚽ Trận {row['match_number']}: {row['team_a']} vs {row['team_b']}**{kickoff_suffix}")
+                with col2:
+                    lock_check = st.checkbox("Khóa", value=is_currently_locked, key=f"lock_{m_id}")
                 lock_inputs[m_id] = lock_check
+                if lock_check != is_currently_locked:
+                    state = "Khóa" if lock_check else "Mở"
+                    preview.append(f"Trận {row['match_number']}: {row['team_a']} vs {row['team_b']} → {state}")
                 st.write("---")
 
+            if preview:
+                _render_submit_preview(preview, f"📋 Sẽ thay đổi {len(preview)} trận")
+
             if st.form_submit_button("🛡️ Cập nhật trạng thái khóa", type="primary", width="stretch"):
-                st.session_state["success_msg"] = "🛡️ Đã cập nhật trạng thái khóa!"
-                _apply_admin_updates(lock_inputs, "lock")
+                changed = {}
+                for _, row in batch.iterrows():
+                    m_id = _match_id(row)
+                    was_locked = str(row["is_locked"]).strip().upper() == "TRUE"
+                    now_locked = lock_inputs.get(m_id, was_locked)
+                    if now_locked != was_locked:
+                        changed[m_id] = now_locked
+                if not changed:
+                    st.warning("Không có thay đổi nào so với trạng thái hiện tại.")
+                else:
+                    st.session_state["success_msg"] = f"🛡️ Đã cập nhật {len(changed)} trận!"
+                    _apply_admin_updates(changed, "lock")

@@ -1,4 +1,4 @@
-"""Verify sidebar click-outside-to-close at tablet/laptop widths."""
+"""Verify sidebar click-outside-to-close at all viewport widths."""
 from __future__ import annotations
 
 import json
@@ -12,7 +12,7 @@ except ImportError:
     sys.exit(1)
 
 URL = "http://localhost:8501/"
-WIDTHS = [767, 768, 1100, 1280, 1331]
+WIDTHS = [767, 768, 1100, 1280, 1331, 1440, 1920]
 
 
 def verify_width(width: int) -> dict:
@@ -20,12 +20,26 @@ def verify_width(width: int) -> dict:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page(viewport={"width": width, "height": 900})
         page.goto(URL, wait_until="networkidle", timeout=90000)
+        page.wait_for_selector('[data-testid="stSidebar"]', timeout=60000)
+        page.wait_for_timeout(600)
+
+        # Sidebar may start open at wide widths — collapse first so expand FAB is available.
+        page.evaluate(
+            """() => {
+              const sidebar = document.querySelector('[data-testid="stSidebar"]');
+              if (sidebar?.getAttribute('aria-expanded') !== 'true') return;
+              const btn =
+                document.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
+                document.querySelector('[data-testid="stSidebarCollapseButton"]');
+              btn?.click();
+            }"""
+        )
+        page.wait_for_timeout(900)
         page.wait_for_selector('[data-testid="stExpandSidebarButton"]', timeout=60000)
 
         overlay = page.evaluate(
             """() => ({
               version: window.top.__wcSidebarOverlayVersion ?? window.__wcSidebarOverlayVersion,
-              mq1330: matchMedia('(max-width: 1330px)').matches,
             })"""
         )
 
@@ -34,7 +48,13 @@ def verify_width(width: int) -> dict:
               const expand = document.querySelector('[data-testid="stExpandSidebarButton"]');
               if (!expand) return null;
               const cs = getComputedStyle(expand);
-              return { width: cs.width, border: cs.borderWidth, bg: cs.backgroundImage !== 'none' };
+              const after = getComputedStyle(expand, '::after');
+              return {
+                width: cs.width,
+                border: cs.borderWidth,
+                bg: cs.backgroundImage !== 'none',
+                menuLabel: after.content,
+              };
             }"""
         )
 
@@ -47,6 +67,7 @@ def verify_width(width: int) -> dict:
               const sidebar = document.querySelector('[data-testid="stSidebar"]');
               const backdrop = document.getElementById('wc-sidebar-backdrop');
               const bdStyle = backdrop ? getComputedStyle(backdrop) : null;
+              const sidebarStyle = sidebar ? getComputedStyle(sidebar) : null;
               const expand = document.querySelector('[data-testid="stExpandSidebarButton"]');
               const expandStyle = expand ? getComputedStyle(expand) : null;
               const collapse = document.querySelector('[data-testid="stSidebarCollapseButton"] button');
@@ -59,6 +80,7 @@ def verify_width(width: int) -> dict:
                 backdrop: !!backdrop,
                 backdropZ: bdStyle?.zIndex,
                 backdropPos: bdStyle?.position,
+                sidebarPos: sidebarStyle?.position,
                 wcOpen: document.body.classList.contains('wc-sidebar-open'),
                 expandHidden,
                 expandGone: !expand,
@@ -73,9 +95,9 @@ def verify_width(width: int) -> dict:
                 "width": width,
                 "opened": opened,
                 "expandFab": expand_style,
-                "clickOutsideWorks": not overlay.get("mq1330"),
+                "clickOutsideWorks": False,
                 "overlay": overlay,
-                "note": "no backdrop expected above 1330px",
+                "note": "backdrop expected at all widths",
             }
 
         page.locator("#wc-sidebar-backdrop").click(force=True)
@@ -112,25 +134,29 @@ def main() -> None:
         r
         for r in results
         if r.get("error")
-        or (r.get("overlay", {}).get("mq1330") and not r.get("clickOutsideWorks"))
+        or not r.get("clickOutsideWorks")
         or (
-            r.get("overlay", {}).get("mq1330")
-            and r.get("opened", {}).get("wcOpen")
+            r.get("opened", {}).get("wcOpen")
             and not r.get("opened", {}).get("expandHidden")
         )
         or (
             r.get("overlay", {}).get("version") is not None
-            and r.get("overlay", {}).get("version") < 5
+            and r.get("overlay", {}).get("version") < 6
         )
         or (
             r.get("expandFab")
             and r.get("expandFab", {}).get("width") == "28px"
         )
+        or (
+            r.get("expandFab", {}).get("menuLabel")
+            and r.get("expandFab", {}).get("menuLabel") not in ('""', "none", "")
+        )
+        or r.get("opened", {}).get("sidebarPos") != "fixed"
     ]
     if failures:
         print(f"\nFAILED at widths: {[f['width'] for f in failures]}")
         sys.exit(1)
-    print("\nOK — click-outside works for all overlay widths ≤1330px")
+    print("\nOK — click-outside works at all tested viewport widths")
 
 
 if __name__ == "__main__":

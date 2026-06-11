@@ -14,7 +14,7 @@ from schedule_service import (
     group_color,
     group_label_vn,
 )
-from team_flags import team_line_html
+from team_flags import flag_img_html, team_line_html
 
 DISPLAY_NAME_EMOJIS = [
     "⚽", "🏆", "🔥", "⭐", "🎯", "💪", "😎", "👑",
@@ -38,7 +38,7 @@ def apply_global_styles():
 <script>
 (function () {
   const topWin = window.top;
-  const WC_SIDEBAR_OVERLAY_VERSION = 5;
+  const WC_SIDEBAR_OVERLAY_VERSION = 6;
   if (topWin.__wcSidebarOverlayVersion === WC_SIDEBAR_OVERLAY_VERSION) {
     topWin.__wcSidebarOverlaySync?.();
     return;
@@ -52,11 +52,9 @@ def apply_global_styles():
   boot.id = "wc-sidebar-overlay-boot";
   boot.textContent = `
 (function () {
-  const MQ = matchMedia("(max-width: 1330px)");
   let syncQueued = false;
 
   function isSidebarOpen() {
-    if (!MQ.matches) return false;
     const sidebar = document.querySelector('[data-testid="stSidebar"]');
     return !!(sidebar && sidebar.getAttribute("aria-expanded") === "true");
   }
@@ -192,7 +190,6 @@ def apply_global_styles():
   window.__wcSidebarOverlaySync = queueSyncBackdrop;
   window.__wcSidebarOverlayInit = true;
 
-  MQ.addEventListener("change", queueSyncBackdrop);
   window.addEventListener("resize", queueSyncBackdrop);
   window.addEventListener("popstate", handlePageChange);
   document.addEventListener("click", onOutsidePointer, true);
@@ -275,6 +272,8 @@ def render_sidebar():
         st.page_link("pages/1_Du_Doan.py", label="Khu vực dự đoán", icon="✍️")
         st.page_link("pages/3_Bang_Xep_Hang.py", label="Bảng xếp hạng", icon="🏆")
         st.page_link("pages/4_Xem_Lich_Thi_Dau.py", label="Lịch thi đấu", icon="🗓️")
+        st.page_link("pages/5_Bang_Dau.py", label="Bảng đấu", icon="📊")
+        st.page_link("pages/6_Bracket_Knockout.py", label="Bracket Knock-out", icon="🏅")
 
         st.markdown("### 🔒 Admin")
         st.page_link("pages/2_Lich_Thi_Dau.py", label="Góc của Elu", icon="⚙️")
@@ -702,6 +701,7 @@ def render_pred_match_header(
     stage_id=None,
     is_knockout=False,
     has_saved_pred: bool = False,
+    pred_badge: str | None = None,
     team_a_fifa=None,
     team_b_fifa=None,
     name_to_fifa=None,
@@ -712,7 +712,14 @@ def render_pred_match_header(
     round_label = match_round_label_vn(group_round=group_round, stage_id=stage_id)
     round_tone = match_round_color(group_round=group_round, stage_id=stage_id)
     ko_badge = '<span class="pred-ko-badge">KNOCK-OUT</span>' if is_knockout else ""
-    saved_badge = '<span class="pred-saved-badge">Đã dự đoán</span>' if has_saved_pred else ""
+    if pred_badge == "saved":
+        status_badge = '<span class="pred-saved-badge">Đã dự đoán</span>'
+    elif pred_badge == "draft":
+        status_badge = '<span class="pred-draft-badge">Chưa lưu</span>'
+    elif has_saved_pred:
+        status_badge = '<span class="pred-saved-badge">Đã dự đoán</span>'
+    else:
+        status_badge = ""
     side_a = team_line_html(team_a, "a", fifa_code=team_a_fifa, name_to_fifa=name_to_fifa)
     side_b = team_line_html(team_b, "b", fifa_code=team_b_fifa, name_to_fifa=name_to_fifa)
     kickoff_html = ""
@@ -736,7 +743,7 @@ def render_pred_match_header(
         f'<span class="pred-card-group" style="color:{html.escape(round_tone)};">'
         f'<span class="pred-card-group-dot" style="background:{html.escape(round_tone)};"></span>'
         f'{html.escape(round_label)}</span>'
-        f"{ko_badge}{saved_badge}"
+        f"{ko_badge}{status_badge}"
         f"</div>"
         f"{kickoff_html}"
         f'<div class="pred-card-matchup">'
@@ -754,6 +761,139 @@ def render_pred_match_header(
         f"</div>"
     )
 
+_PRED_HISTORY_MOBILE_PAGE_SIZE = 20
+
+
+def _pred_history_verdict_class(verdict: str) -> str:
+    text = str(verdict)
+    if "❌" in text:
+        return "pred-hist-row-verdict pred-hist-row-verdict--bad"
+    if "⏳" in text:
+        return "pred-hist-row-verdict pred-hist-row-verdict--pending"
+    return "pred-hist-row-verdict pred-hist-row-verdict--ok"
+
+
+def _filter_pred_history_df(history_df, filt: str):
+    if filt == "Chưa có kết quả":
+        return history_df[history_df["Kết quả"].astype(str).str.contains("⏳", na=False)]
+    if filt == "Đã chấm điểm":
+        return history_df[~history_df["Kết quả"].astype(str).str.contains("⏳", na=False)]
+    return history_df
+
+
+def _build_pred_history_compact_html(history_df) -> str:
+    rows = []
+    for _, row in history_df.iterrows():
+        verdict = str(row["Kết quả"])
+        rows.append(
+            f'<div class="pred-hist-row">'
+            f'<span class="pred-hist-row-no">{int(row["match_number"])}</span>'
+            f'<span class="pred-hist-row-matchup">{html.escape(str(row["Trận đấu"]))}</span>'
+            f'<span class="pred-hist-row-pick">{html.escape(str(row["Dự đoán"]))}</span>'
+            f'<span class="{_pred_history_verdict_class(verdict)}">{html.escape(verdict)}</span>'
+            f"</div>"
+        )
+    head = (
+        '<div class="pred-hist-list-head">'
+        '<span class="pred-hist-col-no">Trận</span>'
+        '<span class="pred-hist-col-match">Cặp đấu</span>'
+        '<span class="pred-hist-col-pick">Dự đoán</span>'
+        '<span class="pred-hist-col-kq">Kết quả</span>'
+        "</div>"
+    )
+    return f'<div class="pred-hist-list">{head}{"".join(rows)}</div>'
+
+
+def slice_pred_history_page(history_df, filt: str, page: int, page_size: int = _PRED_HISTORY_MOBILE_PAGE_SIZE):
+    """Filter + paginate history for mobile list."""
+    filtered = _filter_pred_history_df(history_df, filt)
+    total = len(filtered)
+    if total == 0:
+        return filtered, 0, 0
+    page_count = (total + page_size - 1) // page_size
+    page = max(1, min(int(page), page_count))
+    start = (page - 1) * page_size
+    return filtered.iloc[start : start + page_size], total, page_count
+
+
+def pred_history_page_label(page: int, total: int, page_size: int = _PRED_HISTORY_MOBILE_PAGE_SIZE) -> str:
+    if total <= 0:
+        return "0 trận"
+    return f"Trận {(page - 1) * page_size + 1}–{min(page * page_size, total)} / {total}"
+
+
+def render_pred_history_mobile_list(history_df):
+    """Single HTML block — must not interleave Streamlit widgets."""
+    if history_df.empty:
+        _html('<div class="pred-hist-empty">Không có trận nào trong bộ lọc này.</div>')
+        return
+    _html(_build_pred_history_compact_html(history_df))
+
+
+def render_pred_history_mobile_section(history_df):
+    """Mobile history: filter + safe pagination + compact list (no st.select_slider)."""
+    _html('<div class="pred-history-mobile-marker" aria-hidden="true"></div>')
+    filt = st.radio(
+        "Lọc lịch sử",
+        ["Tất cả", "Chưa có kết quả", "Đã chấm điểm"],
+        horizontal=True,
+        key="pred_hist_filter",
+        label_visibility="collapsed",
+    )
+    prev_filt = st.session_state.get("_pred_hist_filter_prev")
+    if prev_filt != filt:
+        st.session_state["_pred_hist_filter_prev"] = filt
+        st.session_state["pred_hist_page"] = 1
+
+    page = max(1, int(st.session_state.get("pred_hist_page", 1)))
+    _, total_filtered, page_count = slice_pred_history_page(history_df, filt, page)
+    if page_count and page > page_count:
+        page = 1
+        st.session_state["pred_hist_page"] = 1
+
+    if page_count > 1:
+        nav_l, nav_m, nav_r = st.columns([1, 2.2, 1])
+        with nav_l:
+            if st.button("◀", key="pred_hist_prev", use_container_width=True, disabled=page <= 1):
+                st.session_state["pred_hist_page"] = page - 1
+                st.rerun()
+        with nav_m:
+            st.markdown(
+                f'<div class="pred-hist-page-label">{html.escape(pred_history_page_label(page, total_filtered))}</div>',
+                unsafe_allow_html=True,
+            )
+        with nav_r:
+            if st.button("▶", key="pred_hist_next", use_container_width=True, disabled=page >= page_count):
+                st.session_state["pred_hist_page"] = page + 1
+                st.rerun()
+    else:
+        _html('<div class="pred-history-mobile-page-slot" aria-hidden="true"></div>')
+
+    mobile_slice, _, _ = slice_pred_history_page(history_df, filt, page)
+    render_pred_history_mobile_list(mobile_slice)
+
+
+def render_pred_history_desktop_table(history_df):
+    """Desktop dataframe with layout marker (hidden on mobile via CSS)."""
+    table_df = history_df.rename(columns={"match_number": "Trận"})
+    _html('<div class="pred-history-desktop-marker" aria-hidden="true"></div>')
+    st.dataframe(
+        table_df[
+            ["Trận", "Bảng", "Trận đấu", "Dự đoán", "Kết quả", "Thời gian dự đoán"]
+        ],
+        width="stretch",
+        hide_index=True,
+        column_config={
+            "Trận": st.column_config.NumberColumn("Trận", format="%d", width="small"),
+            "Bảng": st.column_config.TextColumn("Bảng", width="small"),
+            "Trận đấu": st.column_config.TextColumn("Trận đấu", width="medium"),
+            "Dự đoán": st.column_config.TextColumn("Dự đoán", width="small"),
+            "Kết quả": st.column_config.TextColumn("Kết quả", width="medium"),
+            "Thời gian dự đoán": st.column_config.TextColumn("Thời gian dự đoán", width="small"),
+        },
+    )
+
+
 def render_pred_tabs(labels: list[str]):
     """Pill-style tabs scoped to the prediction page."""
     _html('<div class="pred-tabs-marker" aria-hidden="true"></div>')
@@ -770,5 +910,171 @@ def render_pred_page_banner(user_name: str, open_count: int, saved_count: int):
         f'<div class="pred-banner-stats">'
         f'<div class="pred-banner-stat"><span>{open_count}</span><label>Trận mở</label></div>'
         f'<div class="pred-banner-stat"><span>{saved_count}</span><label>Đã dự đoán</label></div>'
+        f"</div></div>"
+    )
+
+
+def _truncate_team_name(name: str, max_len: int = 19) -> str:
+    text = str(name).strip()
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 3].rstrip() + "..."
+
+
+def _build_group_team_cell(team_name: str, name_to_fifa: dict[str, str] | None) -> str:
+    full_name = str(team_name).strip()
+    display_name = _truncate_team_name(full_name)
+    flag = flag_img_html(team_name=full_name, name_to_fifa=name_to_fifa, size="sm")
+    return (
+        f'<span class="grp-team-cell">'
+        f"{flag}"
+        f'<span class="grp-team-name" title="{html.escape(full_name)}">{html.escape(display_name)}</span>'
+        f"</span>"
+    )
+
+
+def _build_group_card_html(
+    group_letter: str,
+    standings_df,
+    color: str,
+    name_to_fifa: dict[str, str] | None = None,
+) -> str:
+    rows_html = ""
+    for _, row in standings_df.iterrows():
+        gd = int(row["gd"])
+        full_name = str(row["team_name"])
+        rows_html += (
+            f"<tr>"
+            f'<td class="grp-rank">{int(row["rank"])}</td>'
+            f'<td class="grp-team">{_build_group_team_cell(full_name, name_to_fifa)}</td>'
+            f'<td class="grp-stat">{int(row["played"])}</td>'
+            f'<td class="grp-stat grp-wdl">{int(row["won"])}-{int(row["drawn"])}-{int(row["lost"])}</td>'
+            f'<td class="grp-stat">{gd:+d}</td>'
+            f'<td class="grp-pts">{int(row["points"])}</td>'
+            f"</tr>"
+        )
+    return (
+        f'<div class="group-card" style="--group-color:{html.escape(color)};">'
+        f'<div class="group-card-header">'
+        f'<span class="group-card-dot"></span>'
+        f'<span>BẢNG {html.escape(group_letter)}</span>'
+        f"</div>"
+        f'<table class="group-standings-table">'
+        f'<thead><tr><th class="grp-rank">#</th><th>Đội</th>'
+        f'<th class="grp-stat">Tr</th><th class="grp-stat grp-wdl">W-D-L</th>'
+        f'<th class="grp-stat">HS</th><th class="grp-pts">Đ</th></tr></thead>'
+        f"<tbody>{rows_html}</tbody></table></div>"
+    )
+
+
+def render_group_standings_grid(
+    standings_by_letter: dict,
+    group_colors: dict | None = None,
+    name_to_fifa: dict[str, str] | None = None,
+):
+    """Render all group cards in a responsive CSS grid (3 cols desktop, 2 cols ≤900px)."""
+    from schedule_service import GROUP_COLORS
+
+    colors = group_colors or GROUP_COLORS
+    cards = "".join(
+        _build_group_card_html(
+            letter,
+            standings_by_letter[letter],
+            colors.get(letter, "#64748b"),
+            name_to_fifa=name_to_fifa,
+        )
+        for letter in sorted(standings_by_letter.keys())
+    )
+    _html(f'<div class="group-standings-grid">{cards}</div>')
+
+
+def render_group_table(
+    group_letter: str,
+    standings_df,
+    color: str,
+    name_to_fifa: dict[str, str] | None = None,
+):
+    """Mini standings table for one group."""
+    _html(_build_group_card_html(group_letter, standings_df, color, name_to_fifa=name_to_fifa))
+
+
+def _build_ko_match_html(match, name_to_fifa: dict | None) -> str:
+    def _team_row(team, side: str) -> str:
+        winner_cls = " ko-team--winner" if team.is_winner else ""
+        flag = flag_img_html(fifa_code=team.fifa_code, team_name=team.name, name_to_fifa=name_to_fifa, size="sm")
+        return (
+            f'<div class="ko-team ko-team--{side}{winner_cls}">'
+            f"{flag}"
+            f'<span class="ko-team-name">{html.escape(team.name)}</span>'
+            f'<span class="ko-team-score">{html.escape(team.score_display)}</span>'
+            f"</div>"
+        )
+
+    return (
+        f'<div class="ko-match">'
+        f"{_team_row(match.team_a, 'a')}"
+        f"{_team_row(match.team_b, 'b')}"
+        f"</div>"
+    )
+
+
+def _build_ko_round_column(
+    rnd: dict,
+    name_to_fifa: dict | None,
+    *,
+    mirror_vertical: bool = False,
+) -> str:
+    matches = list(rnd["matches"])
+    if mirror_vertical:
+        matches = list(reversed(matches))
+    matches_html = "".join(_build_ko_match_html(m, name_to_fifa) for m in matches)
+    count = max(len(rnd["matches"]), 1)
+    return (
+        f'<div class="ko-round" style="--round-color:{html.escape(rnd["color"])};--match-count:{count}">'
+        f'<div class="ko-round-title">{html.escape(rnd["label"])}</div>'
+        f'<div class="ko-round-matches">{matches_html}</div>'
+        f"</div>"
+    )
+
+
+def render_knockout_bracket(bracket_data: dict, name_to_fifa: dict | None = None):
+    """Two-sided tournament bracket — left & right halves meet at center final."""
+    from schedule_service import STAGE_ID_COLORS
+
+    left = bracket_data.get("left_rounds") or []
+    right = bracket_data.get("right_rounds") or []
+    final = bracket_data.get("final")
+    if not left and not right and not final:
+        return
+
+    left_html = "".join(_build_ko_round_column(r, name_to_fifa) for r in left)
+    # Right half: inner rounds beside final, outer R32 at far right; mirror match stack vertically.
+    right_html = "".join(
+        _build_ko_round_column(r, name_to_fifa, mirror_vertical=True) for r in reversed(right)
+    )
+
+    center_html = ""
+    if final:
+        center_html += (
+            f'<div class="ko-center-final" style="--round-color:{html.escape(STAGE_ID_COLORS.get(7, "#fbbf24"))}">'
+            f'<div class="ko-round-title">CHUNG KẾT</div>'
+            f"{_build_ko_match_html(final, name_to_fifa)}"
+            f"</div>"
+        )
+    tp = bracket_data.get("third_place")
+    if tp:
+        center_html += (
+            f'<div class="ko-center-third">'
+            f'<div class="ko-round-title">TRANH HẠNG 3</div>'
+            f"{_build_ko_match_html(tp, name_to_fifa)}"
+            f"</div>"
+        )
+
+    _html(
+        f'<div class="ko-bracket-wrap">'
+        f'<div class="ko-bracket-split">'
+        f'<div class="ko-half ko-half--left">{left_html}</div>'
+        f'<div class="ko-bracket-center">{center_html}</div>'
+        f'<div class="ko-half ko-half--right">{right_html}</div>'
         f"</div></div>"
     )

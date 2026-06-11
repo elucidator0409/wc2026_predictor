@@ -247,6 +247,38 @@ def format_history_verdict(row) -> str:
     return "✅ +0"
 
 
+def format_history_momentum(display_history: pd.DataFrame, days: int = 7) -> str | None:
+    """Caption e.g. '3/5 trận đúng tuần này' for finished matches in the last N days."""
+    if display_history.empty:
+        return None
+
+    from datetime import datetime, timedelta
+
+    cutoff = datetime.now() - timedelta(days=days)
+    finished = display_history[display_history.apply(is_match_finished, axis=1)].copy()
+    if finished.empty or "kickoff_vn" not in finished.columns:
+        return None
+
+    recent_rows = []
+    for _, row in finished.iterrows():
+        kickoff = row.get("kickoff_vn")
+        if kickoff is None or (isinstance(kickoff, float) and pd.isna(kickoff)):
+            continue
+        try:
+            dt = kickoff.to_pydatetime() if hasattr(kickoff, "to_pydatetime") else kickoff
+            if dt.replace(tzinfo=None) >= cutoff.replace(tzinfo=None):
+                recent_rows.append(row)
+        except (AttributeError, TypeError, ValueError):
+            continue
+
+    if not recent_rows:
+        return None
+
+    correct = sum(1 for row in recent_rows if calculate_points(row) > 0)
+    total = len(recent_rows)
+    return f"{correct}/{total} trận đúng tuần này"
+
+
 def format_history_timestamp(value) -> str:
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return "—"
