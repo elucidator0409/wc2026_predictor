@@ -42,6 +42,8 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 - [ ] P2 — Trang Lịch thi đấu (fixture rows)
 - [ ] P2 — Trang Bảng xếp hạng
 - [x] P3 — Login flow UX *(done Sprint 1.9)*
+- [x] P3 — Lịch sử: feedback kết quả thật *(done Sprint 2.1)*
+- [x] P3 — Lịch sử: chuỗi dài mobile *(done Sprint 2.1)*
 
 ---
 
@@ -213,34 +215,128 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 
 ---
 
-## Pre-push checklist (2026-06-10)
+## Pre-push checklist (2026-06-11 — Sprint 2.x)
 
 | Gate | Status | Ghi chú |
 |------|--------|---------|
-| Unit tests (19) | ✅ | scoring + schedule + team_flags |
+| Unit tests (35) | ✅ | scoring + schedule + team_flags + sidebar overlay |
+| Playwright verify | ✅ | `scripts/verify_sidebar_overlay.py` @767–1331px |
+| Menu FAB closed @390px | ✅ | 52×52, border 2px, icon hidden |
 | Breaking changes | ✅ | Chỉ UI/CSS/display strings |
 | Secrets in diff | ✅ | Không có `.env` |
-| Docs sync | ✅ | Scorecard Sprint 1.8–1.9 |
-| Manual QA | ✅ | Xem bảng dưới |
+| Docs sync | ✅ | Scorecard Sprint 2.1–2.2b |
 | CI | — | Chưa có `.github/workflows` |
 
 ### Manual QA (đã verify)
 
-- [x] Sidebar ≤1330px: mở → click vùng tối → đóng
-- [x] Login logged-out: header + form ~480px cùng width
-- [x] Kickoff card: `02:00 · T6, 12/06` (không ET/UTC+7)
-- [x] Lịch sử: format `→` + cờ đội thắng
-- [x] Desktop ≥770px: 2 cột cards; ≤769px: 1 cột
+- [x] Menu đóng @390px: FAB hamburger 52×52, viền gold
+- [x] Sidebar ≤1330px: mở → click backdrop → đóng
+- [x] Lịch sử: 6 cột + verdict ✅/❌/⏳
+- [x] Card dự đoán: ≤900 1 cột, ≥901 2 cột equal height
+- [x] Knockout label: VÒNG 1/16, VÒNG 1/8 + màu
+- [x] Desktop ≥901px: pill Menu label
 
-**Verdict:** Ready to push (2 commits split).
+**Verdict:** Ready to push (2 commits: 2.1+2.15 · 2.2 chrome).
+
+---
+
+## Pre-push checklist (2026-06-10 — archived)
+
+## Sprint 2.1 — History results & compact layout (2026-06-11)
+
+**Phạm vi:** Tách cột matchup/pick trong bảng Lịch sử; thêm phản hồi kết quả thật; rút gọn chuỗi FIFA cho mobile.
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 1 | Helpers: `format_matchup_display`, `format_pred_pick`, `format_history_verdict` | `scoring.py` | Done |
+| 2 | Bảng 6 cột + caption summary | `pages/1_Du_Doan.py` | Done |
+| 3 | CSS mobile font + summary caption | `assets/style.css` | Done |
+| 4 | Unit tests (~8 cases mới) | `tests/test_scoring.py` | Done |
+
+**Layout bảng mới:**
+
+| Trận | Bảng | Trận đấu | Dự đoán | Kết quả | Thời gian |
+|------|------|----------|---------|---------|-----------|
+| 1 | BẢNG A | 🇲🇽 MEX - 🇿🇦 RSA | 🇿🇦 thắng | ✅ +3 | 09/06 · 22:12 |
+| 5 | BẢNG A | 🇺🇸 USA - 🇵🇾 PAR | 🤝 Hòa | ⏳ Chưa đá | 09/06 · 22:15 |
+
+**Cột Kết quả (gộp):** `⏳ Chưa đá` · `✅ +3` · `❌ phạt 10k`
+
+**P3 audit — Done:**
+- [x] Feedback vs kết quả thật (verdict column)
+- [x] Chuỗi dài mobile (structural split + FIFA codes)
+
+### Điểm sau Sprint 2.1 (ước lượng)
+
+| Tiêu chí | Desktop | Tablet | iPad/Mobile | Δ |
+|----------|---------|--------|-------------|---|
+| Information hierarchy | **9.0** | 8.8 | 8.8 | +0.2 |
+| Scannability (history) | **8.8** | 8.6 | **8.8** | +0.6 mobile |
+| **Tổng (history tab)** | **8.9** | **8.7** | **8.8** | |
+
+**Giữ nguyên:** `format_pred_display()` full-string trên trang Bảng xếp hạng expander.
+
+---
+
+## Sprint 2.15 — Polish batch (2026-06-11)
+
+**Phạm vi:** Fix production feedback sau Sprint 2.1 + sidebar regression + card layout.
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 1 | Sidebar click-outside 768–1330px (boot v4, backdrop CSS global) | `ui_components.py`, `style.css` | Done |
+| 2 | Knockout label: `VÒNG 1/16`, `VÒNG 1/8`, màu vòng | `schedule_service.py` | Done |
+| 3 | Cột lịch sử: `Thời gian dự đoán` | `pages/1_Du_Doan.py` | Done |
+| 4 | Fixture page: bỏ dòng giờ ET | `ui_components.py`, `pages/4_*` | Done |
+| 5 | Card layout ≤900px: 1 cột tuần tự | `style.css` | Done |
+| 6 | Card 2 cột ≥901px: equal height + picker căn đáy | `style.css` | Done |
+| 7 | Matchup: ellipsis + cờ sát tên hướng VS | `style.css`, `team_flags.py` | Done |
+| 8 | Tests sidebar overlay regression | `tests/test_sidebar_overlay.py` | Done |
+
+**Card matchup (sau fix):** `Canada 🇨🇦  VS  🇧🇦 Bosnia…` — cờ dính tên, VS giữa, ellipsis + `title` hover.
+
+**Breakpoints card dự đoán:**
+
+| Viewport | Layout |
+|----------|--------|
+| ≤900px | 1 card/hàng, tên full wrap |
+| ≥901px | 2 cột, stretch height, ellipsis |
+
+---
+
+## Sprint 2.2 — Menu button redesign (2026-06-11)
+
+**User feedback:** Nút menu quá đơn giản, dễ chìm — đã redesign.
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 1 | Design tokens `--menu-fab-*` | `style.css` | Done |
+| 2 | FAB đóng: hamburger CSS, ẩn SVG Streamlit | `style.css` | Done |
+| 3 | FAB mở: collapse `✕` cùng style, góc phải sidebar | `style.css` | Done |
+| 4 | `wc-sidebar-open` ẩn expand FAB | `style.css` + boot v5 | Done |
+| 5 | Desktop ≥901px: pill + label **Menu** | `style.css` | Done |
+| 6 | Tests + verify script | `tests/`, `scripts/` | Done |
+
+**Verify:** FAB nổi trên nền tối · mở sidebar → FAB ẩn, nút ✕ hiện · click-outside ≤1330px OK
+
+**Hotfix 2.2b (audit user):** Streamlit ≥1.58 gán `stExpandSidebarButton` trực tiếp lên `<button>` (không còn wrapper). CSS cũ chỉ target `… button` → lúc đóng vẫn hiện chevron `>>` 28px. Đã thêm selector trực tiếp + ẩn `stIconMaterial`.
+
+### Điểm sau Sprint 2.2 (ước lượng)
+
+| Tiêu chí | Trước | Sau |
+|----------|-------|-----|
+| Menu discoverability | 6.5 | **8.5** |
+| Visual consistency open/close | 5.5 | **8.5** |
+| Global chrome | 8.7 | **9.0** |
 
 ---
 
 ## Tiếp theo (Sprint 2)
 
+- [x] **Sprint 2.2 — Menu button redesign** *(user feedback P1)*
 - [ ] Badge "Đã dự đoán" sync với picker
 - [ ] Group label dot màu trên card dự đoán *(reuse `GROUP_COLORS` — chuẩn bị Sprint 3)*
-- [ ] (P2) Thứ tự card tuần tự trên iPad ≤769px
+- [x] Card layout mobile + equal height (Sprint 2.15)
 - [x] Commit Sprint 1 + 1.5 + 1.75 + 1.8–1.9
 - [ ] Audit trang Lịch thi đấu (scorecard riêng)
 
@@ -306,18 +402,21 @@ flowchart TB
 | 2026-06-10 | Global — sprint 1.8 sidebar overlay | 8.6 | 8.6 | 8.7 | Fixed sidebar ≤1330px |
 | 2026-06-10 | Global — sprint 1.85 click-outside | 8.7 | 8.7 | 8.7 | React onClick collapse fix |
 | 2026-06-10 | Dự đoán + login — sprint 1.9 | **8.8** | **8.7** | **8.8** | Kickoff, login 480px, history → |
+| 2026-06-11 | Lịch sử — sprint 2.1 | **8.9** | **8.7** | **8.8** | Split columns, verdict, FIFA compact |
+| 2026-06-11 | Polish — sprint 2.15 | 8.8 | 8.8 | **9.0** | Sidebar fix, card layout, cờ VS, knockout label |
+| 2026-06-11 | Menu button — sprint 2.2b | 8.7 | 8.7 | **9.0** | Streamlit 1.58 direct-button FAB fix |
 
 ---
 
 ## Roadmap UI toàn app (target 10/10)
 
-1. **Dự đoán** — card trận ✅, tabs, lịch sử table ✅ (format `→`)
+1. **Dự đoán** — card trận ✅, tabs, lịch sử table ✅ (split columns + verdict Sprint 2.1)
 2. **Lịch thi đấu** — fixture rows ✅, filter toolbar (chưa scorecard)
 3. **Bảng đấu** — 12 groups visualize *(Sprint 3 — planned)*
 4. **Home** — CTA grid, rules
 5. **Bảng xếp hạng** — podium, charts, detail table
 6. **Admin** — form density, kickoff display
-7. **Global** — sidebar overlay ≤1330px ✅, click-outside ✅, login ✅, typography tokens
+7. **Global** — sidebar overlay ✅, click-outside ✅, login ✅, **menu FAB ✅ (2.2)**
 
 ---
 

@@ -33,6 +33,19 @@
     --shadow-glow: 0 0 40px rgba(251, 191, 36, 0.08);
 
     --login-panel-max-width: 480px;
+
+    --menu-fab-size: 48px;
+    --menu-fab-radius: 14px;
+    --menu-fab-bg: linear-gradient(145deg, #1a2844 0%, #0b1220 55%, #070b14 100%);
+    --menu-fab-border: rgba(251, 191, 36, 0.62);
+    --menu-fab-shadow:
+        0 6px 22px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(251, 191, 36, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    --menu-fab-shadow-hover:
+        0 8px 28px rgba(251, 191, 36, 0.28),
+        0 0 0 1px rgba(251, 191, 36, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* ── Streamlit chrome cleanup ── */
@@ -58,56 +71,193 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     box-sizing: border-box !important;
 }
 
-/* ── Hamburger menu (mobile) ── */
+/* ── Menu FAB — Sprint 2.2 (expand + collapse unified) ── */
+/* Streamlit ≥1.58: stExpandSidebarButton IS the <button> (no inner button). */
+[data-testid="stExpandSidebarButton"],
 [data-testid="collapsedControl"] {
     display: flex !important;
     position: fixed !important;
     top: 0.85rem !important;
     left: 0.85rem !important;
-    z-index: 999999 !important;
+    z-index: 1000002 !important;
+    transition: opacity 0.2s ease, visibility 0.2s ease !important;
 }
 
-[data-testid="collapsedControl"] button {
-    background: linear-gradient(145deg, #152238 0%, #0a1020 100%) !important;
-    border: 2px solid rgba(251, 191, 36, 0.55) !important;
-    border-radius: 14px !important;
-    width: 48px !important;
-    height: 48px !important;
-    min-width: 48px !important;
-    min-height: 48px !important;
+html.wc-sidebar-open [data-testid="stExpandSidebarButton"],
+body.wc-sidebar-open [data-testid="stExpandSidebarButton"],
+html.wc-sidebar-open [data-testid="collapsedControl"],
+body.wc-sidebar-open [data-testid="collapsedControl"] {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+[data-testid="stExpandSidebarButton"],
+[data-testid="stExpandSidebarButton"] button,
+[data-testid="collapsedControl"],
+[data-testid="collapsedControl"] button,
+[data-testid="stSidebarCollapseButton"] button,
+[data-testid="stSidebarCollapseButton"] [data-testid="stBaseButton-headerNoPadding"] {
+    background: var(--menu-fab-bg) !important;
+    border: 2px solid var(--menu-fab-border) !important;
+    border-radius: var(--menu-fab-radius) !important;
+    width: var(--menu-fab-size) !important;
+    height: var(--menu-fab-size) !important;
+    min-width: var(--menu-fab-size) !important;
+    min-height: var(--menu-fab-size) !important;
     padding: 0 !important;
-    box-shadow:
-        0 4px 18px rgba(0, 0, 0, 0.45),
-        0 0 0 1px rgba(251, 191, 36, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    box-shadow: var(--menu-fab-shadow) !important;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    cursor: pointer !important;
+    color: transparent !important;
+    overflow: hidden !important;
 }
 
-[data-testid="collapsedControl"] button:hover {
-    transform: scale(1.06) !important;
+[data-testid="stExpandSidebarButton"]:hover,
+[data-testid="stExpandSidebarButton"] button:hover,
+[data-testid="collapsedControl"]:hover,
+[data-testid="collapsedControl"] button:hover,
+[data-testid="stSidebarCollapseButton"] button:hover,
+[data-testid="stSidebarCollapseButton"] [data-testid="stBaseButton-headerNoPadding"]:hover {
+    transform: scale(1.05) !important;
     border-color: var(--wc-gold) !important;
-    box-shadow:
-        0 6px 24px rgba(251, 191, 36, 0.22),
-        0 0 0 1px rgba(251, 191, 36, 0.25) !important;
+    box-shadow: var(--menu-fab-shadow-hover) !important;
 }
 
-[data-testid="collapsedControl"] button:active {
+[data-testid="stExpandSidebarButton"]:active,
+[data-testid="stExpandSidebarButton"] button:active,
+[data-testid="collapsedControl"]:active,
+[data-testid="collapsedControl"] button:active,
+[data-testid="stSidebarCollapseButton"] button:active,
+[data-testid="stSidebarCollapseButton"] [data-testid="stBaseButton-headerNoPadding"]:active {
     transform: scale(0.96) !important;
 }
 
+[data-testid="stExpandSidebarButton"]:focus-visible,
+[data-testid="stExpandSidebarButton"] button:focus-visible,
+[data-testid="collapsedControl"]:focus-visible,
+[data-testid="collapsedControl"] button:focus-visible,
+[data-testid="stSidebarCollapseButton"] button:focus-visible {
+    outline: 2px solid var(--wc-gold) !important;
+    outline-offset: 2px !important;
+}
+
+/* Hide native Streamlit chevrons — custom icons below */
+[data-testid="stExpandSidebarButton"] svg,
+[data-testid="stExpandSidebarButton"] > span,
+[data-testid="stExpandSidebarButton"] [data-testid="stIconMaterial"],
+[data-testid="stExpandSidebarButton"] button svg,
+[data-testid="stExpandSidebarButton"] button > span,
 [data-testid="collapsedControl"] svg,
-[data-testid="collapsedControl"] span {
+[data-testid="collapsedControl"] > span,
+[data-testid="collapsedControl"] button svg,
+[data-testid="collapsedControl"] button > span,
+[data-testid="stSidebarCollapseButton"] button svg,
+[data-testid="stSidebarCollapseButton"] button > span {
+    display: none !important;
+}
+
+/* Hamburger icon (open menu) */
+[data-testid="stExpandSidebarButton"]::before,
+[data-testid="stExpandSidebarButton"] button::before,
+[data-testid="collapsedControl"]::before,
+[data-testid="collapsedControl"] button::before {
+    content: "" !important;
+    display: block !important;
+    width: 1.125rem !important;
+    height: 2px !important;
+    background: var(--wc-gold) !important;
+    border-radius: 2px !important;
+    box-shadow:
+        0 -6px 0 var(--wc-gold),
+        0 6px 0 var(--wc-gold) !important;
+}
+
+/* Close icon (collapse menu) */
+[data-testid="stSidebarCollapseButton"] button::before,
+[data-testid="stSidebarCollapseButton"] [data-testid="stBaseButton-headerNoPadding"]::before {
+    content: "✕" !important;
+    display: block !important;
     color: var(--wc-gold) !important;
-    fill: var(--wc-gold) !important;
-    width: 1.35rem !important;
-    height: 1.35rem !important;
+    font-size: 1.05rem !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+}
+
+[data-testid="stSidebarCollapseButton"] {
+    position: absolute !important;
+    top: 0.65rem !important;
+    right: 0.65rem !important;
+    left: auto !important;
+    z-index: 1000003 !important;
+    margin: 0 !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+    position: relative !important;
+}
+
+[data-testid="stSidebar"] .sidebar-brand {
+    padding-right: 3.25rem;
 }
 
 @media (min-width: 769px) {
+    [data-testid="stExpandSidebarButton"],
     [data-testid="collapsedControl"] {
         top: 1rem !important;
         left: 1rem !important;
     }
+}
+
+@media (min-width: 901px) {
+    [data-testid="stExpandSidebarButton"],
+    [data-testid="stExpandSidebarButton"] button,
+    [data-testid="collapsedControl"],
+    [data-testid="collapsedControl"] button {
+        width: auto !important;
+        min-width: var(--menu-fab-size) !important;
+        height: var(--menu-fab-size) !important;
+        padding: 0 1rem 0 0.85rem !important;
+        gap: 0.55rem !important;
+        justify-content: flex-start !important;
+    }
+
+    [data-testid="stExpandSidebarButton"]::after,
+    [data-testid="stExpandSidebarButton"] button::after,
+    [data-testid="collapsedControl"]::after,
+    [data-testid="collapsedControl"] button::after {
+        content: "Menu" !important;
+        color: var(--wc-gold) !important;
+        font-family: 'Inter', sans-serif !important;
+        font-size: 0.78rem !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.08em !important;
+        text-transform: uppercase !important;
+        line-height: 1 !important;
+    }
+}
+
+/* Backdrop base — always styled when JS injects it (≤1330px overlay mode) */
+#wc-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(7, 11, 20, 0.55);
+    z-index: 1000000;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    margin: 0;
+    pointer-events: auto !important;
+    animation: wc-backdrop-in 0.2s ease;
+}
+
+@keyframes wc-backdrop-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* ── Sidebar ── */
@@ -1174,9 +1324,20 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
 }
 
 .pred-card-group {
-    font-size: 0.74rem;
-    font-weight: 600;
-    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.pred-card-group-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
 }
 
 .pred-card-kickoff {
@@ -1207,11 +1368,12 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
 }
 
 .pred-card-matchup {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
+    column-gap: 0.5rem;
     width: 100%;
+    min-height: 3.25rem;
 }
 
 .pred-card-side {
@@ -1220,6 +1382,7 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     flex-direction: column;
     gap: 0.3rem;
     min-width: 0;
+    justify-content: center;
 }
 
 .pred-card-side--a {
@@ -1244,32 +1407,62 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     font-size: 1.02rem;
     font-weight: 900;
     color: var(--text-primary);
-    line-height: 1.2;
-    word-break: normal;
-    overflow-wrap: break-word;
-    hyphens: none;
-    display: block;
+    line-height: 1.25;
+    display: flex;
+    align-items: center;
     width: 100%;
+    min-width: 0;
+    min-height: 1.65em;
+}
+
+.pred-card-side--a .pred-side-name {
+    justify-content: flex-end;
+}
+
+.pred-card-side--b .pred-side-name {
+    justify-content: flex-start;
+}
+
+.pred-card-side--a .team-line,
+.pred-card-side--b .team-line {
+    display: inline-flex;
+    align-items: center;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    gap: 0.3rem;
+}
+
+/* Flag hugs name, cluster faces VS: Canada 🇨🇦 | VS | 🇧🇦 Bosnia */
+.pred-card-side--a .team-line {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.pred-card-side--b .team-line {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+}
+
+.pred-card-side--a .team-line-name,
+.pred-card-side--b .team-line-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pred-card-side--a .team-flag,
+.pred-card-side--b .team-flag {
+    flex-shrink: 0;
 }
 
 .pred-side-name .team-line {
     font-size: inherit;
     font-weight: inherit;
     color: inherit;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: inherit;
-    max-width: 100%;
-    min-width: 0;
-}
-
-.pred-side-name .team-line-name {
-    font-size: inherit;
-    font-weight: inherit;
-    word-break: normal;
-    overflow-wrap: break-word;
-    min-width: 0;
-    flex: 1 1 auto;
 }
 
 .pred-card-vs-ring {
@@ -2002,6 +2195,25 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     overflow: hidden;
 }
 
+.pred-history-summary {
+    margin: 0.65rem 0 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.01em;
+}
+
+@media (max-width: 769px) {
+    .pred-history-panel [data-testid="stDataFrame"] {
+        font-size: 0.8125rem;
+    }
+
+    .pred-history-summary {
+        font-size: 0.75rem;
+        line-height: 1.45;
+    }
+}
+
 /* ── Streamlit widget overrides ── */
 .stTabs [data-baseweb="tab-list"] {
     gap: 0.5rem;
@@ -2043,7 +2255,10 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     }
 
     [data-testid="stSidebarCollapseButton"] {
-        position: relative !important;
+        position: absolute !important;
+        top: 0.65rem !important;
+        right: 0.65rem !important;
+        left: auto !important;
         z-index: 1000003 !important;
     }
 
@@ -2054,18 +2269,6 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
         pointer-events: auto !important;
     }
 
-    #wc-sidebar-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(7, 11, 20, 0.55);
-        z-index: 1000000;
-        cursor: pointer;
-        border: none;
-        padding: 0;
-        animation: wc-backdrop-in 0.2s ease;
-        pointer-events: auto !important;
-    }
-
     html.wc-sidebar-open [data-testid="stAppViewContainer"] > :not([data-testid="stSidebar"]),
     body.wc-sidebar-open [data-testid="stAppViewContainer"] > :not([data-testid="stSidebar"]),
     .wc-sidebar-open [data-testid="stMain"],
@@ -2073,10 +2276,23 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
         pointer-events: none !important;
     }
 
+    html.wc-sidebar-open header,
+    body.wc-sidebar-open header,
+    html.wc-sidebar-open [data-testid="stHeader"],
+    body.wc-sidebar-open [data-testid="stHeader"],
+    html.wc-sidebar-open [data-testid="stToolbar"],
+    body.wc-sidebar-open [data-testid="stToolbar"] {
+        pointer-events: none !important;
+    }
+
     html.wc-sidebar-open [data-testid="stSidebar"],
     body.wc-sidebar-open [data-testid="stSidebar"],
     html.wc-sidebar-open #wc-sidebar-backdrop,
-    body.wc-sidebar-open #wc-sidebar-backdrop {
+    body.wc-sidebar-open #wc-sidebar-backdrop,
+    html.wc-sidebar-open [data-testid="stExpandSidebarButton"],
+    body.wc-sidebar-open [data-testid="stExpandSidebarButton"],
+    html.wc-sidebar-open [data-testid="stSidebarCollapseButton"],
+    body.wc-sidebar-open [data-testid="stSidebarCollapseButton"] {
         pointer-events: auto !important;
     }
 
@@ -2088,11 +2304,6 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     [data-testid="stHeader"],
     [data-testid="stToolbar"] {
         z-index: 998 !important;
-    }
-
-    @keyframes wc-backdrop-in {
-        from { opacity: 0; }
-        to { opacity: 1; }
     }
 
     [data-testid="stAppViewContainer"] > [data-testid="stMain"],
@@ -2214,6 +2425,11 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
         flex-direction: column !important;
         width: 100% !important;
         max-width: 100% !important;
+        align-items: stretch !important;
+    }
+
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] + [data-testid="stHorizontalBlock"] {
+        margin-top: 0.15rem;
     }
 
     [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"],
@@ -2233,29 +2449,20 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     }
 
     .pred-card-matchup {
-        gap: 0.5rem;
-    }
-
-    .pred-card-side {
-        flex: 1 1 0;
-        min-width: 0;
-    }
-
-    .pred-side-name .team-line {
-        flex-wrap: nowrap !important;
-        align-items: center;
-    }
-
-    .pred-side-name .team-line--a {
-        justify-content: flex-end;
-    }
-
-    .pred-side-name .team-line--b {
-        justify-content: flex-start;
+        column-gap: 0.5rem;
+        min-height: auto;
     }
 
     .pred-side-name {
-        font-size: 0.95rem;
+        min-height: auto;
+    }
+
+    .pred-card-side--a .team-line-name,
+    .pred-card-side--b .team-line-name {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        word-break: break-word;
     }
 
     .pred-kickoff-primary {
@@ -2347,9 +2554,15 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     .page-header--home .page-header-title { font-size: 1.75rem; }
     .podium { gap: 0.5rem; }
 
+    [data-testid="stExpandSidebarButton"],
+    [data-testid="stExpandSidebarButton"] button,
+    [data-testid="collapsedControl"],
     [data-testid="collapsedControl"] button {
-        width: 52px !important;
-        height: 52px !important;
+        --menu-fab-size: 52px;
+        width: var(--menu-fab-size) !important;
+        height: var(--menu-fab-size) !important;
+        min-width: var(--menu-fab-size) !important;
+        min-height: var(--menu-fab-size) !important;
     }
 
     .login-panel-header {
@@ -2387,13 +2600,47 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     }
 }
 
+/* Prediction form: 1 card/row on phone + tablet portrait (≤900px) */
+@media (max-width: 900px) {
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] {
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        align-items: stretch !important;
+    }
+
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] + [data-testid="stHorizontalBlock"] {
+        margin-top: 0.15rem;
+    }
+
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"],
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 100% !important;
+    }
+
+    .pred-card-side--a .team-line-name,
+    .pred-card-side--b .team-line-name {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        word-break: break-word;
+    }
+
+    .pred-card-matchup {
+        min-height: auto;
+    }
+}
+
 @media (min-width: 1200px) {
     .block-container {
         max-width: 1360px;
     }
 }
 
-@media (min-width: 770px) and (max-width: 1100px) {
+@media (min-width: 901px) and (max-width: 1100px) {
     [data-testid="stVerticalBlock"]:has(.pred-card-header),
     [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) {
         overflow: visible !important;
@@ -2406,12 +2653,7 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     }
 
     .pred-side-name {
-        font-size: 0.94rem;
-    }
-
-    .pred-side-name .team-line {
-        flex-wrap: nowrap;
-        align-items: center;
+        font-size: 0.9rem;
     }
 }
 
@@ -2439,10 +2681,10 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     }
 }
 
-@media (min-width: 770px) {
+@media (min-width: 901px) {
     [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] {
         flex-direction: row !important;
-        align-items: flex-start !important;
+        align-items: stretch !important;
         gap: 1.25rem !important;
     }
 
@@ -2452,6 +2694,37 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
         min-width: 0 !important;
         max-width: none !important;
         flex: 1 1 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-self: stretch !important;
+    }
+
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] > [data-testid="stVerticalBlock"],
+    [data-testid="stForm"]:has(.pred-form-actions) > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [data-testid="stHorizontalBlock"] > div[data-testid="column"] > [data-testid="stVerticalBlock"] {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        width: 100% !important;
+    }
+
+    [data-testid="stForm"]:has(.pred-form-actions) [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) {
+        flex: 1 1 auto !important;
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    [data-testid="stForm"]:has(.pred-form-actions) [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) > [data-testid="stVerticalBlock"] {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        min-height: 100% !important;
+    }
+
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-card-body) + [data-testid="stElementContainer"] {
+        margin-top: auto !important;
     }
 
     .pred-side-name {
@@ -2459,12 +2732,15 @@ footer, div[data-testid="InputInstructions"] { display: none !important; }
     }
 
     .pred-card-matchup {
-        gap: 0.55rem;
+        column-gap: 0.55rem;
+        min-height: 3.25rem;
     }
 
     .pred-card-vs-ring {
         width: 2.5rem;
         height: 2.5rem;
+        align-self: center;
+        justify-self: center;
     }
 }
 
