@@ -331,14 +331,31 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 
 ---
 
-## Tiếp theo (Sprint 2)
+## Tiếp theo (Sprint 2.3+)
 
 - [x] **Sprint 2.2 — Menu button redesign** *(user feedback P1)*
-- [ ] Badge "Đã dự đoán" sync với picker
-- [ ] Group label dot màu trên card dự đoán *(reuse `GROUP_COLORS` — chuẩn bị Sprint 3)*
 - [x] Card layout mobile + equal height (Sprint 2.15)
-- [x] Commit Sprint 1 + 1.5 + 1.75 + 1.8–1.9
+- [x] Push Sprint 2.x production (`70c2094` + `34cde55`)
+
+### Sprint 2.3 — Interaction polish (P1, ~1–2 ngày)
+
+| # | Việc | File | Effort |
+|---|------|------|--------|
+| 1 | Badge "Đã dự đoán" sync real-time với picker | `ui_components.py`, `pages/1_Du_Doan.py` | S |
+| 2 | Caption lịch sử momentum ("3/5 trận đúng tuần này") | `pages/1_Du_Doan.py`, `scoring.py` | S |
+
+### Sprint 2.4 — Infra resilience (~nửa ngày)
+
+| # | Việc | File | Effort |
+|---|------|------|--------|
+| 1 | GitHub Action: `pytest` + `verify_sidebar_overlay.py` on push | `.github/workflows/` | S |
+| 2 | Migrate `components.html` → `st.iframe` (deprecation 2026-06-01) | `ui_components.py` | S |
+
+### Backlog P2
+
+- [ ] Group label dot màu trên card dự đoán *(reuse `GROUP_COLORS` — chuẩn bị Sprint 3)*
 - [ ] Audit trang Lịch thi đấu (scorecard riêng)
+- [ ] Admin bulk score UX (risk cao trước kickoff WC)
 
 ---
 
