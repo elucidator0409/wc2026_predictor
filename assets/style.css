@@ -2200,9 +2200,8 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     line-height: 1.35;
 }
 
-[data-testid="stTabs"] [data-baseweb="tab-panel"]:has(.pred-history-panel-marker) [data-testid="stDataFrame"] {
+[data-testid="stElementContainer"]:has(.pred-history-desktop-marker) + [data-testid="stElementContainer"] .pred-hist-list--desktop {
     border-radius: var(--radius-md);
-    overflow: hidden;
 }
 
 .pred-history-summary {
@@ -2328,6 +2327,38 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     line-height: 1.2;
 }
 
+.pred-hist-matchup-line,
+.pred-hist-pick-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    flex-wrap: nowrap;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.pred-hist-matchup-line .team-flag--sm,
+.pred-hist-pick-line .team-flag--sm {
+    width: 1rem;
+    flex-shrink: 0;
+}
+
+.pred-hist-code {
+    font-weight: 600;
+    color: #cbd5e1;
+}
+
+.pred-hist-vs {
+    color: #64748b;
+    padding: 0 0.05rem;
+}
+
+.pred-hist-pen {
+    font-size: 0.62rem;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
 .pred-hist-row-matchup {
     font-size: 0.7rem;
     font-weight: 600;
@@ -2368,6 +2399,41 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
 
 .pred-hist-row-verdict--pending {
     color: #94a3b8;
+}
+
+.pred-hist-list--desktop .pred-hist-list-head,
+.pred-hist-list--desktop .pred-hist-row--desktop {
+    grid-template-columns:
+        2.15rem
+        minmax(3.6rem, 0.55fr)
+        minmax(0, 1.2fr)
+        minmax(0, 0.9fr)
+        minmax(4.5rem, 0.75fr)
+        minmax(4.5rem, 0.8fr);
+}
+
+.pred-hist-col-group,
+.pred-hist-row-group {
+    text-align: left;
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.pred-hist-col-time,
+.pred-hist-row-time {
+    text-align: right;
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+.pred-hist-list--desktop {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 769px) {

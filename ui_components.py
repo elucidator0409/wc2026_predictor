@@ -5,6 +5,7 @@ import html
 import os
 import re
 
+import pandas as pd
 import streamlit as st
 
 from scoring import normalize_pred_outcome
@@ -781,6 +782,18 @@ def _filter_pred_history_df(history_df, filt: str):
     return history_df
 
 
+def _pred_history_matchup_cell(row) -> str:
+    if "Trận đấu_html" in row.index and pd.notna(row.get("Trận đấu_html")):
+        return str(row["Trận đấu_html"])
+    return html.escape(str(row.get("Trận đấu", "—")))
+
+
+def _pred_history_pick_cell(row) -> str:
+    if "Dự đoán_html" in row.index and pd.notna(row.get("Dự đoán_html")):
+        return str(row["Dự đoán_html"])
+    return html.escape(str(row.get("Dự đoán", "—")))
+
+
 def _build_pred_history_compact_html(history_df) -> str:
     rows = []
     for _, row in history_df.iterrows():
@@ -788,8 +801,8 @@ def _build_pred_history_compact_html(history_df) -> str:
         rows.append(
             f'<div class="pred-hist-row">'
             f'<span class="pred-hist-row-no">{int(row["match_number"])}</span>'
-            f'<span class="pred-hist-row-matchup">{html.escape(str(row["Trận đấu"]))}</span>'
-            f'<span class="pred-hist-row-pick">{html.escape(str(row["Dự đoán"]))}</span>'
+            f'<span class="pred-hist-row-matchup">{_pred_history_matchup_cell(row)}</span>'
+            f'<span class="pred-hist-row-pick">{_pred_history_pick_cell(row)}</span>'
             f'<span class="{_pred_history_verdict_class(verdict)}">{html.escape(verdict)}</span>'
             f"</div>"
         )
@@ -802,6 +815,33 @@ def _build_pred_history_compact_html(history_df) -> str:
         "</div>"
     )
     return f'<div class="pred-hist-list">{head}{"".join(rows)}</div>'
+
+
+def _build_pred_history_desktop_html(history_df) -> str:
+    rows = []
+    for _, row in history_df.iterrows():
+        verdict = str(row["Kết quả"])
+        rows.append(
+            f'<div class="pred-hist-row pred-hist-row--desktop">'
+            f'<span class="pred-hist-row-no">{int(row["match_number"])}</span>'
+            f'<span class="pred-hist-row-group">{html.escape(str(row["Bảng"]))}</span>'
+            f'<span class="pred-hist-row-matchup">{_pred_history_matchup_cell(row)}</span>'
+            f'<span class="pred-hist-row-pick">{_pred_history_pick_cell(row)}</span>'
+            f'<span class="{_pred_history_verdict_class(verdict)}">{html.escape(verdict)}</span>'
+            f'<span class="pred-hist-row-time">{html.escape(str(row["Thời gian dự đoán"]))}</span>'
+            f"</div>"
+        )
+    head = (
+        '<div class="pred-hist-list-head pred-hist-list-head--desktop">'
+        '<span class="pred-hist-col-no">Trận</span>'
+        '<span class="pred-hist-col-group">Bảng</span>'
+        '<span class="pred-hist-col-match">Trận đấu</span>'
+        '<span class="pred-hist-col-pick">Dự đoán</span>'
+        '<span class="pred-hist-col-kq">Kết quả</span>'
+        '<span class="pred-hist-col-time">Thời gian</span>'
+        "</div>"
+    )
+    return f'<div class="pred-hist-list pred-hist-list--desktop">{head}{"".join(rows)}</div>'
 
 
 def slice_pred_history_page(history_df, filt: str, page: int, page_size: int = _PRED_HISTORY_MOBILE_PAGE_SIZE):
@@ -874,24 +914,12 @@ def render_pred_history_mobile_section(history_df):
 
 
 def render_pred_history_desktop_table(history_df):
-    """Desktop dataframe with layout marker (hidden on mobile via CSS)."""
-    table_df = history_df.rename(columns={"match_number": "Trận"})
+    """Desktop HTML table with flagcdn images (hidden on mobile via CSS)."""
     _html('<div class="pred-history-desktop-marker" aria-hidden="true"></div>')
-    st.dataframe(
-        table_df[
-            ["Trận", "Bảng", "Trận đấu", "Dự đoán", "Kết quả", "Thời gian dự đoán"]
-        ],
-        width="stretch",
-        hide_index=True,
-        column_config={
-            "Trận": st.column_config.NumberColumn("Trận", format="%d", width="small"),
-            "Bảng": st.column_config.TextColumn("Bảng", width="small"),
-            "Trận đấu": st.column_config.TextColumn("Trận đấu", width="medium"),
-            "Dự đoán": st.column_config.TextColumn("Dự đoán", width="small"),
-            "Kết quả": st.column_config.TextColumn("Kết quả", width="medium"),
-            "Thời gian dự đoán": st.column_config.TextColumn("Thời gian dự đoán", width="small"),
-        },
-    )
+    if history_df.empty:
+        _html('<div class="pred-hist-empty">Không có trận nào trong bộ lọc này.</div>')
+        return
+    _html(_build_pred_history_desktop_html(history_df))
 
 
 def render_pred_tabs(labels: list[str]):

@@ -10,6 +10,8 @@ Legacy W/D/L is accepted on read (W→A, L→B) for existing sheet rows.
 
 from __future__ import annotations
 
+import html
+
 import pandas as pd
 
 OUTCOMES = ("A", "D", "B")
@@ -205,6 +207,42 @@ def format_matchup_display(
     return _matchup_line(flag_a, team_a, flag_b, team_b)
 
 
+def format_matchup_html(
+    team_a: str = "",
+    team_b: str = "",
+    name_to_fifa: dict | None = None,
+    team_a_fifa: str | None = None,
+    team_b_fifa: str | None = None,
+    compact: bool = True,
+) -> str:
+    """Matchup with flagcdn images — works on Windows where flag emoji does not render."""
+    from team_flags import flag_img_html
+
+    if not team_a or not team_b:
+        return "—"
+    flag_a = flag_img_html(team_a_fifa, team_a, name_to_fifa, size="sm")
+    flag_b = flag_img_html(team_b_fifa, team_b, name_to_fifa, size="sm")
+    if compact:
+        code_a = html.escape(_team_code(team_a, team_a_fifa, name_to_fifa))
+        code_b = html.escape(_team_code(team_b, team_b_fifa, name_to_fifa))
+        return (
+            f'<span class="pred-hist-matchup-line">'
+            f"{flag_a}<span class=\"pred-hist-code\">{code_a}</span>"
+            f'<span class="pred-hist-vs"> - </span>'
+            f"{flag_b}<span class=\"pred-hist-code\">{code_b}</span>"
+            f"</span>"
+        )
+    safe_a = html.escape(str(team_a))
+    safe_b = html.escape(str(team_b))
+    return (
+        f'<span class="pred-hist-matchup-line">'
+        f"{flag_a}<span class=\"pred-hist-code\">{safe_a}</span>"
+        f'<span class="pred-hist-vs"> - </span>'
+        f"{flag_b}<span class=\"pred-hist-code\">{safe_b}</span>"
+        f"</span>"
+    )
+
+
 def format_pred_pick(
     outcome,
     team_a: str = "",
@@ -233,6 +271,42 @@ def format_pred_pick(
             base += f" · PEN: {pen_flag} {_team_code(adv_team_name, None, name_to_fifa)}"
         return base
     return OUTCOME_LABELS.get(outcome, outcome)
+
+
+def format_pred_pick_html(
+    outcome,
+    team_a: str = "",
+    team_b: str = "",
+    adv_team_name: str | None = None,
+    is_knockout: bool = False,
+    name_to_fifa: dict | None = None,
+    team_a_fifa: str | None = None,
+    team_b_fifa: str | None = None,
+) -> str:
+    """Prediction pick with flagcdn images for history tables."""
+    from team_flags import flag_img_html
+
+    outcome = normalize_pred_outcome(outcome)
+    if outcome is None:
+        return "—"
+    if outcome == "A" and team_a:
+        flag_a = flag_img_html(team_a_fifa, team_a, name_to_fifa, size="sm")
+        return f'<span class="pred-hist-pick-line">{flag_a} thắng</span>'
+    if outcome == "B" and team_b:
+        flag_b = flag_img_html(team_b_fifa, team_b, name_to_fifa, size="sm")
+        return f'<span class="pred-hist-pick-line">{flag_b} thắng</span>'
+    if outcome == "D":
+        base = '<span class="pred-hist-pick-line">🤝 Hòa</span>'
+        if is_knockout and adv_team_name:
+            pen_flag = flag_img_html(team_name=adv_team_name, name_to_fifa=name_to_fifa, size="sm")
+            pen_code = html.escape(_team_code(adv_team_name, None, name_to_fifa))
+            base = (
+                f'<span class="pred-hist-pick-line">🤝 Hòa'
+                f'<span class="pred-hist-pen"> · PEN: {pen_flag} {pen_code}</span></span>'
+            )
+        return base
+    label = html.escape(OUTCOME_LABELS.get(outcome, str(outcome)))
+    return f'<span class="pred-hist-pick-line">{label}</span>'
 
 
 def format_history_verdict(row) -> str:

@@ -105,6 +105,26 @@ def test_format_matchup_display_compact():
     assert format_matchup_display("Canada", "Paraguay", name_to_fifa=fifa) == "🇨🇦 CAN - 🇵🇾 PAR"
 
 
+def test_format_matchup_html_uses_flagcdn():
+    from scoring import format_matchup_html
+
+    fifa = {"Canada": "CAN", "Paraguay": "PAR"}
+    out = format_matchup_html("Canada", "Paraguay", name_to_fifa=fifa)
+    assert "flagcdn.com" in out
+    assert "CAN" in out and "PAR" in out
+    assert "pred-hist-matchup-line" in out
+
+
+def test_format_pred_pick_html_uses_flagcdn():
+    from scoring import format_pred_pick_html
+
+    fifa = {"Canada": "CAN", "Paraguay": "PAR"}
+    out = format_pred_pick_html("A", team_a="Canada", team_b="Paraguay", name_to_fifa=fifa)
+    assert "flagcdn.com" in out
+    assert "thắng" in out
+    assert "pred-hist-pick-line" in out
+
+
 def test_format_pred_pick():
     fifa = {"Canada": "CAN", "Paraguay": "PAR", "Mexico": "MEX"}
     assert format_pred_pick("A", team_a="Canada", team_b="Paraguay", name_to_fifa=fifa) == "🇨🇦 thắng"

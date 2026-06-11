@@ -14,7 +14,9 @@ from scoring import (
     format_history_timestamp,
     format_history_verdict,
     format_matchup_display,
+    format_matchup_html,
     format_pred_pick,
+    format_pred_pick_html,
     is_match_finished,
     normalize_pred_outcome,
 )
@@ -354,6 +356,29 @@ with tab2:
         )
         display_history["Dự đoán"] = display_history.apply(
             lambda row: format_pred_pick(
+                row.get("pred_outcome"),
+                team_a=row["team_a"],
+                team_b=row["team_b"],
+                adv_team_name=_history_adv_name(row),
+                is_knockout=_history_stage_id(row) > 1,
+                name_to_fifa=name_to_fifa,
+                team_a_fifa=_history_fifa(row, "team_a"),
+                team_b_fifa=_history_fifa(row, "team_b"),
+            ),
+            axis=1,
+        )
+        display_history["Trận đấu_html"] = display_history.apply(
+            lambda row: format_matchup_html(
+                team_a=row["team_a"],
+                team_b=row["team_b"],
+                name_to_fifa=name_to_fifa,
+                team_a_fifa=_history_fifa(row, "team_a"),
+                team_b_fifa=_history_fifa(row, "team_b"),
+            ),
+            axis=1,
+        )
+        display_history["Dự đoán_html"] = display_history.apply(
+            lambda row: format_pred_pick_html(
                 row.get("pred_outcome"),
                 team_a=row["team_a"],
                 team_b=row["team_b"],
