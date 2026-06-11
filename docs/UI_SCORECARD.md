@@ -1,7 +1,5 @@
 # UI Scorecard — WC 2026 Predictor
 
-Theo dõi chất lượng UI/UX theo góc nhìn senior frontend. Mục tiêu: **10/10** trên mọi tiêu chí, mọi viewport.
-
 ---
 
 ## Cách chấm điểm
