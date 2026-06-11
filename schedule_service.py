@@ -103,10 +103,65 @@ def group_letter(group_round: str | None) -> str | None:
     return None
 
 
+KNOCKOUT_ROUND_LABELS = {
+    "round of 32": "VÒNG 1/16",
+    "round of 16": "VÒNG 1/8",
+    "quarter-final": "TỨ KẾT",
+    "quarterfinals": "TỨ KẾT",
+    "quarter-finals": "TỨ KẾT",
+    "semi-final": "BÁN KẾT",
+    "semifinals": "BÁN KẾT",
+    "semi-finals": "BÁN KẾT",
+    "third place": "TRANH HẠNG 3",
+    "third place playoff": "TRANH HẠNG 3",
+    "final": "CHUNG KẾT",
+}
+
+KNOCKOUT_ROUND_COLORS = {
+    "round of 32": "#38bdf8",
+    "round of 16": "#6366f1",
+    "quarter-final": "#f59e0b",
+    "quarterfinals": "#f59e0b",
+    "quarter-finals": "#f59e0b",
+    "semi-final": "#ec4899",
+    "semifinals": "#ec4899",
+    "semi-finals": "#ec4899",
+    "third place": "#94a3b8",
+    "third place playoff": "#94a3b8",
+    "final": "#fbbf24",
+}
+
+STAGE_ID_LABELS_VN = {
+    2: "VÒNG 1/16",
+    3: "VÒNG 1/8",
+    4: "TỨ KẾT",
+    5: "BÁN KẾT",
+    6: "TRANH HẠNG 3",
+    7: "CHUNG KẾT",
+}
+
+STAGE_ID_COLORS = {
+    2: "#38bdf8",
+    3: "#6366f1",
+    4: "#f59e0b",
+    5: "#ec4899",
+    6: "#94a3b8",
+    7: "#fbbf24",
+}
+
+
+def _knockout_color(text: str) -> str | None:
+    return KNOCKOUT_ROUND_COLORS.get(text.strip().lower())
+
+
 def group_color(group_round: str | None) -> str:
     letter = group_letter(group_round)
     if letter and letter in GROUP_COLORS:
         return GROUP_COLORS[letter]
+    if group_round and isinstance(group_round, str):
+        knockout_color = _knockout_color(group_round)
+        if knockout_color:
+            return knockout_color
     return "#64748b"
 
 
@@ -117,14 +172,68 @@ def group_label_vn(group_round: str | None) -> str:
     letter = group_letter(text)
     if letter:
         return f"BẢNG {letter}"
-    mapping = {
-        "Round of 16": "Vòng 1/8",
-        "Quarter-final": "Tứ kết",
-        "Semi-final": "Bán kết",
-        "Third Place": "Tranh hạng 3",
-        "Final": "Chung kết",
-    }
-    return mapping.get(text, text)
+    knockout_label = KNOCKOUT_ROUND_LABELS.get(text.lower())
+    if knockout_label:
+        return knockout_label
+    return text
+
+
+def match_round_label_vn(
+    group_round: str | None = None,
+    match_label: str | None = None,
+    stage_id=None,
+) -> str:
+    """Resolve display label for group stage (BẢNG X) or knockout round (1/16, 1/8, …)."""
+    for source in (group_round, match_label):
+        if source is None or (isinstance(source, float) and pd.isna(source)):
+            continue
+        text = str(source).strip()
+        if not text:
+            continue
+        label = group_label_vn(text)
+        if label != text or group_letter(text):
+            return label
+
+    if stage_id is not None and not (isinstance(stage_id, float) and pd.isna(stage_id)):
+        try:
+            return STAGE_ID_LABELS_VN[int(float(stage_id))]
+        except (ValueError, TypeError, KeyError):
+            pass
+
+    if group_round is not None and not (isinstance(group_round, float) and pd.isna(group_round)):
+        text = str(group_round).strip()
+        if text:
+            return text
+    if match_label is not None and not (isinstance(match_label, float) and pd.isna(match_label)):
+        text = str(match_label).strip()
+        if text:
+            return text
+    return "TBD"
+
+
+def match_round_color(
+    group_round: str | None = None,
+    match_label: str | None = None,
+    stage_id=None,
+) -> str:
+    """Resolve accent color for group stage or knockout round badges."""
+    for source in (group_round, match_label):
+        if source is None or (isinstance(source, float) and pd.isna(source)):
+            continue
+        text = str(source).strip()
+        if not text:
+            continue
+        color = group_color(text)
+        if color != "#64748b" or group_letter(text):
+            return color
+
+    if stage_id is not None and not (isinstance(stage_id, float) and pd.isna(stage_id)):
+        try:
+            return STAGE_ID_COLORS[int(float(stage_id))]
+        except (ValueError, TypeError, KeyError):
+            pass
+
+    return "#64748b"
 
 
 def is_group_stage(group_round: str | None, stage_id: int | None = None) -> bool:

@@ -152,7 +152,6 @@ def _render_fixture_row(row, is_finished: bool) -> None:
     render_fixture_row(
         match_number=row["match_number"],
         kickoff_vn=row["kickoff_vn"],
-        kickoff_et=row.get("kickoff_et"),
         team_a=row["team_a"],
         team_b=row["team_b"],
         team_a_fifa=row.get("team_a_fifa"),

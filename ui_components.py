@@ -38,7 +38,7 @@ def apply_global_styles():
 <script>
 (function () {
   const topWin = window.top;
-  const WC_SIDEBAR_OVERLAY_VERSION = 2;
+  const WC_SIDEBAR_OVERLAY_VERSION = 5;
   if (topWin.__wcSidebarOverlayVersion === WC_SIDEBAR_OVERLAY_VERSION) {
     topWin.__wcSidebarOverlaySync?.();
     return;
@@ -56,8 +56,14 @@ def apply_global_styles():
   let syncQueued = false;
 
   function isSidebarOpen() {
+    if (!MQ.matches) return false;
     const sidebar = document.querySelector('[data-testid="stSidebar"]');
-    return !!(MQ.matches && sidebar && sidebar.getAttribute("aria-expanded") === "true");
+    return !!(sidebar && sidebar.getAttribute("aria-expanded") === "true");
+  }
+
+  function scheduleBackdropSync() {
+    queueSyncBackdrop();
+    setTimeout(queueSyncBackdrop, 180);
   }
 
   function collapseSidebar() {
@@ -81,12 +87,14 @@ def apply_global_styles():
           view: window,
         }),
       });
+      scheduleBackdropSync();
       return;
     }
 
     btn.dispatchEvent(
       new MouseEvent("click", { bubbles: true, cancelable: true, view: window })
     );
+    scheduleBackdropSync();
   }
 
   function setSidebarOpenClass(open) {
@@ -111,10 +119,22 @@ def apply_global_styles():
       backdrop.id = "wc-sidebar-backdrop";
       backdrop.type = "button";
       backdrop.setAttribute("aria-label", "Đóng menu");
+      Object.assign(backdrop.style, {
+        position: "fixed",
+        inset: "0",
+        background: "rgba(7, 11, 20, 0.55)",
+        zIndex: "1000000",
+        cursor: "pointer",
+        border: "none",
+        padding: "0",
+        margin: "0",
+        pointerEvents: "auto",
+      });
       backdrop.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
         collapseSidebar();
+        scheduleBackdropSync();
       });
       document.body.appendChild(backdrop);
     }
@@ -135,10 +155,12 @@ def apply_global_styles():
     if (sidebar.contains(target)) return;
     if (target.closest?.('[data-testid="stSidebar"]')) return;
     if (target.closest?.('[data-testid="collapsedControl"]')) return;
+    if (target.closest?.('[data-testid="stExpandSidebarButton"]')) return;
     if (target.closest?.('[data-testid="stSidebarCollapseButton"]')) return;
     e.preventDefault();
     e.stopPropagation();
     collapseSidebar();
+    scheduleBackdropSync();
   }
 
   function handlePageChange() {
@@ -170,6 +192,7 @@ def apply_global_styles():
   window.__wcSidebarOverlaySync = queueSyncBackdrop;
   window.__wcSidebarOverlayInit = true;
 
+  MQ.addEventListener("change", queueSyncBackdrop);
   window.addEventListener("resize", queueSyncBackdrop);
   window.addEventListener("popstate", handlePageChange);
   document.addEventListener("click", onOutsidePointer, true);
@@ -365,7 +388,6 @@ def render_fixture_row(
     *,
     match_number: int | str,
     kickoff_vn,
-    kickoff_et: str | None = None,
     team_a: str,
     team_b: str,
     team_a_fifa=None,
@@ -380,8 +402,6 @@ def render_fixture_row(
     kickoff_dt = kickoff_vn.to_pydatetime() if hasattr(kickoff_vn, "to_pydatetime") else kickoff_vn
     time_primary = format_time_vn(kickoff_dt)
     date_compact = format_date_compact_vn(kickoff_dt)
-    et_line = html.escape(str(kickoff_et).strip()) if kickoff_et and str(kickoff_et).strip() else ""
-    et_html = f'<div class="fixture-time-secondary">{et_line} ET</div>' if et_line else ""
 
     home_line = team_line_html(team_a, "a", fifa_code=team_a_fifa, name_to_fifa=name_to_fifa)
     away_line = team_line_html(team_b, "b", fifa_code=team_b_fifa, name_to_fifa=name_to_fifa)
@@ -401,7 +421,6 @@ def render_fixture_row(
         f'<div class="fixture-row-time">'
         f'<div class="fixture-time-primary">{html.escape(time_primary)}</div>'
         f'<div class="fixture-time-date">{html.escape(date_compact)}</div>'
-        f"{et_html}"
         f"</div>"
         f'<div class="fixture-row-match">'
         f'<div class="fixture-teams">'
@@ -679,7 +698,8 @@ def render_pred_match_header(
     match_number,
     team_a,
     team_b,
-    group_label,
+    group_round=None,
+    stage_id=None,
     is_knockout=False,
     has_saved_pred: bool = False,
     team_a_fifa=None,
@@ -687,6 +707,10 @@ def render_pred_match_header(
     name_to_fifa=None,
     kickoff_vn=None,
 ):
+    from schedule_service import match_round_color, match_round_label_vn
+
+    round_label = match_round_label_vn(group_round=group_round, stage_id=stage_id)
+    round_tone = match_round_color(group_round=group_round, stage_id=stage_id)
     ko_badge = '<span class="pred-ko-badge">KNOCK-OUT</span>' if is_knockout else ""
     saved_badge = '<span class="pred-saved-badge">Đã dự đoán</span>' if has_saved_pred else ""
     side_a = team_line_html(team_a, "a", fifa_code=team_a_fifa, name_to_fifa=name_to_fifa)
@@ -709,7 +733,9 @@ def render_pred_match_header(
         f'<div class="pred-card-header">'
         f'<div class="pred-card-meta">'
         f'<span class="pred-card-number">Trận {html.escape(str(match_number))}</span>'
-        f'<span class="pred-card-group">{html.escape(str(group_label))}</span>'
+        f'<span class="pred-card-group" style="color:{html.escape(round_tone)};">'
+        f'<span class="pred-card-group-dot" style="background:{html.escape(round_tone)};"></span>'
+        f'{html.escape(round_label)}</span>'
         f"{ko_badge}{saved_badge}"
         f"</div>"
         f"{kickoff_html}"

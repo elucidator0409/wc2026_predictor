@@ -146,9 +146,10 @@ def team_line_html(
 ) -> str:
     """side: 'a' = flag left of name, 'b' = flag right of name."""
     safe_name = html.escape(str(team_name))
+    title_attr = f' title="{safe_name}"' if safe_name else ""
     flag = flag_img_html(fifa_code=fifa_code, team_name=team_name, name_to_fifa=name_to_fifa)
     if side == "b":
-        inner = f'<span class="team-line-name">{safe_name}</span>{flag}'
+        inner = f'<span class="team-line-name"{title_attr}>{safe_name}</span>{flag}'
     else:
-        inner = f'{flag}<span class="team-line-name">{safe_name}</span>'
+        inner = f'{flag}<span class="team-line-name"{title_attr}>{safe_name}</span>'
     return f'<span class="team-line team-line--{html.escape(side)}">{inner}</span>'

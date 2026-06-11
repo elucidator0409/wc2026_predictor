@@ -9,7 +9,10 @@ from schedule_service import (
     enrich_matches_with_schedule,
     format_date_header_vn,
     format_time_vn,
+    group_color,
     group_label_vn,
+    match_round_color,
+    match_round_label_vn,
     load_wc_schedule,
 )
 
@@ -55,8 +58,30 @@ def test_format_date_header_vn():
 
 def test_group_label_vn():
     assert group_label_vn("Group A") == "BẢNG A"
-    assert group_label_vn("Round of 16") == "Vòng 1/8"
-    assert group_label_vn("Final") == "Chung kết"
+    assert group_label_vn("Round of 32") == "VÒNG 1/16"
+    assert group_label_vn("Round of 16") == "VÒNG 1/8"
+    assert group_label_vn("Quarterfinals") == "TỨ KẾT"
+    assert group_label_vn("Semifinals") == "BÁN KẾT"
+    assert group_label_vn("Final") == "CHUNG KẾT"
+
+
+def test_group_color_knockout():
+    assert group_color("Round of 32") == "#38bdf8"
+    assert group_color("Final") == "#fbbf24"
+
+
+def test_match_round_label_vn():
+    assert match_round_label_vn(group_round="Group D") == "BẢNG D"
+    assert match_round_label_vn(group_round="Round of 32") == "VÒNG 1/16"
+    assert match_round_label_vn(match_label="W73 vs W75", group_round="Round of 16") == "VÒNG 1/8"
+    assert match_round_label_vn(match_label="W73 vs W75", stage_id=3) == "VÒNG 1/8"
+    assert match_round_label_vn(match_label="W101 vs W102", stage_id=7) == "CHUNG KẾT"
+
+
+def test_match_round_color():
+    assert match_round_color(group_round="Group A") == "#ef4444"
+    assert match_round_color(group_round="Round of 16") == "#6366f1"
+    assert match_round_color(stage_id=7) == "#fbbf24"
 
 
 def test_enrich_matches_with_schedule():

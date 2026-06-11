@@ -167,3 +167,93 @@ def outcome_label_for_team(outcome: str, team_a: str, team_b: str) -> str:
     if outcome == "B":
         return _pred_result_line(f"{team_a} - {team_b}", f"{team_b} thắng")
     return "Hòa"
+
+
+def _team_code(team_name: str, fifa_code: str | None, name_to_fifa: dict | None) -> str:
+    if fifa_code and str(fifa_code).strip():
+        return str(fifa_code).strip().upper()
+    if name_to_fifa and team_name in name_to_fifa:
+        return str(name_to_fifa[team_name]).strip().upper()
+    return team_name[:3].upper() if team_name else "???"
+
+
+def is_match_finished(row) -> bool:
+    try:
+        return pd.notna(row["real_score_a"]) and pd.notna(row["real_score_b"])
+    except (KeyError, TypeError):
+        return False
+
+
+def format_matchup_display(
+    team_a: str = "",
+    team_b: str = "",
+    name_to_fifa: dict | None = None,
+    team_a_fifa: str | None = None,
+    team_b_fifa: str | None = None,
+    compact: bool = True,
+) -> str:
+    from team_flags import flag_emoji
+
+    if not team_a or not team_b:
+        return "—"
+    flag_a = flag_emoji(team_a_fifa, team_a, name_to_fifa)
+    flag_b = flag_emoji(team_b_fifa, team_b, name_to_fifa)
+    if compact:
+        code_a = _team_code(team_a, team_a_fifa, name_to_fifa)
+        code_b = _team_code(team_b, team_b_fifa, name_to_fifa)
+        return f"{flag_a} {code_a} - {flag_b} {code_b}"
+    return _matchup_line(flag_a, team_a, flag_b, team_b)
+
+
+def format_pred_pick(
+    outcome,
+    team_a: str = "",
+    team_b: str = "",
+    adv_team_name: str | None = None,
+    is_knockout: bool = False,
+    name_to_fifa: dict | None = None,
+    team_a_fifa: str | None = None,
+    team_b_fifa: str | None = None,
+) -> str:
+    from team_flags import flag_emoji
+
+    outcome = normalize_pred_outcome(outcome)
+    if outcome is None:
+        return "—"
+    if outcome == "A" and team_a:
+        flag_a = flag_emoji(team_a_fifa, team_a, name_to_fifa)
+        return f"{flag_a} thắng"
+    if outcome == "B" and team_b:
+        flag_b = flag_emoji(team_b_fifa, team_b, name_to_fifa)
+        return f"{flag_b} thắng"
+    if outcome == "D":
+        base = "🤝 Hòa"
+        if is_knockout and adv_team_name:
+            pen_flag = flag_emoji(team_name=adv_team_name, name_to_fifa=name_to_fifa)
+            base += f" · PEN: {pen_flag} {_team_code(adv_team_name, None, name_to_fifa)}"
+        return base
+    return OUTCOME_LABELS.get(outcome, outcome)
+
+
+def format_history_verdict(row) -> str:
+    if not is_match_finished(row):
+        return "⏳ Chưa đá"
+    points = calculate_points(row)
+    if points > 0:
+        return f"✅ +{points}"
+    fines = calculate_fines(row)
+    if fines > 0:
+        return f"❌ phạt {fines}k"
+    return "✅ +0"
+
+
+def format_history_timestamp(value) -> str:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return "—"
+    try:
+        return pd.to_datetime(value).strftime("%d/%m · %H:%M")
+    except (ValueError, TypeError):
+        text = str(value).strip()
+        if len(text) >= 16:
+            return text[8:10] + "/" + text[5:7] + " · " + text[11:16]
+        return text

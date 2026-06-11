@@ -6,7 +6,17 @@ import streamlit as st
 
 from data_service import build_prediction_row, init_connection, normalize_predictions_df, prep_matches, read_sheet, vietnam_timestamp
 from team_flags import build_name_to_fifa
-from scoring import format_pred_display, normalize_pred_outcome
+from schedule_service import match_round_label_vn
+from scoring import (
+    calculate_fines,
+    calculate_points,
+    format_history_timestamp,
+    format_history_verdict,
+    format_matchup_display,
+    format_pred_pick,
+    is_match_finished,
+    normalize_pred_outcome,
+)
 from ui_components import (
     apply_global_styles,
     custom_loader,
@@ -125,7 +135,10 @@ def _render_one_match(row, selected_user_id, preds_df, id_to_name):
     has_saved = not old_pred.empty and bool(normalize_pred_outcome(old_pred["pred_outcome"].values[0]))
 
     render_pred_match_header(
-        row["match_number"], team_a, team_b, row["match_label"], is_knockout,
+        row["match_number"], team_a, team_b,
+        group_round=row.get("group_round") or row.get("match_label"),
+        stage_id=row.get("stage_id"),
+        is_knockout=is_knockout,
         has_saved_pred=has_saved,
         team_a_fifa=team_a_fifa, team_b_fifa=team_b_fifa, name_to_fifa=name_to_fifa,
         kickoff_vn=row.get("kickoff_vn"),
@@ -178,13 +191,29 @@ with tab1:
         with st.form("prediction_form"):
             user_inputs = {}
             use_two_cols = len(upcoming_matches) >= 3
-            cols = st.columns(2, gap="large") if use_two_cols else [st.container()]
+            matches_list = list(upcoming_matches.iterrows())
 
-            for i, (_, row) in enumerate(upcoming_matches.iterrows()):
-                col = cols[i % 2] if use_two_cols else cols[0]
-                with col:
-                    with st.container(border=True):
-                        result = _render_one_match(row, selected_user_id, preds_df, id_to_name)
+            def _render_match_card(row):
+                with st.container(border=True):
+                    return _render_one_match(row, selected_user_id, preds_df, id_to_name)
+
+            if use_two_cols:
+                for i in range(0, len(matches_list), 2):
+                    col_left, col_right = st.columns(2, gap="large")
+                    with col_left:
+                        result = _render_match_card(matches_list[i][1])
+                        if result:
+                            m_id, payload = result
+                            user_inputs[m_id] = payload
+                    if i + 1 < len(matches_list):
+                        with col_right:
+                            result = _render_match_card(matches_list[i + 1][1])
+                            if result:
+                                m_id, payload = result
+                                user_inputs[m_id] = payload
+            else:
+                for _, row in matches_list:
+                    result = _render_match_card(row)
                     if result:
                         m_id, payload = result
                         user_inputs[m_id] = payload
@@ -264,37 +293,93 @@ with tab2:
         display_history["match_number"] = pd.to_numeric(display_history["match_number"], errors="coerce")
         display_history = display_history.sort_values(by=["kickoff_vn", "match_number"])
 
-        def format_prediction(row):
-            try: stage_id = int(float(row["stage_id"]))
-            except (ValueError, TypeError): stage_id = 1
-            adv_name = None
-            if stage_id > 1 and normalize_pred_outcome(row.get("pred_outcome")) == "D":
-                try:
-                    adv_id = row.get("pred_advanced_team_id")
-                    if pd.notna(adv_id) and str(adv_id).strip(): adv_name = id_to_name.get(str(int(float(adv_id))), "")
-                except (ValueError, TypeError): pass
-            return format_pred_display(
+        def _history_stage_id(row):
+            try:
+                return int(float(row["stage_id"]))
+            except (ValueError, TypeError):
+                return 1
+
+        def _history_adv_name(row):
+            stage_id = _history_stage_id(row)
+            if stage_id <= 1 or normalize_pred_outcome(row.get("pred_outcome")) != "D":
+                return None
+            try:
+                adv_id = row.get("pred_advanced_team_id")
+                if pd.notna(adv_id) and str(adv_id).strip():
+                    return id_to_name.get(str(int(float(adv_id))), "")
+            except (ValueError, TypeError):
+                pass
+            return None
+
+        def _history_fifa(row, team_key: str):
+            team = row.get(team_key, "")
+            fifa_key = f"{team_key}_fifa"
+            return row.get(fifa_key) or name_to_fifa.get(team)
+
+        display_history["Bảng"] = display_history.apply(
+            lambda row: match_round_label_vn(
+                group_round=row.get("group_round"),
+                match_label=row.get("match_label"),
+                stage_id=row.get("stage_id"),
+            ),
+            axis=1,
+        )
+        display_history["Trận đấu"] = display_history.apply(
+            lambda row: format_matchup_display(
+                team_a=row["team_a"],
+                team_b=row["team_b"],
+                name_to_fifa=name_to_fifa,
+                team_a_fifa=_history_fifa(row, "team_a"),
+                team_b_fifa=_history_fifa(row, "team_b"),
+            ),
+            axis=1,
+        )
+        display_history["Dự đoán"] = display_history.apply(
+            lambda row: format_pred_pick(
                 row.get("pred_outcome"),
                 team_a=row["team_a"],
                 team_b=row["team_b"],
-                adv_team_name=adv_name,
-                is_knockout=stage_id > 1,
+                adv_team_name=_history_adv_name(row),
+                is_knockout=_history_stage_id(row) > 1,
                 name_to_fifa=name_to_fifa,
-                team_a_fifa=row.get("team_a_fifa") or name_to_fifa.get(row["team_a"]),
-                team_b_fifa=row.get("team_b_fifa") or name_to_fifa.get(row["team_b"]),
-            )
+                team_a_fifa=_history_fifa(row, "team_a"),
+                team_b_fifa=_history_fifa(row, "team_b"),
+            ),
+            axis=1,
+        )
+        display_history["Kết quả"] = display_history.apply(format_history_verdict, axis=1)
+        display_history["Thời gian dự đoán"] = display_history["timestamp"].map(format_history_timestamp)
 
-        display_history["Dự đoán"] = display_history.apply(format_prediction, axis=1)
-        final_table = display_history[["match_number", "match_label", "Dự đoán", "timestamp"]].rename(columns={"match_number": "Trận", "match_label": "Bảng/Vòng", "timestamp": "Thời gian"})
+        total_preds = len(display_history)
+        finished_mask = display_history.apply(is_match_finished, axis=1)
+        finished_count = int(finished_mask.sum())
+        finished_rows = display_history[finished_mask]
+        total_points = int(finished_rows.apply(calculate_points, axis=1).sum()) if finished_count else 0
+        total_fines = int(finished_rows.apply(calculate_fines, axis=1).sum()) if finished_count else 0
+        summary_parts = [
+            f"{total_preds} dự đoán",
+            f"{finished_count} trận đã có kết quả",
+            f"+{total_points} điểm",
+        ]
+        if total_fines > 0:
+            summary_parts.append(f"phạt {total_fines}k")
+        summary_text = " · ".join(summary_parts)
+
+        final_table = display_history[
+            ["match_number", "Bảng", "Trận đấu", "Dự đoán", "Kết quả", "Thời gian dự đoán"]
+        ].rename(columns={"match_number": "Trận"})
         st.dataframe(
             final_table,
             width="stretch",
             hide_index=True,
             column_config={
                 "Trận": st.column_config.NumberColumn("Trận", format="%d", width="small"),
-                "Bảng/Vòng": st.column_config.TextColumn("Bảng/Vòng", width="small"),
-                "Dự đoán": st.column_config.TextColumn("Dự đoán", width="large"),
-                "Thời gian": st.column_config.TextColumn("Thời gian", width="medium"),
+                "Bảng": st.column_config.TextColumn("Bảng", width="small"),
+                "Trận đấu": st.column_config.TextColumn("Trận đấu", width="medium"),
+                "Dự đoán": st.column_config.TextColumn("Dự đoán", width="small"),
+                "Kết quả": st.column_config.TextColumn("Kết quả", width="medium"),
+                "Thời gian dự đoán": st.column_config.TextColumn("Thời gian dự đoán", width="small"),
             },
         )
+        _html(f'<div class="pred-history-summary">{html.escape(summary_text)}</div>')
     _html("</div>")
