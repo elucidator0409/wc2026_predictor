@@ -75,6 +75,14 @@ render_home_cta_cards([
         "cta": "Xem lịch",
     },
     {
+        "href": "/Tra_Cuu_Doi_Bong",
+        "icon": "👕",
+        "title": "Tra cứu đội hình",
+        "desc": "48 đội, 26 cầu thủ — caps, bàn thắng, CLB trước khi dự đoán.",
+        "tone": "green",
+        "cta": "Xem đội hình",
+    },
+    {
         "href": "/Bang_Xep_Hang",
         "icon": "🏆",
         "title": "Bảng xếp hạng",

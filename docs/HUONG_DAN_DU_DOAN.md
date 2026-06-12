@@ -183,8 +183,19 @@ Từ menu ☰ bên trái:
 | **Lịch thi đấu** | Tra 104 trận, giờ đá, kết quả |
 | **Bảng đấu** | Xem thứ hạng 12 bảng A–L |
 | **Bracket Knock-out** | Xem sơ đồ vòng loại trực tiếp |
+| **Tra cứu đội hình** | Xem 26 cầu thủ mỗi đội — caps, bàn thắng, CLB |
 
 Các trang này **không cần đăng nhập** (trừ khi bạn muốn xem thông tin cá nhân trên BXH).
+
+---
+
+## 8b. Tra cứu đội hình trước khi dự đoán
+
+1. Vào menu **Tra cứu đội hình** (hoặc `/Tra_Cuu_Doi_Bong?team=MEX` nếu có link mã FIFA).
+2. Chọn đội → lọc **GK / DF / MF / FW** hoặc gõ tên cầu thủ / CLB.
+3. Trên **Khu vực dự đoán**, mở expander **「Đội hình 2 đội」** trên từng thẻ trận để xem nhanh 3 cầu thủ ghi bàn nhiều nhất mỗi bên.
+
+Gợi ý: xem ai hay ghi bàn / nhiều caps có thể giúp bạn chọn **Đội A thắng** hay **Hòa** — app vẫn chỉ chấm điểm theo kết quả trận (A/Hòa/B), không dự đoán cầu thủ cụ thể.
 
 ---
 

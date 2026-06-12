@@ -275,6 +275,7 @@ def render_sidebar():
         st.page_link("pages/4_Xem_Lich_Thi_Dau.py", label="Lịch thi đấu", icon="🗓️")
         st.page_link("pages/5_Bang_Dau.py", label="Bảng đấu", icon="📊")
         st.page_link("pages/6_Bracket_Knockout.py", label="Bracket Knock-out", icon="🏅")
+        st.page_link("pages/7_Tra_Cuu_Doi_Bong.py", label="Tra cứu đội hình", icon="👕")
 
         st.markdown("### 🔒 Admin")
         st.page_link("pages/2_Lich_Thi_Dau.py", label="Góc của Elu", icon="⚙️")
@@ -308,7 +309,7 @@ def render_hero_home():
         "</div></div>"
     )
 
-def render_stat_cards(stats: list[tuple[str, str, str]]):
+def render_stat_cards(stats: list[tuple[str, str, str]], *, row_class: str = ""):
     cards = []
     for item in stats:
         value, label = item[0], item[1]
@@ -319,7 +320,8 @@ def render_stat_cards(stats: list[tuple[str, str, str]]):
             f'<div class="stat-card-label">{html.escape(label)}</div>'
             f"</div>"
         )
-    _html(f'<div class="stats-row">{"".join(cards)}</div>')
+    extra = f" {row_class.strip()}" if row_class.strip() else ""
+    _html(f'<div class="stats-row{extra}">{"".join(cards)}</div>')
 
 def render_home_cta_cards(cards: list[dict[str, str]]):
     items = []
@@ -405,6 +407,16 @@ def render_fixture_row(
 
     home_line = team_line_html(team_a, "a", fifa_code=team_a_fifa, name_to_fifa=name_to_fifa)
     away_line = team_line_html(team_b, "b", fifa_code=team_b_fifa, name_to_fifa=name_to_fifa)
+    code_a = str(team_a_fifa or (name_to_fifa or {}).get(team_a, "")).strip().upper()
+    code_b = str(team_b_fifa or (name_to_fifa or {}).get(team_b, "")).strip().upper()
+    squad_links = ""
+    if code_a:
+        squad_links += f'<a class="fixture-squad-link" href="/Tra_Cuu_Doi_Bong?team={html.escape(code_a)}">{html.escape(code_a)}</a>'
+    if code_b:
+        if squad_links:
+            squad_links += '<span class="fixture-squad-sep">·</span>'
+        squad_links += f'<a class="fixture-squad-link" href="/Tra_Cuu_Doi_Bong?team={html.escape(code_b)}">{html.escape(code_b)}</a>'
+    squad_html = f'<div class="fixture-squad-links">{squad_links}</div>' if squad_links else ""
     venue = html.escape(str(venue_line or "—"))
     grp_label = html.escape(group_label_vn(group_round))
     grp_tone = html.escape(group_color(group_round))
@@ -429,6 +441,7 @@ def render_fixture_row(
         f"{away_line}"
         f"</div>"
         f'<div class="fixture-venue">{venue}</div>'
+        f"{squad_html}"
         f"</div>"
         f'<div class="fixture-row-meta">'
         f'<div class="fixture-group" style="color:{grp_tone};">'
@@ -451,12 +464,14 @@ def render_fixture_schedule_close() -> None:
 
 
 def render_podium(top3: list[tuple[str, int]]):
-    if not top3: return
+    if not top3:
+        return
     medals, bars = ["🥇", "🥈", "🥉"], ["1", "2", "3"]
     order = [1, 0, 2] if len(top3) >= 3 else list(range(len(top3)))
     items = []
     for idx in order:
-        if idx >= len(top3): continue
+        if idx >= len(top3):
+            continue
         name, pts = top3[idx]
         items.append(
             f'<div class="podium-item">'
@@ -466,6 +481,198 @@ def render_podium(top3: list[tuple[str, int]]):
             f"</div>"
         )
     _html(f'<div class="podium">{"".join(items)}</div>')
+
+
+def render_leaderboard_insight(insight: dict) -> None:
+    if not insight:
+        return
+    tie_note = ""
+    if insight.get("top_tie_count", 0) > 3:
+        tie_note = (
+            f'<span class="lb-insight-chip lb-insight-chip--gold">'
+            f'{insight["top_tie_count"]} người đồng hạng 1</span>'
+        )
+    _html(
+        f'<div class="lb-insight">'
+        f'<div class="lb-insight-main">'
+        f'<span class="lb-insight-label">Trận mới nhất</span>'
+        f'<strong class="lb-insight-match">#{html.escape(str(insight["match_number"]))} · '
+        f'{html.escape(str(insight["matchup"]))}</strong>'
+        f"</div>"
+        f'<div class="lb-insight-stats">'
+        f'<span class="lb-insight-chip lb-insight-chip--ok">✅ {insight["correct"]} đúng</span>'
+        f'<span class="lb-insight-chip lb-insight-chip--bad">❌ {insight["wrong"]} sai</span>'
+        f'<span class="lb-insight-chip lb-insight-chip--muted">⏭ {insight["missed"]} bỏ lỡ</span>'
+        f"{tie_note}"
+        f"</div></div>"
+    )
+
+
+def render_leaderboard_podium(entries: list[dict]) -> None:
+    if not entries:
+        return
+    bar_map = {1: "1", 2: "2", 3: "3"}
+    medal_map = {1: "🥇", 2: "🥈", 3: "🥉"}
+    order = [1, 0, 2] if len(entries) >= 3 else list(range(len(entries)))
+    items = []
+    for slot in order:
+        if slot >= len(entries):
+            continue
+        entry = entries[slot]
+        rank = int(entry["rank"])
+        bar = bar_map.get(rank, str(rank))
+        medal = medal_map.get(rank, f"#{rank}")
+        tie = int(entry.get("tie_count", 1))
+        tie_html = f'<div class="podium-tie">+{tie - 1} đồng hạng</div>' if tie > 1 else ""
+        items.append(
+            f'<div class="podium-item podium-item--rank-{bar}">'
+            f'<div class="podium-bar podium-bar--{bar}">{medal}</div>'
+            f'<div class="podium-name">{html.escape(str(entry["name"]))}</div>'
+            f'<div class="podium-pts">{int(entry["points"])} điểm</div>'
+            f"{tie_html}"
+            f"</div>"
+        )
+    _html(f'<div class="podium podium--leaderboard">{"".join(items)}</div>')
+
+
+def render_leaderboard_table(rows: list[dict], highlight_user_id: str | None = None) -> None:
+    body = []
+    for row in rows:
+        uid = str(row.get("user_id", ""))
+        row_class = "lb-row lb-row--me" if highlight_user_id and uid == str(highlight_user_id) else "lb-row"
+        rank = row.get("rank_label", row.get("rank", ""))
+        fines = int(row.get("fines", 0))
+        fine_class = "lb-cell-fine lb-cell-fine--zero" if fines == 0 else "lb-cell-fine lb-cell-fine--due"
+        hit = row.get("hit_rate", 0)
+        played = int(row.get("played", 0))
+        correct = int(row.get("correct", 0))
+        missed = int(row.get("missed", 0))
+        accuracy = f"{correct}/{played}" if played else "—"
+        me_badge = '<span class="lb-you">Bạn</span>' if row_class.endswith("--me") else ""
+        body.append(
+            f'<div class="{row_class}">'
+            f'<span class="lb-cell-rank">{html.escape(str(rank))}</span>'
+            f'<span class="lb-cell-name">{html.escape(str(row["name"]))}{me_badge}</span>'
+            f'<span class="lb-cell-pts">{int(row["points"])}</span>'
+            f'<span class="{fine_class}">{fines}k</span>'
+            f'<span class="lb-cell-acc">{html.escape(str(accuracy))}</span>'
+            f'<span class="lb-cell-rate">{hit:.0f}%</span>'
+            f'<span class="lb-cell-miss">{missed if missed else "—"}</span>'
+            f"</div>"
+        )
+    head = (
+        '<div class="lb-list-head">'
+        '<span class="lb-col-rank">Hạng</span>'
+        '<span class="lb-col-name">Người chơi</span>'
+        '<span class="lb-col-pts">Điểm</span>'
+        '<span class="lb-col-fine">Phạt</span>'
+        '<span class="lb-col-acc">Đúng</span>'
+        '<span class="lb-col-rate">Tỉ lệ</span>'
+        '<span class="lb-col-miss">Bỏ lỡ</span>'
+        "</div>"
+    )
+    _html(f'<div class="lb-table-marker" aria-hidden="true"></div><div class="lb-list">{head}{"".join(body)}</div>')
+
+
+def render_squad_team_header(
+    team_name: str,
+    fifa_code: str,
+    group_letter: str,
+    summary: dict,
+    name_to_fifa: dict | None = None,
+) -> None:
+    from schedule_service import GROUP_COLORS
+
+    flag = flag_img_html(fifa_code=fifa_code, team_name=team_name, name_to_fifa=name_to_fifa, size="md")
+    group = str(group_letter or "").strip().upper()
+    group_html = ""
+    if group:
+        tone = GROUP_COLORS.get(group, "#64748b")
+        group_html = (
+            f'<span class="squad-group-badge" style="--squad-group-color:{html.escape(tone)};">'
+            f"BẢNG {html.escape(group)}</span>"
+        )
+    _html(
+        f'<div class="squad-team-header">'
+        f'<div class="squad-team-main">{flag}'
+        f'<div class="squad-team-copy">'
+        f'<div class="squad-team-name">{html.escape(team_name)}</div>'
+        f'<div class="squad-team-meta">{html.escape(fifa_code)} · 26 cầu thủ {group_html}</div>'
+        f"</div></div>"
+        f'<div class="squad-team-stats">'
+        f'<span class="squad-stat"><strong>{summary.get("count", 0)}</strong><small>Cầu thủ</small></span>'
+        f'<span class="squad-stat"><strong>{summary.get("total_goals", 0)}</strong><small>Bàn (NT)</small></span>'
+        f'<span class="squad-stat"><strong>{summary.get("total_caps", 0)}</strong><small>Caps</small></span>'
+        f'<span class="squad-stat"><strong>{summary.get("avg_height", 0)}</strong><small>cm TB</small></span>'
+        f"</div></div>"
+    )
+
+
+def render_squad_player_table(rows_by_position: dict[str, list[dict]]) -> None:
+    from players_service import POSITION_LABELS
+
+    if not rows_by_position:
+        _html('<div class="squad-empty">Không có cầu thủ phù hợp bộ lọc.</div>')
+        return
+
+    sections = []
+    for pos, rows in rows_by_position.items():
+        label = POSITION_LABELS.get(pos, pos)
+        body = []
+        for row in rows:
+            body.append(
+                f'<div class="squad-row">'
+                f'<span class="squad-cell-name">{html.escape(str(row.get("player_name", "")))}</span>'
+                f'<span class="squad-cell-club">{html.escape(str(row.get("club", "")))}</span>'
+                f'<span class="squad-cell-dob">{html.escape(str(row.get("dob", "")))}</span>'
+                f'<span class="squad-cell-h">{int(row.get("height_cm", 0)) or "—"}</span>'
+                f'<span class="squad-cell-caps">{int(row.get("caps", 0))}</span>'
+                f'<span class="squad-cell-goals">{int(row.get("goals", 0))}</span>'
+                f"</div>"
+            )
+        head = (
+            '<div class="squad-list-head">'
+            '<span class="squad-col-name">Tên</span>'
+            '<span class="squad-col-club">CLB</span>'
+            '<span class="squad-col-dob">Sinh</span>'
+            '<span class="squad-col-h">Cao</span>'
+            '<span class="squad-col-caps">Caps</span>'
+            '<span class="squad-col-goals">Bàn</span>'
+            "</div>"
+        )
+        sections.append(
+            f'<div class="squad-position-block">'
+            f'<div class="squad-position-title">{html.escape(label)} <span>({len(rows)})</span></div>'
+            f'<div class="squad-list">{head}{"".join(body)}</div>'
+            f"</div>"
+        )
+    _html(f'<div class="squad-page-marker" aria-hidden="true"></div><div class="squad-sections">{"".join(sections)}</div>')
+
+
+def render_squad_mini_panel(
+    team_name: str,
+    fifa_code: str,
+    top_rows: list[dict],
+    name_to_fifa: dict | None = None,
+) -> None:
+    flag = flag_img_html(fifa_code=fifa_code, team_name=team_name, name_to_fifa=name_to_fifa, size="sm")
+    squad_url = f"/Tra_Cuu_Doi_Bong?team={html.escape(fifa_code)}"
+    players_html = ""
+    for row in top_rows:
+        players_html += (
+            f'<li><span class="squad-mini-name">{html.escape(str(row.get("player_name", "")))}</span>'
+            f'<span class="squad-mini-meta">{int(row.get("goals", 0))} bàn · {int(row.get("caps", 0))} caps</span></li>'
+        )
+    if not players_html:
+        players_html = '<li class="squad-mini-empty">Chưa có dữ liệu</li>'
+    _html(
+        f'<div class="squad-mini-panel">'
+        f'<div class="squad-mini-head">{flag}<strong>{html.escape(team_name)}</strong></div>'
+        f'<ul class="squad-mini-list">{players_html}</ul>'
+        f'<a class="squad-mini-link" href="{squad_url}">Xem đội hình →</a>'
+        f"</div>"
+    )
+
 
 def render_login_branding(
     title: str = "Đăng nhập",
@@ -828,7 +1035,6 @@ def _build_pred_history_desktop_html(history_df) -> str:
             f'<span class="pred-hist-row-matchup">{_pred_history_matchup_cell(row)}</span>'
             f'<span class="pred-hist-row-pick">{_pred_history_pick_cell(row)}</span>'
             f'<span class="{_pred_history_verdict_class(verdict)}">{html.escape(verdict)}</span>'
-            f'<span class="pred-hist-row-time">{html.escape(str(row["Thời gian dự đoán"]))}</span>'
             f"</div>"
         )
     head = (
@@ -838,7 +1044,6 @@ def _build_pred_history_desktop_html(history_df) -> str:
         '<span class="pred-hist-col-match">Trận đấu</span>'
         '<span class="pred-hist-col-pick">Dự đoán</span>'
         '<span class="pred-hist-col-kq">Kết quả</span>'
-        '<span class="pred-hist-col-time">Thời gian</span>'
         "</div>"
     )
     return f'<div class="pred-hist-list pred-hist-list--desktop">{head}{"".join(rows)}</div>'
@@ -953,12 +1158,12 @@ def _build_group_team_cell(team_name: str, name_to_fifa: dict[str, str] | None) 
     full_name = str(team_name).strip()
     display_name = _truncate_team_name(full_name)
     flag = flag_img_html(team_name=full_name, name_to_fifa=name_to_fifa, size="sm")
-    return (
-        f'<span class="grp-team-cell">'
-        f"{flag}"
-        f'<span class="grp-team-name" title="{html.escape(full_name)}">{html.escape(display_name)}</span>'
-        f"</span>"
-    )
+    fifa = (name_to_fifa or {}).get(full_name, "")
+    name_html = f'<span class="grp-team-name" title="{html.escape(full_name)}">{html.escape(display_name)}</span>'
+    if fifa:
+        href = f"/Tra_Cuu_Doi_Bong?team={html.escape(str(fifa).upper())}"
+        name_html = f'<a class="grp-team-link" href="{href}">{name_html}</a>'
+    return f'<span class="grp-team-cell">{flag}{name_html}</span>'
 
 
 def _build_group_card_html(

@@ -11,7 +11,6 @@ from scoring import (
     calculate_fines,
     calculate_points,
     format_history_momentum,
-    format_history_timestamp,
     format_history_verdict,
     format_matchup_display,
     format_matchup_html,
@@ -20,6 +19,7 @@ from scoring import (
     is_match_finished,
     normalize_pred_outcome,
 )
+from players_service import load_players_df, prep_players, top_players
 from ui_components import (
     apply_global_styles,
     custom_loader,
@@ -34,6 +34,7 @@ from ui_components import (
     render_pred_history_mobile_section,
     render_pred_tabs,
     render_sidebar,
+    render_squad_mini_panel,
     render_user_account_panel,
     sync_auth_session,
     _html,
@@ -57,6 +58,15 @@ render_page_header("Dự đoán", "Chọn kết quả Đội A / Hòa / Đội B
 def hash_password(password):
     salt = st.secrets.get("password_salt", "MuoiMacDinh_@123")
     return hashlib.sha256((str(password) + salt).encode("utf-8")).hexdigest()
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_players_for_pred():
+    sh = init_connection()
+    players_raw = load_players_df(sh)
+    teams_df = read_sheet(sh, "teams")
+    teams_df.replace("", pd.NA, inplace=True)
+    return prep_players(players_raw, teams_df)
+
 
 @st.cache_data(ttl=300, show_spinner=False)
 def load_and_prep_data():
@@ -167,6 +177,34 @@ def _render_one_match(row, selected_user_id, preds_df, id_to_name):
         default_outcome,
         widget_key=f"outcome_{selected_user_id}_{m_id}",
     )
+
+    if team_a != "TBD" and team_b != "TBD":
+        with st.expander("Đội hình 2 đội", expanded=False):
+            players_df = load_players_for_pred()
+            code_a = str(team_a_fifa or name_to_fifa.get(team_a, "")).strip().upper()
+            code_b = str(team_b_fifa or name_to_fifa.get(team_b, "")).strip().upper()
+            col_a, col_b = st.columns(2)
+            with col_a:
+                if code_a:
+                    render_squad_mini_panel(
+                        team_a,
+                        code_a,
+                        top_players(players_df, code_a, limit=3).to_dict("records"),
+                        name_to_fifa=name_to_fifa,
+                    )
+                else:
+                    st.caption("Chưa có mã FIFA đội A.")
+            with col_b:
+                if code_b:
+                    render_squad_mini_panel(
+                        team_b,
+                        code_b,
+                        top_players(players_df, code_b, limit=3).to_dict("records"),
+                        name_to_fifa=name_to_fifa,
+                    )
+                else:
+                    st.caption("Chưa có mã FIFA đội B.")
+
     adv_team = "TBD"
     dynamic_chk_key = f"chk_pred_{selected_user_id}_{m_id}_{st.session_state['chk_reset_counter']}"
 
@@ -391,7 +429,6 @@ with tab2:
             axis=1,
         )
         display_history["Kết quả"] = display_history.apply(format_history_verdict, axis=1)
-        display_history["Thời gian dự đoán"] = display_history["timestamp"].map(format_history_timestamp)
 
         total_preds = len(display_history)
         finished_mask = display_history.apply(is_match_finished, axis=1)

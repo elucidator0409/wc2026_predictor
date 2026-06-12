@@ -443,6 +443,20 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 
 ---
 
+## Sprint 6 — Tra cứu đội hình (2026-06-12)
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 6a | `players_service` + alias team | `players_service.py` | ✅ Done |
+| 6b | Trang tra cứu 48 đội | `pages/7_Tra_Cuu_Doi_Bong.py` | ✅ Done |
+| 6c | UI squad table + CSS | `ui_components.py`, `style.css` | ✅ Done |
+| 6d | Expander Du_Doan + deep link | `pages/1_Du_Doan.py`, fixtures, bảng đấu | ✅ Done |
+| 6e | Tests + docs | `tests/test_players_service.py`, README, HUONG_DAN | ✅ Done |
+
+**Sheet:** `wc2026_full_players_1200` — 1248 rows, 26 players × 48 teams.
+
+---
+
 ## Tiếp theo
 
 - [x] Sprint 2.5 Admin audit + fix
@@ -452,6 +466,7 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 - [x] Docs README + HUONG_DAN_DU_DOAN
 - [x] Lịch sử mobile/desktop + flagcdn
 - [x] Sprint 5 ma trận → Google Sheet
+- [x] Sprint 6 tra cứu đội hình
 
 ### Backlog P2
 
@@ -544,7 +559,7 @@ flowchart TB
 6. **Bảng xếp hạng** — podium, charts, detail table
 7. **Admin** — pagination, preview, kickoff ✅ + ma trận Sheet ✅ *(Sprint 5)*
 8. **Global** — sidebar overlay all viewports ✅, login ✅, menu FAB icon-only ✅
-9. **Docs** — README ✅, HUONG_DAN_DU_DOAN ✅, HUONG_DAN_ADMIN_SHEET ✅
+9. **Docs** — README ✅, HUONG_DAN_DU_DOAN ✅, HUONG_DAN_TEST ✅, HUONG_DAN_ADMIN_SHEET (local)
 
 ---
 
