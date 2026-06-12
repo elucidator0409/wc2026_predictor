@@ -754,16 +754,13 @@ def render_emoji_name_picker(draft_key: str, saved_name: str):
         st.session_state[idx_key] = st.session_state.get(idx_key, 0) + 1
         _queue_name_draft(draft_key, _draft_name(draft_key, saved_name) + picked)
 
-    _html('<div class="emoji-action-marker"></div>')
-    btn1, btn2, btn3 = st.columns(3, gap="small")
-    with btn1:
+    _html('<div class="emoji-action-marker"><div class="emoji-action-title">Sửa nhanh</div></div>')
+    with st.container():
         if st.button("⌫ Xóa", key=f"emoji_back_{draft_key}", width="stretch"):
             _queue_name_draft(draft_key, _draft_name(draft_key, saved_name)[:-1])
-    with btn2:
         if st.button("↩️ Reset", key=f"emoji_reset_{draft_key}", width="stretch"):
             _queue_name_draft(draft_key, saved_name)
-    with btn3:
-        if st.button("🧹 Thêm", key=f"emoji_clear_{draft_key}", width="stretch"):
+        if st.button("🧹 Bỏ icon", key=f"emoji_clear_{draft_key}", width="stretch"):
             cleaned = re.sub(r"[\U0001F300-\U0001FAFF\U00002600-\U000027BF]+", "", _draft_name(draft_key, saved_name)).strip()
             _queue_name_draft(draft_key, cleaned or saved_name)
 
