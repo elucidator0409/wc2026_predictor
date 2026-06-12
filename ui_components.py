@@ -268,7 +268,7 @@ def render_sidebar():
             '<div class="sidebar-brand-sub">Predictor Platform</div>'
             "</div>"
         )
-        st.markdown("### 📌 Menu chính")
+        _html('<div class="sidebar-section-label"><span>Menu chính</span></div>')
         st.page_link("app.py", label="Trang chủ", icon="🏠")
         st.page_link("pages/1_Du_Doan.py", label="Khu vực dự đoán", icon="✍️")
         st.page_link("pages/3_Bang_Xep_Hang.py", label="Bảng xếp hạng", icon="🏆")
@@ -277,12 +277,16 @@ def render_sidebar():
         st.page_link("pages/6_Bracket_Knockout.py", label="Bracket Knock-out", icon="🏅")
         st.page_link("pages/7_Tra_Cuu_Doi_Bong.py", label="Tra cứu đội hình", icon="👕")
 
-        st.markdown("### 🔒 Admin")
+        _html('<div class="sidebar-section-label sidebar-section-label--admin"><span>Admin</span></div>')
         st.page_link("pages/2_Lich_Thi_Dau.py", label="Góc của Elu", icon="⚙️")
 
         _html(
             '<div class="sidebar-tip">'
-            "💡 Nhớ chốt dự đoán trước giờ bóng lăn để không bị khóa!"
+            '<div class="sidebar-tip-icon">!</div>'
+            '<div class="sidebar-tip-copy">'
+            '<strong>Chốt trước giờ bóng lăn</strong>'
+            '<span>Trận bị khóa sẽ không nhận dự đoán mới.</span>'
+            "</div>"
             "</div>"
         )
 

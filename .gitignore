@@ -8,6 +8,8 @@ __pycache__/
 
 # 🚨 TUYỆT ĐỐI BỎ QUA FILE SECRETS VÀ KEY GCP
 .streamlit/secrets.toml
+.streamlit/credentials.toml
+.streamlit/machine_id_v4
 *.json
 
 # Dev / debug artifacts

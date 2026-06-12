@@ -154,7 +154,7 @@ with tab1:
             fig.update_layout(
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#94a3b8", family="Inter", size=11),
+                font=dict(color="#cbd5e1", family="Inter", size=13),
                 xaxis=dict(gridcolor="rgba(255,255,255,0.06)", title="Điểm", dtick=1),
                 yaxis=dict(title=""),
                 margin=dict(l=0, r=16, t=8, b=0),
@@ -250,7 +250,7 @@ with tab2:
         chart_layout = dict(
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#94a3b8", family="Inter"),
+            font=dict(color="#cbd5e1", family="Inter", size=13),
         )
 
         with col_chart1:
