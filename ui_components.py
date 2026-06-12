@@ -38,22 +38,57 @@ def apply_global_styles():
     _SIDEBAR_OVERLAY_BOOT = """
 <script>
 (function () {
-  const topWin = window.top;
-  const WC_SIDEBAR_OVERLAY_VERSION = 7;
-  if (topWin.__wcSidebarOverlayVersion === WC_SIDEBAR_OVERLAY_VERSION) {
-    topWin.__wcSidebarOverlaySync?.();
+  function canUseDocument(win) {
+    try {
+      return !!(win && win.document && win.document.body && win.document.head);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function hasStreamlitApp(win) {
+    if (!canUseDocument(win)) return false;
+    return !!(
+      win.document.querySelector('[data-testid="stApp"]') ||
+      win.document.querySelector('[data-testid="stSidebar"]') ||
+      win.document.querySelector('[data-testid="stAppViewContainer"]')
+    );
+  }
+
+  function resolveHostWindow() {
+    let current = window;
+    let best = canUseDocument(current) ? current : null;
+    for (let i = 0; i < 8 && current; i += 1) {
+      if (hasStreamlitApp(current)) best = current;
+      try {
+        if (!current.parent || current.parent === current) break;
+        current = current.parent;
+      } catch (e) {
+        break;
+      }
+    }
+    if (hasStreamlitApp(current)) best = current;
+    return best || window;
+  }
+
+  const hostWin = resolveHostWindow();
+  const hostDoc = hostWin.document;
+  const WC_SIDEBAR_OVERLAY_VERSION = 8;
+  if (hostWin.__wcSidebarOverlayVersion === WC_SIDEBAR_OVERLAY_VERSION) {
+    hostWin.__wcSidebarOverlaySync?.();
     return;
   }
-  topWin.__wcSidebarOverlayVersion = WC_SIDEBAR_OVERLAY_VERSION;
-  topWin.__wcSidebarOverlayInit = false;
-  topWin.__wcSidebarOverlayObserver?.disconnect();
-  topWin.document.getElementById("wc-sidebar-backdrop")?.remove();
-  topWin.document.getElementById("wc-sidebar-overlay-boot")?.remove();
-  const boot = topWin.document.createElement("script");
+  hostWin.__wcSidebarOverlayVersion = WC_SIDEBAR_OVERLAY_VERSION;
+  hostWin.__wcSidebarOverlayInit = false;
+  hostWin.__wcSidebarOverlayObserver?.disconnect();
+  hostDoc.getElementById("wc-sidebar-backdrop")?.remove();
+  hostDoc.getElementById("wc-sidebar-overlay-boot")?.remove();
+  const boot = hostDoc.createElement("script");
   boot.id = "wc-sidebar-overlay-boot";
   boot.textContent = `
 (function () {
   let syncQueued = false;
+  let domObserver = null;
 
   function isSidebarOpen() {
     const sidebar = document.querySelector('[data-testid="stSidebar"]');
@@ -63,22 +98,36 @@ def apply_global_styles():
   function scheduleBackdropSync() {
     queueSyncBackdrop();
     setTimeout(queueSyncBackdrop, 180);
+    setTimeout(queueSyncBackdrop, 480);
   }
 
-  function collapseSidebar() {
-    const btn =
-      document.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
-      document.querySelector('[data-testid="stSidebarCollapseButton"]');
-    if (!btn) return;
+  function reactClickTarget(node) {
+    if (!node) return null;
+    const candidates = [
+      node,
+      ...Array.from(node.querySelectorAll?.("*") || []),
+      node.parentElement,
+      node.parentElement?.parentElement,
+    ].filter(Boolean);
 
-    const reactKey = Object.keys(btn).find((k) => k.startsWith("__reactProps"));
-    const reactOnClick = reactKey && btn[reactKey]?.onClick;
-    if (typeof reactOnClick === "function") {
-      reactOnClick({
+    for (const candidate of candidates) {
+      const reactKey = Object.keys(candidate).find((k) => k.startsWith("__reactProps"));
+      const reactOnClick = reactKey && candidate[reactKey]?.onClick;
+      if (typeof reactOnClick === "function") {
+        return { node: candidate, onClick: reactOnClick };
+      }
+    }
+    return null;
+  }
+
+  function invokeReactClick(target) {
+    const reactTarget = reactClickTarget(target);
+    if (!reactTarget) return false;
+    reactTarget.onClick({
         preventDefault() {},
         stopPropagation() {},
-        target: btn,
-        currentTarget: btn,
+      target: reactTarget.node,
+      currentTarget: reactTarget.node,
         type: "click",
         nativeEvent: new MouseEvent("click", {
           bubbles: true,
@@ -86,6 +135,24 @@ def apply_global_styles():
           view: window,
         }),
       });
+    return true;
+  }
+
+  function collapseSidebar() {
+    const root = document.querySelector('[data-testid="stSidebarCollapseButton"]');
+    const btn =
+      document.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
+      document.querySelector('[data-testid="stSidebarCollapseButton"] [role="button"]') ||
+      root;
+    if (!btn) return;
+
+    if (invokeReactClick(btn) || invokeReactClick(root)) {
+      scheduleBackdropSync();
+      return;
+    }
+
+    if (typeof btn.click === "function") {
+      btn.click();
       scheduleBackdropSync();
       return;
     }
@@ -191,21 +258,26 @@ def apply_global_styles():
   window.__wcSidebarOverlaySync = queueSyncBackdrop;
   window.__wcSidebarOverlayInit = true;
 
+  window.__wcSidebarOverlayDomObserver?.disconnect();
   window.addEventListener("resize", queueSyncBackdrop);
   window.addEventListener("popstate", handlePageChange);
   document.addEventListener("click", onOutsidePointer, true);
   document.addEventListener("touchend", onOutsidePointer, true);
-  new MutationObserver(() => {
+  domObserver = new MutationObserver(() => {
     handlePageChange();
     bindSidebarObserver();
-  }).observe(document.body, { childList: true, subtree: true });
+  });
+  window.__wcSidebarOverlayDomObserver = domObserver;
+  domObserver.observe(document.body, { childList: true, subtree: true });
 
   handlePageChange();
   bindSidebarObserver();
   queueSyncBackdrop();
+  setTimeout(queueSyncBackdrop, 250);
+  setTimeout(queueSyncBackdrop, 750);
 })();
 `;
-  topWin.document.head.appendChild(boot);
+  hostDoc.head.appendChild(boot);
 })();
 </script>
 """
@@ -754,16 +826,13 @@ def render_emoji_name_picker(draft_key: str, saved_name: str):
         st.session_state[idx_key] = st.session_state.get(idx_key, 0) + 1
         _queue_name_draft(draft_key, _draft_name(draft_key, saved_name) + picked)
 
-    _html('<div class="emoji-action-marker"></div>')
-    btn1, btn2, btn3 = st.columns(3, gap="small")
-    with btn1:
+    _html('<div class="emoji-action-marker"><div class="emoji-action-title">Sửa nhanh</div></div>')
+    with st.container():
         if st.button("⌫ Xóa", key=f"emoji_back_{draft_key}", width="stretch"):
             _queue_name_draft(draft_key, _draft_name(draft_key, saved_name)[:-1])
-    with btn2:
         if st.button("↩️ Reset", key=f"emoji_reset_{draft_key}", width="stretch"):
             _queue_name_draft(draft_key, saved_name)
-    with btn3:
-        if st.button("🧹 Thêm", key=f"emoji_clear_{draft_key}", width="stretch"):
+        if st.button("🧹 Bỏ icon", key=f"emoji_clear_{draft_key}", width="stretch"):
             cleaned = re.sub(r"[\U0001F300-\U0001FAFF\U00002600-\U000027BF]+", "", _draft_name(draft_key, saved_name)).strip()
             _queue_name_draft(draft_key, cleaned or saved_name)
 
