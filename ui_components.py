@@ -39,7 +39,7 @@ def apply_global_styles():
 <script>
 (function () {
   const topWin = window.top;
-  const WC_SIDEBAR_OVERLAY_VERSION = 6;
+  const WC_SIDEBAR_OVERLAY_VERSION = 7;
   if (topWin.__wcSidebarOverlayVersion === WC_SIDEBAR_OVERLAY_VERSION) {
     topWin.__wcSidebarOverlaySync?.();
     return;

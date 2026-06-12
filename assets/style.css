@@ -46,6 +46,7 @@
         0 8px 28px rgba(251, 191, 36, 0.28),
         0 0 0 1px rgba(251, 191, 36, 0.32),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    --sidebar-overlay-width: min(320px, 28vw);
 }
 
 /* ── Streamlit chrome cleanup ── */
@@ -213,16 +214,17 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
 }
 
 [data-testid="stSidebarCollapseButton"] {
-    position: absolute !important;
+    position: fixed !important;
     top: 0.65rem !important;
-    right: 0.65rem !important;
-    left: auto !important;
+    left: calc(var(--sidebar-overlay-width) - var(--menu-fab-size) - 0.65rem) !important;
+    right: auto !important;
     z-index: 1000003 !important;
     margin: 0 !important;
 }
 
 [data-testid="stSidebar"] [data-testid="stSidebarContent"] {
     position: relative !important;
+    padding-top: 0.25rem !important;
 }
 
 [data-testid="stSidebar"] .sidebar-brand {
@@ -3089,16 +3091,17 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     left: 0 !important;
     height: 100vh !important;
     z-index: 1000001 !important;
-    width: min(320px, 28vw) !important;
-    min-width: min(320px, 28vw) !important;
-    max-width: min(320px, 28vw) !important;
+    width: var(--sidebar-overlay-width) !important;
+    min-width: var(--sidebar-overlay-width) !important;
+    max-width: var(--sidebar-overlay-width) !important;
+    transition: transform 0.22s ease, visibility 0.22s ease !important;
 }
 
 [data-testid="stSidebarCollapseButton"] {
-    position: absolute !important;
+    position: fixed !important;
     top: 0.65rem !important;
-    right: 0.65rem !important;
-    left: auto !important;
+    left: calc(var(--sidebar-overlay-width) - var(--menu-fab-size) - 0.65rem) !important;
+    right: auto !important;
     z-index: 1000003 !important;
 }
 
@@ -3138,6 +3141,16 @@ body.wc-sidebar-open [data-testid="stSidebarCollapseButton"] {
 
 [data-testid="stSidebar"][aria-expanded="true"] {
     transform: none !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+[data-testid="stSidebar"][aria-expanded="false"] {
+    transform: translateX(calc(-100% - 2px)) !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    border-right-color: transparent !important;
+    box-shadow: none !important;
 }
 
 header,
@@ -3169,6 +3182,10 @@ section.main {
 }
 
 @media (max-width: 769px) {
+    :root {
+        --sidebar-overlay-width: min(86vw, 320px);
+    }
+
     .block-container,
     .stApp .main .block-container,
     [data-testid="stMainBlockContainer"] {
@@ -3187,9 +3204,9 @@ section.main {
     }
 
     [data-testid="stSidebar"] {
-        width: min(86vw, 320px) !important;
-        min-width: min(86vw, 320px) !important;
-        max-width: min(86vw, 320px) !important;
+        width: var(--sidebar-overlay-width) !important;
+        min-width: var(--sidebar-overlay-width) !important;
+        max-width: var(--sidebar-overlay-width) !important;
     }
 
     .action-grid {
@@ -3918,4 +3935,3 @@ section.main {
     width: 1.6rem;
     white-space: nowrap;
 }
-
