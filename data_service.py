@@ -29,6 +29,34 @@ def read_sheet(sh, sheet_name: str) -> pd.DataFrame:
     return pd.DataFrame(data[1:], columns=data[0])
 
 
+def ensure_worksheet(sh, sheet_name: str, rows: int = 120, cols: int = 20):
+    """Return worksheet by name, creating it if missing."""
+    try:
+        return sh.worksheet(sheet_name)
+    except gspread.exceptions.WorksheetNotFound:
+        return sh.add_worksheet(title=sheet_name, rows=rows, cols=cols)
+
+
+def write_worksheet_dataframe(sh, sheet_name: str, df: pd.DataFrame) -> None:
+    """Replace entire worksheet contents with dataframe (header + rows)."""
+    if df.empty:
+        values = [[]]
+    else:
+        safe_df = df.copy()
+        for col in safe_df.columns:
+            safe_df[col] = safe_df[col].apply(
+                lambda v: "" if v is None or (isinstance(v, float) and pd.isna(v)) else str(v)
+            )
+        values = [safe_df.columns.tolist()] + safe_df.values.tolist()
+
+    row_count = max(len(values) + 5, 50)
+    col_count = max(len(values[0]) + 2 if values and values[0] else 5, 10)
+    ws = ensure_worksheet(sh, sheet_name, rows=row_count, cols=col_count)
+    ws.clear()
+    if values and values[0]:
+        ws.update(values, value_input_option="USER_ENTERED")
+
+
 def prep_matches(matches_raw: pd.DataFrame, teams_df: pd.DataFrame) -> pd.DataFrame:
     matches_raw = matches_raw.copy()
     matches_raw.replace("", pd.NA, inplace=True)

@@ -1,7 +1,16 @@
 import pandas as pd
 import streamlit as st
 
-from data_service import init_connection, prep_matches, read_sheet
+from data_service import (
+    init_connection,
+    normalize_predictions_df,
+    prep_matches,
+    read_sheet,
+    vietnam_timestamp,
+    write_worksheet_dataframe,
+)
+from prediction_matrix_service import MATRIX_SHEET_NAME, build_prediction_matrix
+from team_flags import build_name_to_fifa
 from schedule_service import format_date_compact_vn, format_time_vn
 from ui_components import (
     _get_col_letter,
@@ -62,6 +71,19 @@ def load_matches_data():
     teams_df = read_sheet(sh, "teams")
     teams_df.replace("", pd.NA, inplace=True)
     return prep_matches(matches_raw, teams_df), teams_df
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_matrix_data():
+    sh = init_connection()
+    users_df = read_sheet(sh, "users")
+    preds_df = normalize_predictions_df(read_sheet(sh, "predictions"))
+    matches_raw = read_sheet(sh, "matches")
+    teams_df = read_sheet(sh, "teams")
+    users_df.replace("", pd.NA, inplace=True)
+    teams_df.replace("", pd.NA, inplace=True)
+    matches_df = prep_matches(matches_raw, teams_df)
+    return users_df, preds_df, matches_df, teams_df
 
 
 with custom_loader("Đang đồng bộ dữ liệu quản trị..."):
@@ -231,7 +253,13 @@ def _render_submit_preview(lines: list[str], title: str):
             st.markdown(f"- {line}")
 
 
-tab_options = ["🔴 Chờ cập nhật", "🟢 Chỉnh sửa đã đá", "⚙️ Vòng Knock-out", "🔒 Khóa trận"]
+tab_options = [
+    "🔴 Chờ cập nhật",
+    "🟢 Chỉnh sửa đã đá",
+    "⚙️ Vòng Knock-out",
+    "🔒 Khóa trận",
+    "📊 Ma trận → Sheet",
+]
 active_tab = st.radio("Chọn chức năng:", tab_options, horizontal=True, key="active_tab", label_visibility="collapsed")
 st.write("---")
 
@@ -398,3 +426,50 @@ elif active_tab == tab_options[3]:
                 else:
                     st.session_state["success_msg"] = f"🛡️ Đã cập nhật {len(changed)} trận!"
                     _apply_admin_updates(changed, "lock")
+
+elif active_tab == tab_options[4]:
+    st.markdown('<div class="content-card-title">📊 Ma trận dự đoán → Google Sheet</div>', unsafe_allow_html=True)
+    st.caption(
+        "Đẩy toàn bộ dự đoán (trận × người chơi) lên tab "
+        f"`{MATRIX_SHEET_NAME}` trên spreadsheet. Xem và lọc trên Google Sheets — không hiển thị ma trận trong app."
+    )
+
+    with custom_loader("Đang tải dữ liệu ma trận..."):
+        users_df, preds_df, matrix_matches_df, matrix_teams_df = load_matrix_data()
+
+    users_df["user_id"] = users_df["user_id"].astype(str)
+    matrix_teams_df["id"] = matrix_teams_df["id"].astype(str)
+    name_to_fifa = build_name_to_fifa(matrix_teams_df)
+
+    n_matches = len(matrix_matches_df)
+    n_users = len(users_df)
+    n_preds = len(preds_df)
+    st.info(f"**{n_matches}** trận × **{n_users}** người chơi · **{n_preds}** dự đoán đã ghi")
+
+    if "matrix_last_updated" in st.session_state:
+        st.caption(f"Cập nhật lần cuối: {st.session_state['matrix_last_updated']}")
+
+    if st.button("Cập nhật ma trận lên Google Sheet", type="primary", key="push_matrix_btn"):
+        with st.spinner("Đang ghi ma trận lên Google Sheet..."):
+            matrix_df = build_prediction_matrix(
+                matrix_matches_df,
+                preds_df,
+                users_df,
+                matrix_teams_df,
+                name_to_fifa,
+            )
+            sh = init_connection()
+            write_worksheet_dataframe(sh, MATRIX_SHEET_NAME, matrix_df)
+            ts = vietnam_timestamp()
+            st.session_state["matrix_last_updated"] = ts
+            load_matrix_data.clear()
+            st.session_state["success_msg"] = (
+                f"✅ Đã ghi ma trận ({len(matrix_df)} hàng × {len(matrix_df.columns)} cột) "
+                f"lên tab `{MATRIX_SHEET_NAME}` lúc {ts}."
+            )
+            st.rerun()
+
+    spreadsheet_id = st.secrets.get("spreadsheet_id", "")
+    if spreadsheet_id:
+        sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
+        st.link_button("Mở Google Spreadsheet", sheet_url)

@@ -41,7 +41,7 @@ Sau đó bấm **「Đăng nhập hệ thống」**.
 
 ### Danh sách tài khoản nhóm
 
-| Mã | Tên đăng nhập (gõ đúng như bảng) |
+| Mã | Tên đăng nhập |
 |----|-------------------------------------|
 | U01 | TonyDo⚽️❤️❤️ |
 | U02 | Nghia |

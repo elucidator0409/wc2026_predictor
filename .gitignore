@@ -15,6 +15,7 @@ __pycache__/
 assets/demo_inspect/
 assets/demo_*.png
 docs/screenshots/
+docs/HUONG_DAN_ADMIN_SHEET.md
 scripts/demo_*.py
 * copy.csv
 * copy.*

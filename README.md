@@ -74,6 +74,7 @@ flowchart TB
 | `predictions` | Dự đoán theo `user_id` + `match_id` |
 | `matches` | Lịch 104 trận, tỉ số, khóa trận, knock-out |
 | `teams` | Đội, mã FIFA, bảng đấu |
+| `prediction_matrix` | Ma trận dự đoán (admin đẩy từ app) — trận × người chơi |
 
 Kết nối: [`data_service.py`](data_service.py).
 
@@ -92,6 +93,7 @@ scoring.py                # Điểm, phạt, format hiển thị
 schedule_service.py       # Lịch, nhãn bảng, màu
 group_standings_service.py
 knockout_bracket_service.py
+prediction_matrix_service.py
 ui_components.py          # Sidebar, login, UI dự đoán
 assets/style.css
 tests/                    # 50 tests
@@ -169,6 +171,19 @@ Hướng dẫn chi tiết từng bước: [docs/HUONG_DAN_DU_DOAN.md](docs/HUONG
 - Không commit `.streamlit/secrets.toml`, file JSON GCP, hay mật khẩu người dùng.
 - Mật khẩu trên sheet `users` nên dùng bản hash (SHA-256 + salt); app vẫn chấp nhận plain text tạm thời khi migrate.
 - Session đăng nhập gắn chữ ký HMAC trên URL để giữ phiên khi refresh trang.
+
+---
+
+## Roadmap (tóm tắt)
+
+| Sprint | Nội dung | Trạng thái |
+|--------|----------|------------|
+| 2.x | Sidebar, lịch sử, admin fixes, CI | Done |
+| 3 | Bảng đấu, bracket knock-out | Done |
+| 4.5 | Deploy, README, flagcdn lịch sử | Done |
+| 5 | Ma trận dự đoán → tab `prediction_matrix` trên Google Sheet | Done |
+
+Chi tiết: [docs/UI_SCORECARD.md](docs/UI_SCORECARD.md).
 
 ---
 

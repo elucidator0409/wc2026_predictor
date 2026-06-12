@@ -309,6 +309,33 @@ def format_pred_pick_html(
     return f'<span class="pred-hist-pick-line">{label}</span>'
 
 
+def format_pred_admin_cell(
+    outcome,
+    team_a: str = "",
+    team_b: str = "",
+    adv_team_name: str | None = None,
+    is_knockout: bool = False,
+    name_to_fifa: dict | None = None,
+    team_a_fifa: str | None = None,
+    team_b_fifa: str | None = None,
+) -> str:
+    """Plain-text pick for admin matrix Google Sheet (no emoji)."""
+    outcome = normalize_pred_outcome(outcome)
+    if outcome is None:
+        return "—"
+    if outcome == "A":
+        return "A thắng"
+    if outcome == "B":
+        return "B thắng"
+    if outcome == "D":
+        base = "Hòa"
+        if is_knockout and adv_team_name:
+            pen_code = _team_code(adv_team_name, None, name_to_fifa)
+            base += f" (PEN: {pen_code})"
+        return base
+    return OUTCOME_LABELS.get(outcome, str(outcome))
+
+
 def format_history_verdict(row) -> str:
     if not is_match_finished(row):
         return "⏳ Chưa đá"

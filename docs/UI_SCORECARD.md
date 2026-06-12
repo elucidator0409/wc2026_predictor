@@ -412,10 +412,36 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 
 | # | Việc | Trạng thái |
 |---|------|------------|
-| Share card + copy text | `render_share_card()`, tab Dự đoán + Lịch sử | ✅ Done |
+| Share card + copy text | `render_share_card()` | ❌ Removed (bỏ feature) |
 | Leaderboard Δ / snapshot | — | ❌ Bỏ (cần thao tác manual, không auto trên Cloud) |
 | Home rank teaser | — | ❌ Bỏ (phụ thuộc snapshot) |
 | Email/push digest | — | ❌ Bỏ (closed group) |
+
+---
+
+## Sprint 4.5 — Deploy + docs + lịch sử (2026-06-11)
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 4.5a | Mobile history split + desktop HTML table | `pages/1_Du_Doan.py`, `ui_components.py` | ✅ Done |
+| 4.5b | Flagcdn images lịch sử (Windows) | `scoring.py`, `ui_components.py` | ✅ Done |
+| 4.5c | Bracket knock-out two-sided | `pages/6_Bracket_Knockout.py` | ✅ Done |
+| 4.5d | CI GitHub Actions | `.github/workflows/ci.yml` | ✅ Done |
+| 4.5e | README + hướng dẫn người chơi | `README.md`, `docs/HUONG_DAN_DU_DOAN.md` | ✅ Done |
+
+---
+
+## Sprint 5 — Ma trận dự đoán → Google Sheet (2026-06-11)
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 5a | `format_pred_admin_cell()` — ô tóm tắt A/B/Hòa/PEN | `scoring.py` | ✅ Done |
+| 5b | `build_prediction_matrix()` + tests | `prediction_matrix_service.py` | ✅ Done |
+| 5c | `write_worksheet_dataframe()` | `data_service.py` | ✅ Done |
+| 5d | Tab admin **Ma trận → Sheet** | `pages/2_Lich_Thi_Dau.py` | ✅ Done |
+| 5e | Hướng dẫn thao tác GG Sheet | `docs/HUONG_DAN_ADMIN_SHEET.md` | ✅ Done |
+
+**Layout sheet `prediction_matrix`:** cột A = Trận, B = Cặp đấu, C+ = mỗi người chơi; ô = `A thắng` / `B thắng` / `Hòa` / `—`.
 
 ---
 
@@ -424,14 +450,15 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 - [x] Sprint 2.5 Admin audit + fix
 - [x] Sprint 2.3 badge + momentum
 - [x] Sprint 2.4 CI
-- [x] Sprint 3 bảng đấu
-- [x] Sprint 4 share card *(rank Δ bỏ)*
+- [x] Sprint 3 bảng đấu + bracket
+- [x] Docs README + HUONG_DAN_DU_DOAN
+- [x] Lịch sử mobile/desktop + flagcdn
+- [x] Sprint 5 ma trận → Google Sheet
 
 ### Backlog P2
 
 - [ ] Audit scorecard riêng: Lịch thi đấu, Home
 - [ ] Thứ tự card iPad stack (0,2,4,1,3)
-- [ ] Knockout bracket 32 đội (Sprint 3d)
 
 ---
 
@@ -448,14 +475,14 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 | `schedule_service.py` | `GROUP_COLORS`, `group_label_vn()`, `is_group_stage()` |
 | `pages/4_Xem_Lich_Thi_Dau.py` | 104 trận, filter Vòng bảng / Knock-out |
 
-### Cần build
+### Đã build (Sprint 3)
 
-| Phase | Deliverable | Effort |
-|-------|-------------|--------|
-| 3a | `compute_group_standings()` + unit tests | S |
-| 3b | Trang/tab **Bảng đấu** — grid 12 cards, màu theo bảng | M |
-| 3c | Live update khi admin nhập KQ; cross-link ↔ Lịch thi đấu | M |
-| 3d | Knockout bracket (32 đội) | L |
+| Phase | Deliverable | Trạng thái |
+|-------|-------------|------------|
+| 3a | `compute_group_standings()` + unit tests | ✅ Done |
+| 3b | Trang **Bảng đấu** — grid 12 cards | ✅ Done |
+| 3c | Cross-link ↔ Lịch thi đấu `?group=` | ✅ Done |
+| 3d | Knockout bracket two-sided | ✅ Done |
 
 **Dependency:** Sprint 2 group dot màu nên làm trước 3b để token màu nhất quán toàn app.
 
@@ -502,19 +529,24 @@ flowchart TB
 | 2026-06-11 | Admin — sprint 2.5 | **8.3** | 8.1 | 7.8 | Pagination, preview, kickoff sync |
 | 2026-06-11 | Interaction — sprint 2.3 | **8.9** | 8.8 | 8.8 | Badge draft/saved, momentum caption |
 | 2026-06-11 | Bảng đấu — sprint 3 | — | — | — | 12 groups + cross-link fixtures |
-| 2026-06-11 | Growth — sprint 4 | — | — | — | Share card *(rank Δ bỏ)* |
+| 2026-06-11 | Growth — sprint 4 | — | — | — | Share card removed |
+| 2026-06-11 | Deploy + docs | — | — | — | README, HUONG_DAN, production push |
+| 2026-06-11 | Lịch sử flags | — | — | — | flagcdn HTML table Win/mac |
+| 2026-06-11 | Admin matrix | — | — | — | Sprint 5 prediction_matrix sheet |
 
 ---
 
 ## Roadmap UI toàn app (target 10/10)
 
-1. **Dự đoán** — card trận ✅, tabs, lịch sử table ✅ (split columns + verdict Sprint 2.1)
+1. **Dự đoán** — card trận ✅, tabs, lịch sử HTML ✅ (mobile 4 col + desktop 6 col)
 2. **Lịch thi đấu** — fixture rows ✅, filter toolbar (chưa scorecard)
 3. **Bảng đấu** — 12 groups visualize ✅ *(Sprint 3)*
-4. **Home** — CTA grid, rules
-5. **Bảng xếp hạng** — podium, charts, detail table
-6. **Admin** — pagination, preview, kickoff ✅ *(Sprint 2.5)*
-7. **Global** — sidebar overlay all viewports ✅, login ✅, menu FAB icon-only ✅
+4. **Bracket KO** — two-sided ✅ *(Sprint 3d)*
+5. **Home** — CTA grid, rules
+6. **Bảng xếp hạng** — podium, charts, detail table
+7. **Admin** — pagination, preview, kickoff ✅ + ma trận Sheet ✅ *(Sprint 5)*
+8. **Global** — sidebar overlay all viewports ✅, login ✅, menu FAB icon-only ✅
+9. **Docs** — README ✅, HUONG_DAN_DU_DOAN ✅, HUONG_DAN_ADMIN_SHEET ✅
 
 ---
 
