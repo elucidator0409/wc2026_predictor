@@ -440,10 +440,10 @@ def render_stat_cards(stats: list[tuple[str, str, str]], *, row_class: str = "")
     _html(f'<div class="stats-row{extra}">{"".join(cards)}</div>')
 
 def render_home_cta_cards(cards: list[dict[str, str]]):
-    items = []
     for start in range(0, len(cards), 5):
         row_cards = cards[start : start + 5]
-        for idx, card in enumerate(row_cards, start=start + 1):
+        cols = st.columns(len(row_cards), gap="medium")
+        for idx, (col, card) in enumerate(zip(cols, row_cards), start=start + 1):
             href = card.get("href", "#")
             icon = card.get("icon", "")
             title = card.get("title", "")
@@ -451,23 +451,15 @@ def render_home_cta_cards(cards: list[dict[str, str]]):
             cta = card.get("cta", "Mở")
             tone = card.get("tone", "blue")
             page, query_params = _internal_page_link_target(href)
-            target_url = internal_nav_url(href)
-            if page:
-                target_url = internal_nav_url(href, query_params)
-            items.append(
-                f'<a class="home-cta-card home-cta-card--{html.escape(tone)}" href="{html.escape(target_url)}">'
-                f'<span class="home-cta-media">'
-                f'<span class="home-cta-kicker">Khu {idx:02d}</span>'
-                f'<span class="home-cta-icon" aria-hidden="true">{html.escape(icon)}</span>'
-                f"</span>"
-                f'<span class="home-cta-copy">'
-                f'<strong>{html.escape(title)}</strong>'
-                f'<small>{html.escape(desc)}</small>'
-                f"</span>"
-                f'<span class="home-cta-arrow">{html.escape(cta)} →</span>'
-                f"</a>"
-            )
-    _html(f'<div class="action-grid action-grid--home">{"".join(items)}</div>')
+            label = f"{icon}  \n**{title}**  \n{desc}  \n**{cta} →**"
+            with col:
+                _html(
+                    f'<span class="home-cta-native-marker home-cta-native-marker--{html.escape(tone)}" aria-hidden="true"></span>'
+                )
+                if page:
+                    st.page_link(page, label=label, width="stretch", query_params=query_params)
+                else:
+                    st.link_button(label, internal_nav_url(href), width="stretch")
 
 def render_match_card(
     match_number,
