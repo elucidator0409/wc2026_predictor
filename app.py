@@ -20,6 +20,60 @@ apply_global_styles()
 sync_auth_session()
 render_sidebar()
 
+
+def render_home_rules_section():
+    st.html(
+        """
+<section class="home-rules" aria-labelledby="home-rules-title">
+  <div class="home-section-heading">
+    <span class="home-section-kicker">Luật chơi</span>
+    <h2 id="home-rules-title">Thể lệ & cách tính quỹ</h2>
+  </div>
+  <div class="rule-grid">
+    <article class="rule-card rule-card--points">
+      <div class="rule-card-top">
+        <span class="rule-card-icon" aria-hidden="true">+</span>
+        <div>
+          <h3>Hệ thống tính điểm</h3>
+          <p>Chấm theo kết quả chính, cộng thêm cho knock-out.</p>
+        </div>
+      </div>
+      <ul class="rule-list">
+        <li>
+          <span class="rule-value">+3</span>
+          <span><strong>Đúng kết quả</strong><small>Đội A thắng, hòa, hoặc đội B thắng.</small></span>
+        </li>
+        <li>
+          <span class="rule-value">+1</span>
+          <span><strong>Đúng đội đi tiếp</strong><small>Áp dụng vòng knock-out khi chọn hòa sau 90 phút.</small></span>
+        </li>
+      </ul>
+    </article>
+    <article class="rule-card rule-card--fines">
+      <div class="rule-card-top">
+        <span class="rule-card-icon" aria-hidden="true">!</span>
+        <div>
+          <h3>Quỹ phạt</h3>
+          <p>Phạt theo kết quả chính thức sau khi trận khép lại.</p>
+        </div>
+      </div>
+      <ul class="rule-list">
+        <li>
+          <span class="rule-value">0k</span>
+          <span><strong>Đúng kết quả</strong><small>Không đóng thêm vào quỹ.</small></span>
+        </li>
+        <li>
+          <span class="rule-value">10k</span>
+          <span><strong>Sai kết quả</strong><small>Tự động cộng vào tổng phạt của người chơi.</small></span>
+        </li>
+      </ul>
+    </article>
+  </div>
+</section>
+        """
+    )
+
+
 render_hero_home()
 
 render_stat_cards([
@@ -29,30 +83,7 @@ render_stat_cards([
     ("104", "Trận đấu WC 2026"),
 ])
 
-st.markdown('<div class="section-title">📜 Thể lệ & luật chơi</div>', unsafe_allow_html=True)
-
-st.markdown(
-    """
-    <div class="rule-grid">
-        <div class="rule-card rule-card--points">
-            <h3>🟢 Hệ thống tính điểm</h3>
-            <ul>
-                <li><strong>Đoán đúng kết quả</strong> (Đội A thắng / Hòa / Đội B thắng): +3 điểm</li>
-                <li><strong>Vòng Knock-out</strong> (Đoán đúng đội đi tiếp (Hiệp phụ/Penalty) khi chọn Hòa): +1 điểm</li>
-            </ul>
-        </div>
-        <div class="rule-card rule-card--fines">
-            <h3>🔴 Quỹ phạt</h3>
-            <ul>
-                <li><strong>Đoán đúng kết quả:</strong> 0k</li>
-                <li><strong>Đoán sai kết quả:</strong> đóng 10k vào quỹ</li>
-                <li>Tổng phạt tự động tính sau khi có kết quả chính thức</li>
-            </ul>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+render_home_rules_section()
 
 st.markdown('<div class="section-title">🚀 Bắt đầu ngay</div>', unsafe_allow_html=True)
 st.caption("Chọn nhanh khu vực bạn muốn vào. Sidebar vẫn luôn có sẵn nếu cần điều hướng chi tiết.")

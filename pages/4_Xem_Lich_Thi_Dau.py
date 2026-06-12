@@ -34,7 +34,11 @@ render_page_header(
 )
 
 if group_filter_param:
-    st.info(f"Đang lọc **Bảng {group_filter_param}** — [Xem tất cả](?group=)")
+    st.info(f"Đang lọc **Bảng {group_filter_param}**")
+    if st.button("Xem tất cả", key="clear_group_filter"):
+        if "group" in st.query_params:
+            del st.query_params["group"]
+        st.rerun()
 
 
 @st.cache_data(ttl=300, show_spinner=False)

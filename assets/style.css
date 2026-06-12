@@ -951,39 +951,171 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     gap: 0.5rem;
 }
 
-/* ── Rule cards (homepage) ── */
-.rule-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 2rem;
+/* ── Homepage rules board ── */
+.home-rules {
+    position: relative;
+    isolation: isolate;
+    margin: 2.25rem 0 2.35rem;
+    padding: clamp(1rem, 2vw, 1.35rem);
+    border: 1px solid rgba(226, 232, 240, 0.12);
+    border-radius: var(--radius-xl);
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px),
+        radial-gradient(circle at 7% 10%, rgba(52, 211, 153, 0.16), transparent 28%),
+        radial-gradient(circle at 95% 14%, rgba(248, 113, 113, 0.13), transparent 30%),
+        linear-gradient(145deg, rgba(18, 29, 48, 0.96), rgba(7, 13, 24, 0.98));
+    background-size: 28px 28px, 28px 28px, auto, auto, auto;
+    box-shadow: 0 20px 54px rgba(0, 0, 0, 0.28);
+    overflow: hidden;
 }
 
-.rule-card {
-    background: var(--bg-card-soft);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    border-top: 3px solid var(--rule-color, var(--wc-gold));
+.home-rules::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-top: 3px solid rgba(247, 201, 72, 0.42);
+    pointer-events: none;
 }
 
-.rule-card h3 {
-    font-size: 1.08rem;
-    font-weight: 700;
-    color: var(--text-primary);
+.home-section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
     margin: 0 0 1rem;
 }
 
-.rule-card ul {
-    margin: 0;
-    padding-left: 1.25rem;
-    color: var(--text-secondary);
-    line-height: 1.8;
-    font-size: 0.95rem;
+.home-section-kicker {
+    color: var(--wc-gold);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 }
 
-.rule-card--points { --rule-color: #10b981; }
-.rule-card--fines  { --rule-color: #ef4444; }
+.home-section-heading h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: clamp(1.18rem, 1rem + 0.7vw, 1.7rem);
+    line-height: 1.1;
+    font-weight: 900;
+}
+
+.rule-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.rule-card {
+    --rule-color: var(--wc-gold);
+    min-width: 0;
+    padding: clamp(1rem, 1.7vw, 1.25rem);
+    border: 1px solid color-mix(in srgb, var(--rule-color) 30%, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-lg);
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--rule-color) 13%, transparent), transparent 36%),
+        rgba(8, 17, 31, 0.76);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 14px 34px rgba(0, 0, 0, 0.22);
+}
+
+.rule-card-top {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.85rem;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.rule-card-icon {
+    width: 2.35rem;
+    height: 2.35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--rule-color) 18%, rgba(255, 255, 255, 0.04));
+    border: 1px solid color-mix(in srgb, var(--rule-color) 36%, transparent);
+    color: color-mix(in srgb, var(--rule-color) 82%, white);
+    font-size: 1.2rem;
+    font-weight: 950;
+    line-height: 1;
+}
+
+.rule-card h3 {
+    margin: 0 0 0.24rem;
+    color: var(--text-primary);
+    font-size: clamp(1rem, 0.92rem + 0.28vw, 1.18rem);
+    font-weight: 880;
+    line-height: 1.18;
+}
+
+.rule-card p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.rule-list {
+    display: grid;
+    gap: 0.62rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rule-list li {
+    display: grid;
+    grid-template-columns: 4.15rem minmax(0, 1fr);
+    gap: 0.72rem;
+    align-items: center;
+    min-height: 4rem;
+    padding: 0.72rem;
+    border: 1px solid rgba(226, 232, 240, 0.1);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.045);
+}
+
+.rule-value {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 2.65rem;
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--rule-color) 20%, rgba(7, 13, 24, 0.82));
+    color: color-mix(in srgb, var(--rule-color) 84%, white);
+    border: 1px solid color-mix(in srgb, var(--rule-color) 38%, transparent);
+    font-size: 1.05rem;
+    font-weight: 950;
+    letter-spacing: 0;
+}
+
+.rule-list strong,
+.rule-list small {
+    display: block;
+}
+
+.rule-list strong {
+    color: var(--text-primary);
+    font-size: 0.96rem;
+    line-height: 1.24;
+    margin-bottom: 0.18rem;
+}
+
+.rule-list small {
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+    line-height: 1.42;
+}
+
+.rule-card--points { --rule-color: #34d399; }
+.rule-card--fines  { --rule-color: #fb7185; }
 
 /* ── CTA cards ── */
 .cta-grid {
@@ -1028,35 +1160,100 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     margin: 0.75rem 0 2rem;
 }
 
+.action-grid--home {
+    grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr));
+    gap: 0.95rem;
+    align-items: stretch;
+    margin-top: 1.15rem;
+}
+
 .home-cta-card {
     --cta-accent: var(--wc-blue);
     position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-    min-height: 10.75rem;
-    padding: 1.15rem;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 1.1rem;
+    min-height: 11.2rem;
+    padding: 1rem 1.05rem;
     border-radius: var(--radius-lg);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid color-mix(in srgb, var(--cta-accent) 26%, rgba(255, 255, 255, 0.08));
     background:
-        radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--cta-accent) 20%, transparent), transparent 34%),
-        linear-gradient(180deg, rgba(20, 31, 50, 0.96), rgba(11, 19, 33, 0.98));
+        linear-gradient(135deg, color-mix(in srgb, var(--cta-accent) 16%, transparent) 0 1px, transparent 1px 13px),
+        radial-gradient(circle at 16% 4%, color-mix(in srgb, var(--cta-accent) 34%, transparent), transparent 30%),
+        radial-gradient(circle at 88% 100%, rgba(255, 255, 255, 0.08), transparent 28%),
+        linear-gradient(180deg, rgba(19, 31, 50, 0.98), rgba(7, 13, 24, 0.99));
+    background-size: 13px 13px, auto, auto, auto;
     color: var(--text-primary) !important;
     text-decoration: none !important;
-    box-shadow: var(--shadow-card);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
     overflow: hidden;
-    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    outline: none;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.home-cta-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 0.22rem;
+    background: linear-gradient(90deg, var(--cta-accent), transparent 72%);
+    opacity: 0.9;
+}
+
+.home-cta-card::after {
+    content: "";
+    position: absolute;
+    right: -2.1rem;
+    bottom: -2.4rem;
+    width: 6.5rem;
+    height: 6.5rem;
+    border: 1px solid color-mix(in srgb, var(--cta-accent) 26%, transparent);
+    border-radius: 50%;
+    opacity: 0.5;
 }
 
 .home-cta-card:hover {
     transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--cta-accent) 48%, transparent);
-    box-shadow: 0 8px 28px color-mix(in srgb, var(--cta-accent) 18%, transparent);
+    border-color: color-mix(in srgb, var(--cta-accent) 52%, transparent);
+    box-shadow: 0 18px 42px color-mix(in srgb, var(--cta-accent) 20%, rgba(0, 0, 0, 0.35));
+}
+
+.home-cta-card:focus-visible {
+    border-color: color-mix(in srgb, var(--cta-accent) 70%, white);
+    box-shadow:
+        0 0 0 3px color-mix(in srgb, var(--cta-accent) 32%, transparent),
+        0 18px 42px rgba(0, 0, 0, 0.36);
 }
 
 .home-cta-card--green { --cta-accent: var(--wc-green); }
 .home-cta-card--gold { --cta-accent: var(--wc-gold); }
 .home-cta-card--purple { --cta-accent: var(--wc-purple); }
+.home-cta-card--blue { --cta-accent: var(--wc-blue); }
+
+.home-cta-media {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.home-cta-kicker {
+    position: relative;
+    z-index: 1;
+    width: fit-content;
+    padding: 0.2rem 0.48rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--cta-accent) 28%, transparent);
+    background: rgba(255, 255, 255, 0.04);
+    color: color-mix(in srgb, var(--cta-accent) 76%, white);
+    font-size: 0.66rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
 
 .home-cta-icon {
     width: 3rem;
@@ -1068,28 +1265,40 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     background: color-mix(in srgb, var(--cta-accent) 16%, transparent);
     border: 1px solid color-mix(in srgb, var(--cta-accent) 28%, transparent);
     font-size: 1.45rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .home-cta-copy {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
     flex: 1;
+    padding-top: 0.2rem;
 }
 
 .home-cta-copy strong {
-    font-size: 1.05rem;
+    font-size: clamp(1.02rem, 0.96rem + 0.22vw, 1.16rem);
+    line-height: 1.18;
     font-weight: 850;
     color: var(--text-primary);
 }
 
 .home-cta-copy small {
-    font-size: 0.88rem;
+    min-height: 2.65rem;
+    font-size: 0.87rem;
     line-height: 1.5;
     color: var(--text-secondary);
 }
 
 .home-cta-arrow {
+    position: relative;
+    z-index: 1;
+    width: fit-content;
+    min-height: 2.35rem;
+    display: inline-flex;
+    align-items: center;
     font-size: 0.82rem;
     font-weight: 800;
     letter-spacing: 0.04em;
@@ -3539,11 +3748,83 @@ section.main {
         gap: 0.8rem;
     }
 
+    .action-grid--home {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+
+    .home-rules {
+        margin-top: 1.6rem;
+        padding: 0.85rem;
+        border-radius: var(--radius-lg);
+        background-size: 22px 22px, 22px 22px, auto, auto, auto;
+    }
+
+    .home-section-heading {
+        display: block;
+        margin-bottom: 0.85rem;
+    }
+
+    .home-section-heading h2 {
+        margin-top: 0.2rem;
+    }
+
+    .rule-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .rule-card {
+        padding: 0.9rem;
+        border-radius: var(--radius-md);
+    }
+
+    .rule-card-top {
+        gap: 0.7rem;
+        margin-bottom: 0.78rem;
+    }
+
+    .rule-card-icon {
+        width: 2.1rem;
+        height: 2.1rem;
+        border-radius: 10px;
+    }
+
+    .rule-list {
+        gap: 0.55rem;
+    }
+
+    .rule-list li {
+        grid-template-columns: 3.55rem minmax(0, 1fr);
+        min-height: 3.75rem;
+        padding: 0.58rem;
+    }
+
+    .rule-value {
+        min-height: 2.5rem;
+        font-size: 0.95rem;
+    }
+
     .home-cta-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        column-gap: 0.95rem;
+        row-gap: 0.28rem;
+        gap: 0.28rem 0.95rem;
         min-height: 0;
-        flex-direction: row;
         align-items: center;
-        padding: 0.95rem;
+        padding: 0.9rem;
+    }
+
+    .home-cta-media {
+        grid-row: 1 / span 2;
+        display: block;
+        margin-bottom: 0;
+    }
+
+    .home-cta-kicker {
+        display: none;
     }
 
     .home-cta-icon {
@@ -3552,8 +3833,18 @@ section.main {
         font-size: 1.2rem;
     }
 
+    .home-cta-copy {
+        gap: 0.2rem;
+        padding-top: 0;
+    }
+
+    .home-cta-copy small {
+        min-height: 0;
+    }
+
     .home-cta-arrow {
-        display: none;
+        min-height: 1.35rem;
+        font-size: 0.72rem;
     }
 
     .fixture-toolbar-marker + div[data-testid="stHorizontalBlock"] {
@@ -3927,6 +4218,10 @@ section.main {
 
 @media (min-width: 769px) and (max-width: 1180px) {
     .action-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .action-grid--home {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
