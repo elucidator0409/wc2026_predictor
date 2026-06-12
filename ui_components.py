@@ -38,22 +38,57 @@ def apply_global_styles():
     _SIDEBAR_OVERLAY_BOOT = """
 <script>
 (function () {
-  const topWin = window.top;
-  const WC_SIDEBAR_OVERLAY_VERSION = 7;
-  if (topWin.__wcSidebarOverlayVersion === WC_SIDEBAR_OVERLAY_VERSION) {
-    topWin.__wcSidebarOverlaySync?.();
+  function canUseDocument(win) {
+    try {
+      return !!(win && win.document && win.document.body && win.document.head);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function hasStreamlitApp(win) {
+    if (!canUseDocument(win)) return false;
+    return !!(
+      win.document.querySelector('[data-testid="stApp"]') ||
+      win.document.querySelector('[data-testid="stSidebar"]') ||
+      win.document.querySelector('[data-testid="stAppViewContainer"]')
+    );
+  }
+
+  function resolveHostWindow() {
+    let current = window;
+    let best = canUseDocument(current) ? current : null;
+    for (let i = 0; i < 8 && current; i += 1) {
+      if (hasStreamlitApp(current)) best = current;
+      try {
+        if (!current.parent || current.parent === current) break;
+        current = current.parent;
+      } catch (e) {
+        break;
+      }
+    }
+    if (hasStreamlitApp(current)) best = current;
+    return best || window;
+  }
+
+  const hostWin = resolveHostWindow();
+  const hostDoc = hostWin.document;
+  const WC_SIDEBAR_OVERLAY_VERSION = 8;
+  if (hostWin.__wcSidebarOverlayVersion === WC_SIDEBAR_OVERLAY_VERSION) {
+    hostWin.__wcSidebarOverlaySync?.();
     return;
   }
-  topWin.__wcSidebarOverlayVersion = WC_SIDEBAR_OVERLAY_VERSION;
-  topWin.__wcSidebarOverlayInit = false;
-  topWin.__wcSidebarOverlayObserver?.disconnect();
-  topWin.document.getElementById("wc-sidebar-backdrop")?.remove();
-  topWin.document.getElementById("wc-sidebar-overlay-boot")?.remove();
-  const boot = topWin.document.createElement("script");
+  hostWin.__wcSidebarOverlayVersion = WC_SIDEBAR_OVERLAY_VERSION;
+  hostWin.__wcSidebarOverlayInit = false;
+  hostWin.__wcSidebarOverlayObserver?.disconnect();
+  hostDoc.getElementById("wc-sidebar-backdrop")?.remove();
+  hostDoc.getElementById("wc-sidebar-overlay-boot")?.remove();
+  const boot = hostDoc.createElement("script");
   boot.id = "wc-sidebar-overlay-boot";
   boot.textContent = `
 (function () {
   let syncQueued = false;
+  let domObserver = null;
 
   function isSidebarOpen() {
     const sidebar = document.querySelector('[data-testid="stSidebar"]');
@@ -63,22 +98,36 @@ def apply_global_styles():
   function scheduleBackdropSync() {
     queueSyncBackdrop();
     setTimeout(queueSyncBackdrop, 180);
+    setTimeout(queueSyncBackdrop, 480);
   }
 
-  function collapseSidebar() {
-    const btn =
-      document.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
-      document.querySelector('[data-testid="stSidebarCollapseButton"]');
-    if (!btn) return;
+  function reactClickTarget(node) {
+    if (!node) return null;
+    const candidates = [
+      node,
+      ...Array.from(node.querySelectorAll?.("*") || []),
+      node.parentElement,
+      node.parentElement?.parentElement,
+    ].filter(Boolean);
 
-    const reactKey = Object.keys(btn).find((k) => k.startsWith("__reactProps"));
-    const reactOnClick = reactKey && btn[reactKey]?.onClick;
-    if (typeof reactOnClick === "function") {
-      reactOnClick({
+    for (const candidate of candidates) {
+      const reactKey = Object.keys(candidate).find((k) => k.startsWith("__reactProps"));
+      const reactOnClick = reactKey && candidate[reactKey]?.onClick;
+      if (typeof reactOnClick === "function") {
+        return { node: candidate, onClick: reactOnClick };
+      }
+    }
+    return null;
+  }
+
+  function invokeReactClick(target) {
+    const reactTarget = reactClickTarget(target);
+    if (!reactTarget) return false;
+    reactTarget.onClick({
         preventDefault() {},
         stopPropagation() {},
-        target: btn,
-        currentTarget: btn,
+      target: reactTarget.node,
+      currentTarget: reactTarget.node,
         type: "click",
         nativeEvent: new MouseEvent("click", {
           bubbles: true,
@@ -86,6 +135,24 @@ def apply_global_styles():
           view: window,
         }),
       });
+    return true;
+  }
+
+  function collapseSidebar() {
+    const root = document.querySelector('[data-testid="stSidebarCollapseButton"]');
+    const btn =
+      document.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
+      document.querySelector('[data-testid="stSidebarCollapseButton"] [role="button"]') ||
+      root;
+    if (!btn) return;
+
+    if (invokeReactClick(btn) || invokeReactClick(root)) {
+      scheduleBackdropSync();
+      return;
+    }
+
+    if (typeof btn.click === "function") {
+      btn.click();
       scheduleBackdropSync();
       return;
     }
@@ -191,21 +258,26 @@ def apply_global_styles():
   window.__wcSidebarOverlaySync = queueSyncBackdrop;
   window.__wcSidebarOverlayInit = true;
 
+  window.__wcSidebarOverlayDomObserver?.disconnect();
   window.addEventListener("resize", queueSyncBackdrop);
   window.addEventListener("popstate", handlePageChange);
   document.addEventListener("click", onOutsidePointer, true);
   document.addEventListener("touchend", onOutsidePointer, true);
-  new MutationObserver(() => {
+  domObserver = new MutationObserver(() => {
     handlePageChange();
     bindSidebarObserver();
-  }).observe(document.body, { childList: true, subtree: true });
+  });
+  window.__wcSidebarOverlayDomObserver = domObserver;
+  domObserver.observe(document.body, { childList: true, subtree: true });
 
   handlePageChange();
   bindSidebarObserver();
   queueSyncBackdrop();
+  setTimeout(queueSyncBackdrop, 250);
+  setTimeout(queueSyncBackdrop, 750);
 })();
 `;
-  topWin.document.head.appendChild(boot);
+  hostDoc.head.appendChild(boot);
 })();
 </script>
 """
