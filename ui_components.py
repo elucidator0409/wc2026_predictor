@@ -4,6 +4,7 @@ import hmac
 import html
 import os
 import re
+from urllib.parse import parse_qsl, urlencode, urlsplit
 
 import pandas as pd
 import streamlit as st
@@ -306,6 +307,45 @@ def get_auth_signature(user_id: str) -> str:
     secret = st.secrets.get("password_salt", "MuoiMacDinh_@123").encode("utf-8")
     return hmac.new(secret, user_id.encode("utf-8"), hashlib.sha256).hexdigest()
 
+def _auth_query_params(params: dict[str, str] | None = None) -> dict[str, str]:
+    query = {str(k): str(v) for k, v in (params or {}).items() if v is not None}
+    uid = st.session_state.get("authenticated_user_id")
+    if uid is not None:
+        uid = str(uid)
+        query["uid"] = uid
+        query["sig"] = get_auth_signature(uid)
+    return query
+
+def internal_nav_url(href: str, params: dict[str, str] | None = None) -> str:
+    """Build an internal URL without dropping the signed auth query params."""
+    href = str(href or "#").strip()
+    if not href or href == "#" or href.startswith(("http://", "https://", "mailto:", "tel:")):
+        return href or "#"
+
+    parsed = urlsplit(href)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    query.update({str(k): str(v) for k, v in (params or {}).items() if v is not None})
+    signed_query = _auth_query_params(query)
+    suffix = f"?{urlencode(signed_query)}" if signed_query else ""
+    return f"{parsed.path or href}{suffix}"
+
+_INTERNAL_PAGE_MAP = {
+    "/": "app.py",
+    "/Du_Doan": "pages/1_Du_Doan.py",
+    "/Lich_Thi_Dau": "pages/2_Lich_Thi_Dau.py",
+    "/Bang_Xep_Hang": "pages/3_Bang_Xep_Hang.py",
+    "/Xem_Lich_Thi_Dau": "pages/4_Xem_Lich_Thi_Dau.py",
+    "/Bang_Dau": "pages/5_Bang_Dau.py",
+    "/Bracket_Knockout": "pages/6_Bracket_Knockout.py",
+    "/Tra_Cuu_Doi_Bong": "pages/7_Tra_Cuu_Doi_Bong.py",
+}
+
+def _internal_page_link_target(href: str) -> tuple[str | None, dict[str, str]]:
+    parsed = urlsplit(str(href or "").strip())
+    page = _INTERNAL_PAGE_MAP.get(parsed.path)
+    params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    return page, _auth_query_params(params)
+
 def sync_auth_session():
     # 1. Khởi tạo session state nếu chưa có
     if "authenticated_user_id" not in st.session_state:
@@ -401,24 +441,52 @@ def render_stat_cards(stats: list[tuple[str, str, str]], *, row_class: str = "")
 
 def render_home_cta_cards(cards: list[dict[str, str]]):
     items = []
-    for card in cards:
-        href = card.get("href", "#")
-        icon = card.get("icon", "")
-        title = card.get("title", "")
-        desc = card.get("desc", "")
-        tone = card.get("tone", "blue")
-        cta = card.get("cta", "Mở")
-        items.append(
-            f'<a class="home-cta-card home-cta-card--{html.escape(tone)}" href="{html.escape(href)}">'
-            f'<span class="home-cta-icon">{html.escape(icon)}</span>'
-            f'<span class="home-cta-copy">'
-            f'<strong>{html.escape(title)}</strong>'
-            f'<small>{html.escape(desc)}</small>'
-            f"</span>"
-            f'<span class="home-cta-arrow">{html.escape(cta)} →</span>'
-            f"</a>"
-        )
-    _html(f'<div class="action-grid">{"".join(items)}</div>')
+    for start in range(0, len(cards), 5):
+        row_cards = cards[start : start + 5]
+        for idx, card in enumerate(row_cards, start=start + 1):
+            href = card.get("href", "#")
+            icon = card.get("icon", "")
+            title = card.get("title", "")
+            desc = card.get("desc", "")
+            cta = card.get("cta", "Mở")
+            tone = card.get("tone", "blue")
+            page, query_params = _internal_page_link_target(href)
+            target_url = internal_nav_url(href)
+            if page:
+                target_url = internal_nav_url(href, query_params)
+            items.append(
+                f'<a class="home-cta-card home-cta-card--{html.escape(tone)}" href="{html.escape(target_url)}">'
+                f'<span class="home-cta-kicker">Khu {idx:02d}</span>'
+                f'<span class="home-cta-icon" aria-hidden="true">{html.escape(icon)}</span>'
+                f'<span class="home-cta-copy">'
+                f'<strong>{html.escape(title)}</strong>'
+                f'<small>{html.escape(desc)}</small>'
+                f"</span>"
+                f'<span class="home-cta-arrow">{html.escape(cta)} →</span>'
+                f"</a>"
+            )
+    _html(f'<div class="action-grid action-grid--home">{"".join(items)}</div>')
+    _html(
+        """
+<script>
+(function () {
+  const win = window.parent || window;
+  const doc = win.document;
+  if (win.__wcHomeCtaNavBound) return;
+  win.__wcHomeCtaNavBound = true;
+  doc.addEventListener("click", function (event) {
+    const link = event.target && event.target.closest && event.target.closest(".home-cta-card[href]");
+    if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    const href = link.getAttribute("href");
+    if (!href || href.startsWith("http")) return;
+    event.preventDefault();
+    win.history.pushState({}, "", href);
+    win.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
+  }, true);
+})();
+</script>
+        """
+    )
 
 def render_match_card(
     match_number,
@@ -487,11 +555,13 @@ def render_fixture_row(
     code_b = str(team_b_fifa or (name_to_fifa or {}).get(team_b, "")).strip().upper()
     squad_links = ""
     if code_a:
-        squad_links += f'<a class="fixture-squad-link" href="/Tra_Cuu_Doi_Bong?team={html.escape(code_a)}">{html.escape(code_a)}</a>'
+        href_a = internal_nav_url("/Tra_Cuu_Doi_Bong", {"team": code_a})
+        squad_links += f'<a class="fixture-squad-link" href="{html.escape(href_a)}">{html.escape(code_a)}</a>'
     if code_b:
         if squad_links:
             squad_links += '<span class="fixture-squad-sep">·</span>'
-        squad_links += f'<a class="fixture-squad-link" href="/Tra_Cuu_Doi_Bong?team={html.escape(code_b)}">{html.escape(code_b)}</a>'
+        href_b = internal_nav_url("/Tra_Cuu_Doi_Bong", {"team": code_b})
+        squad_links += f'<a class="fixture-squad-link" href="{html.escape(href_b)}">{html.escape(code_b)}</a>'
     squad_html = f'<div class="fixture-squad-links">{squad_links}</div>' if squad_links else ""
     venue = html.escape(str(venue_line or "—"))
     grp_label = html.escape(group_label_vn(group_round))
@@ -732,7 +802,7 @@ def render_squad_mini_panel(
     name_to_fifa: dict | None = None,
 ) -> None:
     flag = flag_img_html(fifa_code=fifa_code, team_name=team_name, name_to_fifa=name_to_fifa, size="sm")
-    squad_url = f"/Tra_Cuu_Doi_Bong?team={html.escape(fifa_code)}"
+    squad_url = internal_nav_url("/Tra_Cuu_Doi_Bong", {"team": str(fifa_code).strip().upper()})
     players_html = ""
     for row in top_rows:
         players_html += (
@@ -1234,8 +1304,8 @@ def _build_group_team_cell(team_name: str, name_to_fifa: dict[str, str] | None) 
     fifa = (name_to_fifa or {}).get(full_name, "")
     name_html = f'<span class="grp-team-name" title="{html.escape(full_name)}">{html.escape(display_name)}</span>'
     if fifa:
-        href = f"/Tra_Cuu_Doi_Bong?team={html.escape(str(fifa).upper())}"
-        name_html = f'<a class="grp-team-link" href="{href}">{name_html}</a>'
+        href = internal_nav_url("/Tra_Cuu_Doi_Bong", {"team": str(fifa).upper()})
+        name_html = f'<a class="grp-team-link" href="{html.escape(href)}">{name_html}</a>'
     return f'<span class="grp-team-cell">{flag}{name_html}</span>'
 
 
