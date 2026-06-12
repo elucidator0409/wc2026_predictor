@@ -456,8 +456,10 @@ def render_home_cta_cards(cards: list[dict[str, str]]):
                 target_url = internal_nav_url(href, query_params)
             items.append(
                 f'<a class="home-cta-card home-cta-card--{html.escape(tone)}" href="{html.escape(target_url)}">'
+                f'<span class="home-cta-media">'
                 f'<span class="home-cta-kicker">Khu {idx:02d}</span>'
                 f'<span class="home-cta-icon" aria-hidden="true">{html.escape(icon)}</span>'
+                f"</span>"
                 f'<span class="home-cta-copy">'
                 f'<strong>{html.escape(title)}</strong>'
                 f'<small>{html.escape(desc)}</small>'
@@ -466,27 +468,6 @@ def render_home_cta_cards(cards: list[dict[str, str]]):
                 f"</a>"
             )
     _html(f'<div class="action-grid action-grid--home">{"".join(items)}</div>')
-    _html(
-        """
-<script>
-(function () {
-  const win = window.parent || window;
-  const doc = win.document;
-  if (win.__wcHomeCtaNavBound) return;
-  win.__wcHomeCtaNavBound = true;
-  doc.addEventListener("click", function (event) {
-    const link = event.target && event.target.closest && event.target.closest(".home-cta-card[href]");
-    if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
-    const href = link.getAttribute("href");
-    if (!href || href.startsWith("http")) return;
-    event.preventDefault();
-    win.history.pushState({}, "", href);
-    win.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
-  }, true);
-})();
-</script>
-        """
-    )
 
 def render_match_card(
     match_number,
