@@ -627,6 +627,70 @@ def render_leaderboard_insight(insight: dict) -> None:
     )
 
 
+def render_analytics_guide(*, icon: str, title: str, summary: str, tips: list[str]) -> None:
+    tips_html = "".join(
+        f'<li class="analytics-guide-tip">{html.escape(tip)}</li>' for tip in tips if tip
+    )
+    _html(
+        f'<div class="analytics-guide">'
+        f'<div class="analytics-guide-icon">{html.escape(icon)}</div>'
+        f'<div class="analytics-guide-body">'
+        f'<div class="analytics-guide-title">{html.escape(title)}</div>'
+        f'<p class="analytics-guide-summary">{html.escape(summary)}</p>'
+        f'<ul class="analytics-guide-tips">{tips_html}</ul>'
+        f"</div></div>"
+    )
+
+
+def render_analytics_insight_chips(chips: list[tuple[str, str, str]]) -> None:
+    """Render metric chips: (value, label, tone) where tone = ok|bad|gold|muted|info."""
+    items = []
+    for value, label, tone in chips:
+        tone_class = f" analytics-chip--{tone}" if tone else ""
+        items.append(
+            f'<div class="analytics-chip{tone_class}">'
+            f'<span class="analytics-chip-value">{html.escape(str(value))}</span>'
+            f'<span class="analytics-chip-label">{html.escape(label)}</span>'
+            f"</div>"
+        )
+    _html(f'<div class="analytics-chip-row">{"".join(items)}</div>')
+
+
+def render_analytics_takeaway(text: str) -> None:
+    if not text:
+        return
+    _html(
+        f'<div class="analytics-takeaway">'
+        f'<span class="analytics-takeaway-label">💡 Kết luận nhanh</span>'
+        f'<p class="analytics-takeaway-text">{html.escape(text)}</p>'
+        f"</div>"
+    )
+
+
+def render_lb_main_tabs(labels: list[str]):
+    """Premium pill switcher for leaderboard page main tabs."""
+    _html('<div class="lb-main-tabs-marker" aria-hidden="true"></div>')
+    return st.tabs(labels)
+
+
+def render_analytics_section_header(*, eyebrow: str, title: str, subtitle: str) -> None:
+    _html(
+        f'<div class="analytics-section-head">'
+        f'<div class="analytics-section-head-glow" aria-hidden="true"></div>'
+        f'<div class="analytics-section-head-inner">'
+        f'<span class="analytics-section-eyebrow">{html.escape(eyebrow)}</span>'
+        f'<h2 class="analytics-section-title">{html.escape(title)}</h2>'
+        f'<p class="analytics-section-subtitle">{html.escape(subtitle)}</p>'
+        f"</div></div>"
+    )
+
+
+def render_analytics_sub_tabs(labels: list[str]):
+    """Segmented control for analytics sub-views."""
+    _html('<div class="lb-analytics-tabs-marker" aria-hidden="true"></div>')
+    return st.tabs(labels)
+
+
 def render_leaderboard_podium(entries: list[dict]) -> None:
     if not entries:
         return

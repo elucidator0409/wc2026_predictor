@@ -457,6 +457,35 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 
 ---
 
+## Sprint 7 — Analytics & Insights dashboard (2026-06-12)
+
+**Phạm vi:** Tab **Phân tích dữ liệu hành vi** trên trang Bảng xếp hạng — thay hit rate / maverick charts bằng 4 góc phân tích pandas + Plotly.
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 7a | `analytics_service.py` — pure pandas (scored preds, cumsum, crosstab, lead time, crowd consensus) | `analytics_service.py` | ✅ Done |
+| 7b | Tab 1 **Momentum** — cuộc đua điểm tích lũy, top 6 + user highlight | `pages/3_Bang_Xep_Hang.py` | ✅ Done |
+| 7c | Tab 2 **Accuracy** — confusion matrix 3×3 / user, default chọn user đăng nhập | `pages/3_Bang_Xep_Hang.py` | ✅ Done |
+| 7d | Tab 3 **Lead Time** — median bar + box plot expander | `pages/3_Bang_Xep_Hang.py` | ✅ Done |
+| 7e | Tab 4 **Risk Bias** — Wisdom of the Crowd (mode → Safe/Risky), 100% stacked bar | `analytics_service.py`, `pages/3_Bang_Xep_Hang.py` | ✅ Done |
+| 7f | Guide cards + insight chips + takeaway (mỗi tab) | `ui_components.py`, `pages/3_Bang_Xep_Hang.py` | ✅ Done |
+| 7g | Premium pill tabs (Leaderboard / Phân tích) + 4 sub-tabs segmented control | `ui_components.py`, `assets/style.css` | ✅ Done |
+| 7h | Unit tests analytics | `tests/test_analytics_service.py` | ✅ Done |
+
+**Kiến trúc:** `analytics_service.py` không import Streamlit; cache `@st.cache_data` trong page (`build_analytics_bundle`).
+
+**Risk Bias logic:** không có odds nhà cái → `favorite_pick` = mode `pred_outcome` theo `match_id`; pick trùng = Safe (xanh `#60a5fa`), ngược = Risky (cam `#fb923c`).
+
+**Điểm UI (ước lượng):**
+
+| Tiêu chí | Trước | Sau Sprint 7 |
+|----------|-------|--------------|
+| Information hierarchy (tab Phân tích) | 5.5 | **8.5** |
+| Non-expert readability | 4.0 | **8.0** |
+| Visual polish (tabs + section header) | 6.0 | **8.8** |
+
+---
+
 ## Tiếp theo
 
 - [x] Sprint 2.5 Admin audit + fix
@@ -467,6 +496,7 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 - [x] Lịch sử mobile/desktop + flagcdn
 - [x] Sprint 5 ma trận → Google Sheet
 - [x] Sprint 6 tra cứu đội hình
+- [x] Sprint 7 analytics dashboard (4 tabs + Risk Bias)
 
 ### Backlog P2
 
@@ -546,6 +576,7 @@ flowchart TB
 | 2026-06-11 | Deploy + docs | — | — | — | README, HUONG_DAN, production push |
 | 2026-06-11 | Lịch sử flags | — | — | — | flagcdn HTML table Win/mac |
 | 2026-06-11 | Admin matrix | — | — | — | Sprint 5 prediction_matrix sheet |
+| 2026-06-12 | Bảng XH — Sprint 7 analytics | **8.5** | 8.5 | 8.5 | 4 tabs: Momentum / Accuracy / Lead Time / Risk Bias; guide cards; premium tabs |
 
 ---
 
@@ -556,10 +587,10 @@ flowchart TB
 3. **Bảng đấu** — 12 groups visualize ✅ *(Sprint 3)*
 4. **Bracket KO** — two-sided ✅ *(Sprint 3d)*
 5. **Home** — CTA grid, rules
-6. **Bảng xếp hạng** — podium, charts, detail table
+6. **Bảng xếp hạng** — podium, charts, detail table ✅; tab **Phân tích dữ liệu hành vi**: Momentum / Accuracy / Lead Time / Risk Bias ✅ *(Sprint 7)*
 7. **Admin** — pagination, preview, kickoff ✅ + ma trận Sheet ✅ *(Sprint 5)*
 8. **Global** — sidebar overlay all viewports ✅, login ✅, menu FAB icon-only ✅
-9. **Docs** — README ✅, HUONG_DAN_DU_DOAN ✅, HUONG_DAN_TEST ✅, HUONG_DAN_ADMIN_SHEET (local)
+9. **Docs** — README ✅, HUONG_DAN_DU_DOAN ✅, HUONG_DAN_ADMIN_SHEET (local)
 
 ---
 

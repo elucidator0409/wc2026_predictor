@@ -65,7 +65,6 @@ flowchart TB
 | Lưu trữ | Google Sheets qua `gspread` |
 | Auth | SHA-256 mật khẩu + HMAC session (`uid` / `sig` trên URL) |
 | Deploy | Streamlit Cloud |
-| CI | GitHub Actions — `pytest` + kiểm tra sidebar overlay |
 
 ### Google Sheets (tabs)
 
@@ -104,7 +103,6 @@ leaderboard_service.py
 tests/                    # pytest (logic thuần, không cần Sheet thật)
 docs/
   HUONG_DAN_DU_DOAN.md    # Hướng dẫn người chơi
-  HUONG_DAN_TEST.md       # Test & smoke sau mỗi feature mới
 ```
 
 ---
@@ -146,8 +144,6 @@ PYTHONPATH=. pytest -q
 PYTHONPATH=. pytest tests/test_leaderboard_service.py -q   # ví dụ: một module
 ```
 
-**Sau mỗi feature mới** (trước push / sau deploy): xem checklist đầy đủ tại [docs/HUONG_DAN_TEST.md](docs/HUONG_DAN_TEST.md) — pytest → smoke local → CI → production.
-
 ---
 
 ## Người chơi (14 tài khoản)
@@ -187,7 +183,7 @@ Hướng dẫn chi tiết từng bước: [docs/HUONG_DAN_DU_DOAN.md](docs/HUONG
 
 | Sprint | Nội dung | Trạng thái |
 |--------|----------|------------|
-| 2.x | Sidebar, lịch sử, admin fixes, CI | Done |
+| 2.x | Sidebar, lịch sử, admin fixes | Done |
 | 3 | Bảng đấu, bracket knock-out | Done |
 | 4.5 | Deploy, README, flagcdn lịch sử | Done |
 | 5 | Ma trận dự đoán → tab `prediction_matrix` trên Google Sheet | Done |
@@ -200,7 +196,6 @@ Chi tiết: [docs/UI_SCORECARD.md](docs/UI_SCORECARD.md).
 ## Tài liệu khác
 
 - [Hướng dẫn sử dụng Dự đoán](docs/HUONG_DAN_DU_DOAN.md) — dành cho người chơi
-- [Hướng dẫn test sau feature mới](docs/HUONG_DAN_TEST.md) — developer / admin
 - [UI Scorecard](docs/UI_SCORECARD.md) — audit UI / roadmap nội bộ
 
 ---

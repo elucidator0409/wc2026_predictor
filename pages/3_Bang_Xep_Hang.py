@@ -2,14 +2,42 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from analytics_service import (
+    OUTCOME_LABELS,
+    OUTCOME_ORDER,
+    RISK_CHART_COLORS,
+    build_scored_predictions,
+    calculate_crowd_consensus,
+    format_accuracy_takeaway,
+    format_lead_time_takeaway,
+    format_momentum_takeaway,
+    format_risk_bias_takeaway,
+    get_confusion_matrix,
+    get_cumulative_scores,
+    get_prediction_lead_time,
+    get_user_risk_profile,
+    lead_time_medians,
+    lead_time_stats,
+    summarize_accuracy,
+    summarize_lead_time,
+    summarize_momentum,
+    summarize_risk_bias,
+    top_momentum_players,
+)
 from data_service import init_connection, normalize_predictions_df, prep_matches, read_sheet
 from leaderboard_service import build_leaderboard, latest_match_insight, podium_entries, top_rank_tie_count
 from team_flags import build_name_to_fifa, flag_emoji
-from scoring import _parse_stage, calculate_fines, calculate_points, format_pred_display, format_real_display, normalize_pred_outcome, outcome_to_analytics_key
+from scoring import _parse_stage, calculate_fines, calculate_points, format_pred_display, format_real_display, normalize_pred_outcome
 from ui_components import (
     _html,
     apply_global_styles,
     custom_loader,
+    render_analytics_guide,
+    render_analytics_insight_chips,
+    render_analytics_section_header,
+    render_analytics_sub_tabs,
+    render_analytics_takeaway,
+    render_lb_main_tabs,
     render_leaderboard_insight,
     render_leaderboard_podium,
     render_leaderboard_table,
@@ -44,6 +72,17 @@ def load_data_for_ranking():
     return users_df, preds_df, matches_df, teams_df
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def build_analytics_bundle(users_df, preds_df, matches_df, finished_matches_df):
+    scored_df = build_scored_predictions(preds_df, finished_matches_df, users_df)
+    cumulative_df = get_cumulative_scores(scored_df)
+    lead_df = get_prediction_lead_time(preds_df, matches_df, users_df)
+    stats = lead_time_stats(preds_df, lead_df)
+    consensus_df = calculate_crowd_consensus(preds_df)
+    risk_profile_df = get_user_risk_profile(preds_df, consensus_df, users_df)
+    return scored_df, cumulative_df, lead_df, stats, consensus_df, risk_profile_df
+
+
 with custom_loader("Đang thống kê điểm số và quỹ phạt..."):
     users_df, preds_df, matches_df, teams_df = load_data_for_ranking()
 
@@ -75,33 +114,13 @@ if not merged_df.empty:
     merged_df["fines"] = pd.to_numeric(merged_df["fines"], errors="coerce").fillna(0).astype(int)
     merged_df["user_id"] = merged_df["user_id"].astype(str)
 
-preds_df["outcome"] = preds_df["pred_outcome"].apply(
-    lambda x: outcome_to_analytics_key(x) if normalize_pred_outcome(x) else "Unknown"
-)
-consensus = preds_df.groupby(["match_id", "outcome"]).size().reset_index(name="picks")
-total_picks = preds_df.groupby("match_id").size().reset_index(name="total")
-consensus = pd.merge(consensus, total_picks, on="match_id")
-consensus["pick_ratio"] = consensus["picks"] / consensus["total"]
-consensus["is_maverick"] = consensus["pick_ratio"] <= 0.3
-preds_analytics = pd.merge(
-    preds_df, consensus[["match_id", "outcome", "is_maverick"]], on=["match_id", "outcome"], how="left"
-)
+tab1, tab2 = render_lb_main_tabs(["🏆 Leaderboard", "📊 Phân tích dữ liệu hành vi"])
 
-maverick_stats = (
-    preds_analytics.groupby("user_id", as_index=False)["is_maverick"].sum().rename(columns={"is_maverick": "Maverick Picks"})
-    if not preds_analytics.empty
-    else pd.DataFrame(columns=["user_id", "Maverick Picks"])
+chart_layout = dict(
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    font=dict(color="#cbd5e1", family="Inter", size=13),
 )
-if not merged_df.empty:
-    correct_outcome_stats = merged_df[merged_df["points"] >= 3].groupby("user_id", as_index=False).size().rename(
-        columns={"size": "Correct Outcomes"}
-    )
-    total_played_stats = merged_df.groupby("user_id", as_index=False).size().rename(columns={"size": "Total Played"})
-else:
-    correct_outcome_stats = pd.DataFrame(columns=["user_id", "Correct Outcomes"])
-    total_played_stats = pd.DataFrame(columns=["user_id", "Total Played"])
-
-tab1, tab2 = st.tabs(["🥇 Bảng điểm & quỹ phạt", "🧠 Phân tích phong cách"])
 
 with tab1:
     _html('<div class="lb-page-marker" aria-hidden="true"></div>')
@@ -235,54 +254,291 @@ with tab1:
                 st.dataframe(final_detail.sort_values(by=["Trận đấu", "Người chơi"]), width="stretch", hide_index=True)
 
 with tab2:
-        st.markdown('<div class="content-card-title">🧬 Hồ sơ dữ liệu người chơi</div>', unsafe_allow_html=True)
-        analytics_df = (
-            pd.merge(pd.merge(users_df, total_played_stats, on="user_id", how="left").fillna(0), correct_outcome_stats, on="user_id", how="left")
-            .fillna(0)
-        )
-        analytics_df = pd.merge(analytics_df, maverick_stats, on="user_id", how="left").fillna(0)
-        analytics_df["Hit Rate (%)"] = analytics_df.apply(
-            lambda r: (r["Correct Outcomes"] / r["Total Played"] * 100) if r["Total Played"] > 0 else 0,
-            axis=1,
-        ).round(1)
+    _html('<div class="lb-analytics-panel-marker" aria-hidden="true"></div>')
+    render_analytics_section_header(
+        eyebrow="Insights",
+        title="Phân tích dữ liệu hành vi",
+        subtitle="Who's climbing the ranks, how picks match results, and when people lock in predictions.",
+    )
+    scored_df, cumulative_df, lead_df, lead_stats, consensus_df, risk_profile_df = build_analytics_bundle(
+        users_df, preds_df, matches_df, finished_matches
+    )
+    outcome_caption = " · ".join(f"{code} = {OUTCOME_LABELS[code]}" for code in OUTCOME_ORDER)
+    t_mom, t_acc, t_lead, t_risk = render_analytics_sub_tabs(
+        ["🏁 Momentum", "🎯 Accuracy", "⏱️ Lead Time", "🎲 Risk Bias"]
+    )
 
-        col_chart1, col_chart2 = st.columns(2)
-        chart_layout = dict(
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#cbd5e1", family="Inter", size=13),
+    with t_mom:
+        render_analytics_guide(
+            icon="📈",
+            title="Cuộc đua điểm theo thời gian",
+            summary=(
+                "Mỗi đường là tổng điểm tích lũy của một người sau từng trận đã có kết quả. "
+                "Ai leo nhanh hơn = dự đoán đúng nhiều hơn trong các trận vừa qua."
+            ),
+            tips=[
+                "Đường đi ngang = không dự đoán trận đó (không cộng điểm, cũng không trừ trên biểu đồ).",
+                "Chỉ tính trận đã đá — tiền phạt bỏ lỡ trận không hiện ở đây.",
+                f"Hiện có {len(finished_matches)} trận đã có kết quả.",
+            ],
         )
-
-        with col_chart1:
-            st.markdown("**🎯 Tỉ lệ đúng kết quả (A / Hòa / B)**")
-            if analytics_df["Total Played"].sum() > 0:
-                fig1 = px.scatter(
-                    analytics_df[analytics_df["Total Played"] > 0],
-                    x="Hit Rate (%)",
-                    y="name",
-                    size="Correct Outcomes",
-                    color="Hit Rate (%)",
-                    color_continuous_scale=[[0, "#064e3b"], [0.5, "#10b981"], [1, "#fbbf24"]],
+        if cumulative_df.empty:
+            st.info("Chưa có dữ liệu để vẽ cuộc đua điểm.")
+        else:
+            mom_summary = summarize_momentum(cumulative_df, len(finished_matches))
+            render_analytics_insight_chips(
+                [
+                    (mom_summary["leader_name"], "Đang dẫn đầu", "gold"),
+                    (str(mom_summary["leader_points"]), "Điểm hiện tại", "ok"),
+                    (
+                        f"+{mom_summary['last_match_gain']}",
+                        f"Trận #{mom_summary['last_match_number']} · {mom_summary['last_match_winner']}",
+                        "info",
+                    ),
+                    (str(mom_summary["n_players"]), "Người có dự đoán", "muted"),
+                ]
+            )
+            plot_ids = top_momentum_players(
+                cumulative_df, limit=6, highlight_user_id=current_user_id
+            )
+            plot_df = cumulative_df[cumulative_df["user_id"].isin(plot_ids)].copy()
+            n_hidden = int(cumulative_df["user_id"].nunique()) - plot_df["name"].nunique()
+            if n_hidden > 0:
+                _html(
+                    f'<p class="analytics-tab-note">Biểu đồ hiển thị top 6 + bạn '
+                    f"(ẩn {n_hidden} người còn lại để dễ đọc).</p>"
                 )
-                fig1.update_layout(**chart_layout, yaxis_title="", xaxis_title="Tỉ lệ đúng kết quả (%)")
-                st.plotly_chart(fig1, width="stretch")
-            else:
-                st.info("Chưa đủ dữ liệu.")
+            fig = px.line(
+                plot_df,
+                x="kickoff_vn",
+                y="cumulative_points",
+                color="name",
+                markers=True,
+                color_discrete_sequence=_LB_CHART_COLORS,
+                labels={
+                    "kickoff_vn": "Thời gian trận",
+                    "cumulative_points": "Điểm tích lũy",
+                    "name": "Người chơi",
+                },
+            )
+            fig.update_layout(
+                **chart_layout,
+                xaxis=dict(gridcolor="rgba(255,255,255,0.06)", title=""),
+                yaxis=dict(gridcolor="rgba(255,255,255,0.06)", title="Điểm tích lũy", dtick=1),
+                margin=dict(l=0, r=16, t=8, b=0),
+                height=360,
+                legend=dict(title="", orientation="h", yanchor="bottom", y=-0.28, x=0),
+            )
+            st.plotly_chart(fig, width="stretch")
+            render_analytics_takeaway(format_momentum_takeaway(mom_summary))
 
-        with col_chart2:
-            st.markdown("**🐺 Top Maverick (đi ngược đám đông)**")
-            if analytics_df["Maverick Picks"].sum() > 0:
-                fig2 = px.bar(
-                    analytics_df.sort_values("Maverick Picks", ascending=True),
-                    x="Maverick Picks",
-                    y="name",
-                    text="Maverick Picks",
+    with t_acc:
+        render_analytics_guide(
+            icon="🎯",
+            title="Bạn hay dự đoán đúng kiểu gì?",
+            summary=(
+                "Bảng 3×3 so sánh dự đoán của bạn với kết quả thật. "
+                "Ô chéo (trùng hàng & cột) = đoán đúng; ô khác = đoán sai theo hướng nào."
+            ),
+            tips=[
+                f"Hàng = kết quả thật · Cột = bạn đã dự đoán. {outcome_caption}.",
+                "Màu vàng đậm = nhiều lần trùng — càng sáng càng hay gặp.",
+                "Chọn từng người ở dropdown để xem phong cách riêng.",
+            ],
+        )
+        if scored_df.empty:
+            st.info("Chưa có dữ liệu để vẽ bản đồ nhiệt.")
+        else:
+            user_options = (
+                scored_df[["user_id", "name"]]
+                .drop_duplicates()
+                .sort_values("name")
+                .reset_index(drop=True)
+            )
+            name_to_id = dict(zip(user_options["name"], user_options["user_id"]))
+            name_list = user_options["name"].tolist()
+            default_idx = 0
+            if current_user_id:
+                id_to_name = dict(zip(user_options["user_id"].astype(str), user_options["name"]))
+                default_name = id_to_name.get(str(current_user_id))
+                if default_name in name_list:
+                    default_idx = name_list.index(default_name)
+            col_pick, col_chart = st.columns([1, 1.35], gap="large")
+            with col_pick:
+                selected_name = st.selectbox("Chọn người chơi", name_list, index=default_idx)
+                matrix = get_confusion_matrix(scored_df, name_to_id[selected_name])
+                acc_summary = summarize_accuracy(matrix, selected_name)
+                if acc_summary.get("total", 0) == 0:
+                    st.info(f"{selected_name} chưa có dự đoán trên trận đã đá.")
+                else:
+                    render_analytics_insight_chips(
+                        [
+                            (f"{acc_summary['accuracy_pct']}%", "Tỉ lệ đúng", "ok" if acc_summary["accuracy_pct"] >= 50 else "bad"),
+                            (f"{acc_summary['hits']}/{acc_summary['total']}", "Đúng / Tổng", "gold"),
+                            (acc_summary["favorite_label"], "Hay chọn", "info"),
+                        ]
+                    )
+                    render_analytics_takeaway(format_accuracy_takeaway(acc_summary))
+            with col_chart:
+                if acc_summary.get("total", 0) > 0:
+                    axis_labels = [OUTCOME_LABELS[o] for o in OUTCOME_ORDER]
+                    fig = px.imshow(
+                        matrix.values,
+                        x=axis_labels,
+                        y=axis_labels,
+                        text_auto=True,
+                        aspect="equal",
+                        color_continuous_scale=[[0, "rgba(15,23,42,0.9)"], [0.5, "#3b82f6"], [1, "#fbbf24"]],
+                        labels=dict(x="Dự đoán", y="Thực tế", color="Số lần"),
+                    )
+                    fig.update_layout(
+                        **chart_layout,
+                        xaxis=dict(side="bottom", title="Dự đoán"),
+                        yaxis=dict(title="Thực tế"),
+                        margin=dict(l=0, r=16, t=8, b=0),
+                        height=340,
+                        coloraxis_showscale=True,
+                    )
+                    fig.update_traces(textfont=dict(size=16, color="#f8fafc"))
+                    st.plotly_chart(fig, width="stretch")
+
+    with t_lead:
+        render_analytics_guide(
+            icon="⏱️",
+            title="Bạn thường dự đoán sớm hay sát giờ đá?",
+            summary=(
+                "Lead time = số giờ bạn gửi dự đoán trước giờ bóng lăn (giờ Việt Nam). "
+                "Càng cao = càng sớm; gần 0 = sát giờ; âm = sau giờ đá (sửa muộn)."
+            ),
+            tips=[
+                f"{lead_stats['with_timestamp']}/{lead_stats['total_predictions']} dự đoán có timestamp ({lead_stats['coverage_pct']}%).",
+                "Biểu đồ cột = trung bình giờ trước giờ đá của mỗi người (dễ đọc hơn box plot).",
+                "Mở «Chi tiết phân phối» nếu muốn xem khoảng dao động từng người.",
+            ],
+        )
+        if lead_stats["total_predictions"] == 0:
+            st.info("Chưa có dữ liệu dự đoán để phân tích lead time.")
+        elif lead_stats["with_timestamp"] == 0:
+            st.warning("Không có dự đoán nào ghi timestamp — cần Lưu lại dự đoán để có dữ liệu.")
+        else:
+            if lead_stats["coverage_pct"] < 50:
+                st.warning(
+                    f"Chỉ {lead_stats['coverage_pct']}% dự đoán có timestamp — biểu đồ có thể không đại diện."
+                )
+            lead_summary = summarize_lead_time(lead_df, lead_stats)
+            median_df = lead_time_medians(lead_df)
+            if median_df.empty:
+                st.info("Chưa đủ dữ liệu timestamp hợp lệ để vẽ biểu đồ.")
+            else:
+                chips = [
+                    (f"{lead_summary.get('overall_median_hours', '—')}h", "TB cả nhóm", "gold"),
+                    (lead_summary.get("early_bird_name", "—"), "Dự sớm nhất", "ok"),
+                    (lead_summary.get("last_minute_name", "—"), "Gần giờ đá nhất", "info"),
+                ]
+                if lead_stats["late_count"] > 0:
+                    chips.append((str(lead_stats["late_count"]), "Sau giờ đá", "bad"))
+                render_analytics_insight_chips(chips)
+                bar_df = median_df.rename(
+                    columns={"name": "Người chơi", "median_hours": "Giờ trước giờ đá"}
+                )
+                fig = px.bar(
+                    bar_df.sort_values("Giờ trước giờ đá", ascending=True),
+                    y="Người chơi",
+                    x="Giờ trước giờ đá",
                     orientation="h",
-                    color="Maverick Picks",
-                    color_continuous_scale=[[0, "#7c2d12"], [0.5, "#ea580c"], [1, "#fbbf24"]],
+                    text="Giờ trước giờ đá",
+                    color="Người chơi",
+                    color_discrete_sequence=_LB_CHART_COLORS,
                 )
-                fig2.update_traces(textposition="outside")
-                fig2.update_layout(**chart_layout, yaxis_title="", xaxis_title="Số lần bẻ lái")
-                st.plotly_chart(fig2, width="stretch")
-            else:
-                st.info("Chưa đủ dữ liệu.")
+                fig.update_traces(texttemplate="%{x:.0f}h", textposition="outside")
+                fig.update_layout(
+                    **chart_layout,
+                    xaxis=dict(gridcolor="rgba(255,255,255,0.06)", title="Giờ trước giờ đá"),
+                    yaxis=dict(title=""),
+                    margin=dict(l=0, r=16, t=8, b=0),
+                    height=min(420, max(260, len(bar_df) * 28)),
+                    showlegend=False,
+                )
+                st.plotly_chart(fig, width="stretch")
+                render_analytics_takeaway(format_lead_time_takeaway(lead_summary))
+                with st.expander("📊 Chi tiết phân phối (box plot)"):
+                    plot_df = lead_df[lead_df["lead_hours"].notna()].copy()
+                    if plot_df.empty:
+                        st.caption("Không có dữ liệu hợp lệ.")
+                    else:
+                        box_fig = px.box(
+                            plot_df,
+                            x="name",
+                            y="lead_hours",
+                            color="name",
+                            color_discrete_sequence=_LB_CHART_COLORS,
+                            labels={"name": "Người chơi", "lead_hours": "Giờ trước giờ đá"},
+                        )
+                        box_fig.update_layout(
+                            **chart_layout,
+                            xaxis=dict(title=""),
+                            yaxis=dict(gridcolor="rgba(255,255,255,0.06)", title="Giờ trước giờ đá"),
+                            margin=dict(l=0, r=16, t=8, b=0),
+                            height=360,
+                            showlegend=False,
+                        )
+                        _html(
+                            '<p class="analytics-tab-note">Hộp = 50% dự đoán giữa; '
+                            "vạch giữa = trung vị; râu = min/max.</p>"
+                        )
+                        st.plotly_chart(box_fig, width="stretch")
+
+    with t_risk:
+        render_analytics_guide(
+            icon="🎲",
+            title="Cửa trên vs Cửa dưới (Wisdom of the Crowd)",
+            summary=(
+                "Không có tỷ lệ cược nhà cái — hệ thống lấy pick được nhiều người chọn nhất trong trận "
+                "làm Cửa trên (Safe). Ai chọn khác số đông được tính Cửa dưới (Risky)."
+            ),
+            tips=[
+                "Safe (xanh dương) = đi theo đám đông · Risky (cam) = ngược số đông.",
+                "Tính trên mọi dự đoán đã lưu, không chỉ trận đã đá.",
+                f"Hiện có {len(consensus_df)} trận có consensus từ nhóm.",
+            ],
+        )
+        if risk_profile_df.empty:
+            st.info("Chưa có đủ dữ liệu để phân tích khẩu vị rủi ro.")
+        else:
+            risk_summary = summarize_risk_bias(risk_profile_df, consensus_df)
+            chips = [
+                (str(risk_summary["n_matches_with_consensus"]), "Trận có consensus", "gold"),
+                (risk_summary.get("safest_name", "—"), "Hay đi theo đám đông", "ok"),
+                (risk_summary.get("riskiest_name", "—"), "Hay chọn ngược đám đông", "info"),
+            ]
+            render_analytics_insight_chips(chips)
+            color_map = {
+                "Safe": RISK_CHART_COLORS["Safe"],
+                "Risky": RISK_CHART_COLORS["Risky"],
+            }
+            fig = px.bar(
+                risk_profile_df.sort_values("name"),
+                x="name",
+                y="pct",
+                color="pick_type",
+                barmode="stack",
+                text="pct",
+                color_discrete_map=color_map,
+                category_orders={"pick_type": ["Safe", "Risky"]},
+                labels={
+                    "name": "Người chơi",
+                    "pct": "Tỷ lệ (%)",
+                    "pick_type": "Loại pick",
+                },
+            )
+            fig.update_traces(texttemplate="%{y:.0f}%", textposition="inside")
+            fig.update_layout(
+                **chart_layout,
+                xaxis=dict(title=""),
+                yaxis=dict(range=[0, 100], ticksuffix="%", title="Tỷ lệ (%)"),
+                margin=dict(l=0, r=16, t=8, b=0),
+                height=380,
+                legend=dict(title=""),
+            )
+            st.plotly_chart(fig, width="stretch")
+            render_analytics_takeaway(format_risk_bias_takeaway(risk_summary))
