@@ -757,6 +757,466 @@ def render_leaderboard_table(rows: list[dict], highlight_user_id: str | None = N
     _html(f'<div class="lb-table-marker" aria-hidden="true"></div><div class="lb-list">{head}{"".join(body)}</div>')
 
 
+def _pick_hero_king(lb: pd.DataFrame) -> pd.Series | None:
+    if lb.empty:
+        return None
+    return lb.sort_values(["points", "fines", "name"], ascending=[False, True, True]).iloc[0]
+
+
+def _pick_hero_sniper(lb: pd.DataFrame) -> pd.Series | None:
+    candidates = lb[lb["played"] > 0]
+    if candidates.empty:
+        return None
+    return candidates.sort_values(
+        ["hit_rate", "correct", "name"],
+        ascending=[False, False, True],
+    ).iloc[0]
+
+
+def _pick_hero_shame(lb: pd.DataFrame) -> pd.Series | None:
+    if lb.empty:
+        return None
+    return lb.sort_values(["fines", "points", "name"], ascending=[False, False, True]).iloc[0]
+
+
+def _lb_hero_cards_payload(lb: pd.DataFrame) -> list[dict]:
+    """Three hero highlights: king, sniper, shame."""
+    king = _pick_hero_king(lb)
+    sniper = _pick_hero_sniper(lb)
+    shame = _pick_hero_shame(lb)
+
+    cards = [
+        {
+            "icon": "👑",
+            "title": "Vua Dự Đoán",
+            "name": str(king["name"]) if king is not None else "—",
+            "metric": f"{int(king['points'])} điểm" if king is not None else "Chưa có dữ liệu",
+            "extra_class": "",
+        },
+        {
+            "icon": "🎯",
+            "title": "Tay Săn Bàn",
+            "name": str(sniper["name"]) if sniper is not None else "—",
+            "metric": (
+                f"{float(sniper['hit_rate']):.1f}% trúng"
+                if sniper is not None
+                else "Chưa có dữ liệu"
+            ),
+            "extra_class": "",
+        },
+    ]
+    if shame is not None:
+        cards.append(
+            {
+                "icon": "💸",
+                "title": "Thánh Cống Hiến",
+                "name": str(shame["name"]),
+                "metric": f"{int(shame['fines'])}k phạt",
+                "extra_class": "lb-hero-card--shame",
+            }
+        )
+    else:
+        cards.append(
+            {
+                "icon": "💸",
+                "title": "Thánh Cống Hiến",
+                "name": "—",
+                "metric": "Chưa có dữ liệu",
+                "extra_class": "lb-hero-card--shame",
+            }
+        )
+    return cards
+
+
+def _render_lb_hero_card_html(
+    *,
+    icon: str,
+    title: str,
+    name: str,
+    metric: str,
+    extra_class: str = "",
+) -> str:
+    cls = f"lb-hero-card {extra_class}".strip()
+    return (
+        f'<div class="{cls}">'
+        f'<div class="lb-hero-card-icon">{html.escape(icon)}</div>'
+        f'<div class="lb-hero-card-title">{html.escape(title)}</div>'
+        f'<div class="lb-hero-card-name">{html.escape(name)}</div>'
+        f'<div class="lb-hero-card-metric">{html.escape(metric)}</div>'
+        f"</div>"
+    )
+
+
+def _render_lb_hero_cards_desktop_html(lb: pd.DataFrame) -> str:
+    cards = "".join(
+        _render_lb_hero_card_html(**card) for card in _lb_hero_cards_payload(lb)
+    )
+    return (
+        '<div class="lb-hero-desktop-marker" aria-hidden="true"></div>'
+        f'<div class="lb-hero-grid lb-hero-grid--desktop">{cards}</div>'
+    )
+
+
+def _render_lb_hero_cards_mobile_compact_html(lb: pd.DataFrame) -> str:
+    chips = []
+    for card in _lb_hero_cards_payload(lb):
+        shame_cls = " lb-hero-chip--shame" if "shame" in card["extra_class"] else ""
+        chips.append(
+            f'<div class="lb-hero-chip{shame_cls}">'
+            f'<span class="lb-hero-chip-icon">{html.escape(card["icon"])}</span>'
+            f'<span class="lb-hero-chip-title">{html.escape(card["title"])}</span>'
+            f'<span class="lb-hero-chip-name">{html.escape(card["name"])}</span>'
+            f'<span class="lb-hero-chip-metric">{html.escape(card["metric"])}</span>'
+            f"</div>"
+        )
+    return (
+        '<div class="lb-hero-mobile-compact-marker" aria-hidden="true"></div>'
+        f'<div class="lb-hero-strip">{"".join(chips)}</div>'
+    )
+
+
+def render_lb_hero_cards(lb: pd.DataFrame) -> None:
+    """Desktop hero cards — full size above leaderboard."""
+    if lb.empty:
+        return
+    _html(_render_lb_hero_cards_desktop_html(lb))
+
+
+def render_lb_hero_cards_mobile_compact(lb: pd.DataFrame) -> None:
+    """Mobile-only compact hero strip below leaderboard table."""
+    if lb.empty:
+        return
+    _html(_render_lb_hero_cards_mobile_compact_html(lb))
+
+
+def _lb_player_name(row: pd.Series, highlight: str | None) -> str:
+    name = str(row["name"])
+    if highlight and str(row["user_id"]) == highlight:
+        return f"{name} (Bạn)"
+    return name
+
+
+def _lb_accuracy(row: pd.Series) -> str:
+    played = int(row["played"])
+    if played <= 0:
+        return "—"
+    return f"{int(row['correct'])}/{played}"
+
+
+_FORM_EMOJI = {"W": "✅", "L": "❌", "D": "➖"}
+
+
+def _lb_rank_delta_html(delta: int) -> str:
+    if delta > 0:
+        return (
+            f'<span class="lb-rank-delta lb-rank-delta--up" title="Lên {delta} hạng">'
+            f'<span class="lb-rank-delta-icon" aria-hidden="true">↑</span>'
+            f'<span class="lb-rank-delta-val">{delta}</span>'
+            f"</span>"
+        )
+    if delta < 0:
+        steps = abs(delta)
+        return (
+            f'<span class="lb-rank-delta lb-rank-delta--down" title="Tụt {steps} hạng">'
+            f'<span class="lb-rank-delta-icon" aria-hidden="true">↓</span>'
+            f'<span class="lb-rank-delta-val">{steps}</span>'
+            f"</span>"
+        )
+    return '<span class="lb-rank-delta lb-rank-delta--flat" title="Giữ hạng" aria-label="Giữ hạng">—</span>'
+
+
+def _lb_rank_cell_html(rank_label: str, delta: int, *, inline: bool = False) -> str:
+    label = html.escape(str(rank_label))
+    layout = " lb-rank-cell--inline" if inline else ""
+    return (
+        f'<span class="lb-rank-cell{layout}">'
+        f'<span class="lb-rank-label">{label}</span>'
+        f"{_lb_rank_delta_html(delta)}"
+        f"</span>"
+    )
+
+
+def _render_leaderboard_desktop_html(
+    lb: pd.DataFrame,
+    highlight_user_id: str | None = None,
+    sidebar_bundle: dict | None = None,
+) -> None:
+    """Full HTML leaderboard for desktop — styled rank pills + optional sidebar."""
+    highlight = str(highlight_user_id) if highlight_user_id else None
+    body = []
+    for _, row in lb.iterrows():
+        uid = str(row["user_id"])
+        is_me = highlight and uid == highlight
+        row_class = "lb-row lb-row--me" if is_me else "lb-row"
+        rank = _lb_rank_cell_html(row["rank_label"], int(row.get("rank_movement_delta", 0)), inline=True)
+        name = html.escape(str(row["name"]))
+        me_badge = '<span class="lb-you">Bạn</span>' if is_me else ""
+        form = html.escape(str(row.get("recent_form_display", "")))
+        phat = html.escape(str(row.get("phat_vnd", "")))
+        fines = int(row["fines"])
+        fine_class = "lb-cell-fine lb-cell-fine--zero" if fines == 0 else "lb-cell-fine lb-cell-fine--due"
+        hit = f"{float(row['hit_rate']):.1f}%"
+        played = int(row["played"])
+        correct = int(row["correct"])
+        accuracy = f"{correct}/{played}" if played else "—"
+        missed = int(row["missed"])
+        body.append(
+            f'<div class="{row_class}">'
+            f'<span class="lb-cell-rank">{rank}</span>'
+            f'<span class="lb-cell-name">{name}{me_badge}</span>'
+            f'<span class="lb-cell-pts">{int(row["points"])}</span>'
+            f'<div class="lb-stats-band">'
+            f'<span class="lb-cell-form lb-stat-col">{form}</span>'
+            f'<span class="{fine_class} lb-stat-col">{phat}</span>'
+            f'<span class="lb-cell-rate lb-stat-col">{html.escape(hit)}</span>'
+            f'<span class="lb-cell-acc lb-stat-col">{html.escape(accuracy)}</span>'
+            f'<span class="lb-cell-miss lb-stat-col">{missed if missed else "—"}</span>'
+            f"</div>"
+            f"</div>"
+        )
+
+    head = (
+        '<div class="lb-list-head">'
+        '<span class="lb-col-rank">Hạng</span>'
+        '<span class="lb-col-name">Người chơi</span>'
+        '<span class="lb-col-pts">Điểm</span>'
+        '<div class="lb-stats-band lb-stats-band--head">'
+        '<span class="lb-col-form lb-stat-col">Phong độ</span>'
+        '<span class="lb-col-fine lb-stat-col">Phạt</span>'
+        '<span class="lb-col-rate lb-stat-col">Tỉ lệ</span>'
+        '<span class="lb-col-acc lb-stat-col">Đúng</span>'
+        '<span class="lb-col-miss lb-stat-col">Bỏ lỡ</span>'
+        "</div>"
+        "</div>"
+    )
+    _html(
+        '<div class="lb-dataframe-desktop-marker" aria-hidden="true"></div>'
+        '<div class="lb-desktop-layout-marker" aria-hidden="true"></div>'
+        '<div class="lb-desktop-layout">'
+        f'<div class="lb-desktop-main">'
+        f'<div class="lb-list lb-list--gamified-desktop">{head}{"".join(body)}</div>'
+        '</div>'
+        f'<aside class="lb-desktop-sidebar">{_render_lb_sidebar_html(sidebar_bundle)}</aside>'
+        '</div>'
+    )
+
+
+def _render_lb_sidebar_html(sidebar_bundle: dict | None) -> str:
+    if not sidebar_bundle:
+        return (
+            f'{_render_lb_activity_stream_html([])}'
+            f'{_render_lb_streak_cards_html({})}'
+        )
+    activity = sidebar_bundle.get("activity") or []
+    streaks = sidebar_bundle.get("streaks") or {}
+    return (
+        f'{_render_lb_activity_stream_html(activity)}'
+        f'{_render_lb_streak_cards_html(streaks)}'
+    )
+
+
+def _render_lb_activity_stream_html(events: list) -> str:
+    title = "Hoạt động mới nhất"
+    if not events:
+        items = (
+            '<div class="lb-activity-item lb-activity-item--empty">'
+            "Chưa có hoạt động"
+            "</div>"
+        )
+    else:
+        parts = []
+        for ev in events:
+            tone = html.escape(str(ev.get("tone", "good")))
+            icon = html.escape(str(ev.get("icon", "•")))
+            text = html.escape(str(ev.get("text", "")))
+            parts.append(
+                f'<div class="lb-activity-item lb-activity-item--{tone}">'
+                f'<span class="lb-activity-icon">{icon}</span>'
+                f'<span class="lb-activity-text">{text}</span>'
+                f"</div>"
+            )
+        items = "".join(parts)
+    return (
+        '<section class="lb-sidebar-section lb-activity-section">'
+        f'<h3 class="lb-sidebar-title">{title}</h3>'
+        f'<div class="lb-activity-feed">{items}</div>'
+        "</section>"
+    )
+
+
+def _render_lb_streak_cards_html(streaks: dict, *, mobile: bool = False) -> str:
+    win = streaks.get("win_streak")
+    lose = streaks.get("lose_streak")
+    upset = streaks.get("upset_hero")
+
+    def _history(entry: dict | None) -> str:
+        if not entry:
+            return ""
+        if mobile:
+            return entry.get("history_stack_html") or entry.get("history_html", "")
+        return entry.get("history_html", "")
+
+    def _card(
+        icon: str,
+        title: str,
+        name: str,
+        metric: str,
+        extra: str = "",
+        history_html: str = "",
+    ) -> str:
+        cls = f"lb-streak-card {extra}".strip()
+        history_block = ""
+        if history_html:
+            if mobile and "lb-streak-card-history--stack" in history_html:
+                history_block = history_html
+            else:
+                history_block = f'<div class="lb-streak-card-history">{history_html}</div>'
+        return (
+            f'<div class="{cls}">'
+            f'<div class="lb-streak-card-icon">{html.escape(icon)}</div>'
+            f'<div class="lb-streak-card-title">{html.escape(title)}</div>'
+            f'<div class="lb-streak-card-name">{html.escape(name)}</div>'
+            f'<div class="lb-streak-card-metric">{html.escape(metric)}</div>'
+            f"{history_block}"
+            f"</div>"
+        )
+
+    cards = []
+    if win:
+        cards.append(
+            _card(
+                "🔥",
+                "Chuỗi Thắng",
+                f"{win.get('user_id', '')} {win.get('name', '')}".strip(),
+                f"{win.get('streak', 0)} trận liên tiếp",
+                history_html=_history(win),
+            )
+        )
+    else:
+        cards.append(_card("🔥", "Chuỗi Thắng", "—", "Chưa có kỷ lục", "lb-streak-card--empty"))
+
+    if lose:
+        cards.append(
+            _card(
+                "💀",
+                "Chuỗi Thua",
+                f"{lose.get('user_id', '')} {lose.get('name', '')}".strip(),
+                f"{lose.get('streak', 0)} trận liên tiếp",
+                extra="lb-streak-card--shame",
+                history_html=_history(lose),
+            )
+        )
+    else:
+        cards.append(
+            _card("💀", "Chuỗi Thua", "—", "Chưa có kỷ lục", "lb-streak-card--empty lb-streak-card--shame")
+        )
+
+    if upset:
+        cards.append(
+            _card(
+                "🎯",
+                "Vua Bịp",
+                f"{upset.get('user_id', '')} {upset.get('name', '')}".strip(),
+                upset.get("detail", upset.get("match_label", "")),
+            )
+        )
+    else:
+        cards.append(_card("🎯", "Vua Bịp", "—", "Chưa có kỷ lục", "lb-streak-card--empty"))
+
+    return (
+        '<section class="lb-sidebar-section lb-streak-section">'
+        f'{"".join(cards)}'
+        "</section>"
+    )
+
+
+def render_lb_activity_stream(events: list) -> None:
+    """Desktop sidebar activity feed."""
+    _html(_render_lb_activity_stream_html(events))
+
+
+def render_lb_streak_cards(streaks: dict) -> None:
+    """Desktop sidebar streak milestone cards."""
+    _html(_render_lb_streak_cards_html(streaks))
+
+
+def render_lb_streak_cards_mobile(streaks: dict) -> None:
+    """Mobile top streak cards — replaces hero cards on small screens."""
+    body = _render_lb_streak_cards_html(streaks or {}, mobile=True)
+    _html(
+        '<div class="lb-streak-mobile-marker" aria-hidden="true"></div>'
+        f'<div class="lb-streak-mobile-top">{body}</div>'
+    )
+
+
+def _lb_form_html(codes) -> str:
+    if not isinstance(codes, list):
+        return ""
+    return " ".join(_FORM_EMOJI.get(c, "") for c in codes if c)
+
+
+def _render_leaderboard_mobile_html(
+    lb: pd.DataFrame,
+    highlight_user_id: str | None = None,
+) -> None:
+    """Compact HTML leaderboard for mobile — full CSS control over column spacing."""
+    highlight = str(highlight_user_id) if highlight_user_id else None
+
+    body = []
+    for _, row in lb.iterrows():
+        uid = str(row["user_id"])
+        is_me = highlight and uid == highlight
+        row_class = "lb-row lb-row--me" if is_me else "lb-row"
+        rank = _lb_rank_cell_html(row["rank_label"], int(row.get("rank_movement_delta", 0)))
+        name = html.escape(str(row["name"]))
+        me_badge = '<span class="lb-you">Bạn</span>' if is_me else ""
+        form = html.escape(_lb_form_html(row.get("recent_form", [])))
+        fines = int(row["fines"])
+        fine_class = "lb-cell-fine lb-cell-fine--zero" if fines == 0 else "lb-cell-fine lb-cell-fine--due"
+        played = int(row["played"])
+        correct = int(row["correct"])
+        accuracy = f"{correct}/{played}" if played else "—"
+        body.append(
+            f'<div class="{row_class}">'
+            f'<span class="lb-cell-rank">{rank}</span>'
+            f'<span class="lb-cell-name">{name}{me_badge}</span>'
+            f'<span class="lb-cell-pts">{int(row["points"])}</span>'
+            f'<span class="lb-cell-form">{form}</span>'
+            f'<span class="{fine_class}">{fines}k</span>'
+            f'<span class="lb-cell-acc">{html.escape(accuracy)}</span>'
+            f"</div>"
+        )
+
+    head = (
+        '<div class="lb-list-head">'
+        '<span class="lb-col-rank">Hạng</span>'
+        '<span class="lb-col-name">Người chơi</span>'
+        '<span class="lb-col-pts">Điểm</span>'
+        '<span class="lb-col-form">Phong độ</span>'
+        '<span class="lb-col-fine lb-col-fine--gap">Phạt</span>'
+        '<span class="lb-col-acc">Đúng</span>'
+        "</div>"
+    )
+    _html(
+        '<div class="lb-dataframe-mobile-marker" aria-hidden="true"></div>'
+        f'<div class="lb-list lb-list--gamified-mobile">{head}{"".join(body)}</div>'
+    )
+
+
+def render_leaderboard_dataframe(
+    lb: pd.DataFrame,
+    highlight_user_id: str | None = None,
+    sidebar_bundle: dict | None = None,
+) -> None:
+    """HTML leaderboard: desktop full columns + sidebar, mobile compact."""
+    if lb.empty:
+        st.info("Chưa có dữ liệu bảng xếp hạng.")
+        return
+
+    _render_leaderboard_desktop_html(lb, highlight_user_id, sidebar_bundle=sidebar_bundle)
+    _render_leaderboard_mobile_html(lb, highlight_user_id)
+
+
 def render_squad_team_header(
     team_name: str,
     fifa_code: str,

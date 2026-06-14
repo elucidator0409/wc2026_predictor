@@ -3,6 +3,8 @@ import pandas as pd
 from leaderboard_service import (
     FINE_MISSED_MATCH,
     build_leaderboard,
+    build_leaderboard_with_dynamics,
+    format_fines_vnd,
     latest_match_insight,
     podium_entries,
     score_finished_match,
@@ -155,3 +157,160 @@ def test_build_leaderboard_late_joiner_skips_old_missed():
     assert bob["fines"] == 10
     assert bob["played"] == 1
     assert bob["total_finished"] == 1
+
+
+def _vn_ts(date_str: str) -> pd.Timestamp:
+    return pd.Timestamp(date_str).tz_localize("Asia/Ho_Chi_Minh")
+
+
+def test_rank_movement_calendar_day():
+    """Bob climbs from rank 2 to rank 1 between day 1 and day 2."""
+    users_df = pd.DataFrame(
+        [
+            {"user_id": "1", "name": "Alice"},
+            {"user_id": "2", "name": "Bob"},
+            {"user_id": "3", "name": "Carol"},
+        ]
+    )
+    finished = pd.DataFrame(
+        [
+            {
+                "match_id": "1",
+                "match_number": 1,
+                "real_score_a": 1,
+                "real_score_b": 0,
+                "stage_id": 1,
+                "kickoff_vn": _vn_ts("2026-06-11 20:00"),
+            },
+            {
+                "match_id": "2",
+                "match_number": 2,
+                "real_score_a": 1,
+                "real_score_b": 0,
+                "stage_id": 1,
+                "kickoff_vn": _vn_ts("2026-06-12 20:00"),
+            },
+        ]
+    )
+    preds_df = pd.DataFrame(
+        [
+            {"user_id": "1", "match_id": "1", "pred_outcome": "A", "pred_advanced_team_id": None},
+            {"user_id": "2", "match_id": "1", "pred_outcome": "B", "pred_advanced_team_id": None},
+            {"user_id": "1", "match_id": "2", "pred_outcome": "B", "pred_advanced_team_id": None},
+            {"user_id": "2", "match_id": "2", "pred_outcome": "A", "pred_advanced_team_id": None},
+            {"user_id": "3", "match_id": "2", "pred_outcome": "A", "pred_advanced_team_id": None},
+        ]
+    )
+
+    lb = build_leaderboard_with_dynamics(users_df, preds_df, finished)
+    bob = lb.loc[lb["name"] == "Bob"].iloc[0]
+
+    assert "▲" in bob["rank_movement"]
+    assert bob["rank"] == 1
+
+
+def test_recent_form_last_five():
+    users_df = pd.DataFrame([{"user_id": "1", "name": "Alice"}])
+    finished = pd.DataFrame(
+        [
+            {
+                "match_id": str(i),
+                "match_number": i,
+                "real_score_a": 1,
+                "real_score_b": 0,
+                "stage_id": 1,
+                "kickoff_vn": _vn_ts(f"2026-06-{10 + i} 20:00"),
+            }
+            for i in range(1, 7)
+        ]
+    )
+    outcomes = ["A", "B", "A", "A", "B", "A"]
+    preds_df = pd.DataFrame(
+        [
+            {
+                "user_id": "1",
+                "match_id": str(i),
+                "pred_outcome": outcomes[i - 1],
+                "pred_advanced_team_id": None,
+            }
+            for i in range(1, 7)
+        ]
+    )
+
+    lb = build_leaderboard_with_dynamics(users_df, preds_df, finished)
+    alice = lb.loc[lb["name"] == "Alice"].iloc[0]
+
+    assert alice["recent_form"] == ["L", "W", "W", "L", "W"]
+    assert alice["recent_form_display"] == "❌✅✅❌✅"
+
+
+def test_recent_form_missed_shows_dash():
+    users_df = pd.DataFrame([{"user_id": "1", "name": "Alice"}])
+    finished = pd.DataFrame(
+        [
+            {
+                "match_id": "1",
+                "match_number": 1,
+                "real_score_a": 1,
+                "real_score_b": 0,
+                "stage_id": 1,
+                "kickoff_vn": _vn_ts("2026-06-11 20:00"),
+            }
+        ]
+    )
+    preds_df = pd.DataFrame(columns=["user_id", "match_id", "pred_outcome", "pred_advanced_team_id"])
+
+    lb = build_leaderboard_with_dynamics(users_df, preds_df, finished)
+    alice = lb.loc[lb["name"] == "Alice"].iloc[0]
+
+    assert alice["recent_form"] == ["D"]
+    assert alice["recent_form_display"] == "➖"
+
+
+def test_late_joiner_dynamics_rank_movement():
+    t1 = _vn_ts("2026-06-11 20:00")
+    t2 = _vn_ts("2026-06-12 20:00")
+
+    users_df = pd.DataFrame(
+        [
+            {"user_id": "1", "name": "Alice", "active_from_kickoff": pd.NaT},
+            {"user_id": "2", "name": "Bob", "active_from_kickoff": t2},
+        ]
+    )
+    finished = pd.DataFrame(
+        [
+            {
+                "match_id": "1",
+                "match_number": 1,
+                "real_score_a": 1,
+                "real_score_b": 0,
+                "stage_id": 1,
+                "kickoff_vn": t1,
+            },
+            {
+                "match_id": "2",
+                "match_number": 2,
+                "real_score_a": 1,
+                "real_score_b": 0,
+                "stage_id": 1,
+                "kickoff_vn": t2,
+            },
+        ]
+    )
+    preds_df = pd.DataFrame(
+        [
+            {"user_id": "1", "match_id": "2", "pred_outcome": "A", "pred_advanced_team_id": None},
+            {"user_id": "2", "match_id": "2", "pred_outcome": "A", "pred_advanced_team_id": None},
+        ]
+    )
+
+    lb = build_leaderboard_with_dynamics(users_df, preds_df, finished)
+    bob = lb.loc[lb["name"] == "Bob"].iloc[0]
+
+    assert bob["rank_movement"] == "➖"
+    assert bob["missed"] == 0
+
+
+def test_format_fines_vnd():
+    assert format_fines_vnd(150) == "150.000 VNĐ"
+    assert format_fines_vnd(0) == "0 VNĐ"

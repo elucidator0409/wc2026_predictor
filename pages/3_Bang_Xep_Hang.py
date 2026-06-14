@@ -25,7 +25,13 @@ from analytics_service import (
     top_momentum_players,
 )
 from data_service import init_connection, normalize_users_df, prep_matches, read_predictions_sheet, read_sheet
-from leaderboard_service import build_leaderboard, latest_match_insight, podium_entries, top_rank_tie_count
+from leaderboard_gamification_service import build_lb_desktop_sidebar_bundle
+from leaderboard_service import (
+    build_leaderboard_with_dynamics,
+    latest_match_insight,
+    podium_entries,
+    top_rank_tie_count,
+)
 from team_flags import build_name_to_fifa, flag_emoji
 from scoring import _parse_stage, calculate_fines, calculate_points, format_pred_display, format_real_display, normalize_pred_outcome
 from ui_components import (
@@ -40,7 +46,10 @@ from ui_components import (
     render_lb_main_tabs,
     render_leaderboard_insight,
     render_leaderboard_podium,
-    render_leaderboard_table,
+    render_lb_hero_cards,
+    render_lb_hero_cards_mobile_compact,
+    render_lb_streak_cards_mobile,
+    render_leaderboard_dataframe,
     render_page_header,
     render_sidebar,
     render_stat_cards,
@@ -69,6 +78,27 @@ def load_data_for_ranking():
     teams_df.replace("", pd.NA, inplace=True)
     matches_df = prep_matches(matches_raw, teams_df)
     return users_df, preds_df, matches_df, teams_df
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_lb_sidebar_bundle(
+    users_df,
+    preds_df,
+    matches_df,
+    finished_matches,
+    leaderboard,
+    name_to_fifa,
+    id_to_name,
+):
+    return build_lb_desktop_sidebar_bundle(
+        users_df,
+        preds_df,
+        matches_df,
+        finished_matches,
+        leaderboard,
+        name_to_fifa=name_to_fifa,
+        id_to_name=id_to_name,
+    )
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -123,7 +153,7 @@ chart_layout = dict(
 
 with tab1:
     _html('<div class="lb-page-marker" aria-hidden="true"></div>')
-    leaderboard = build_leaderboard(users_df, preds_df, finished_matches)
+    leaderboard = build_leaderboard_with_dynamics(users_df, preds_df, finished_matches)
     insight = latest_match_insight(finished_matches, preds_df, users_df)
     if insight:
         insight["top_tie_count"] = top_rank_tie_count(leaderboard)
@@ -133,55 +163,31 @@ with tab1:
     if entries and top_rank_tie_count(leaderboard) <= 3:
         render_leaderboard_podium(entries)
 
-    total_pts = int(leaderboard["points"].sum())
     total_fines = int(leaderboard["fines"].sum())
-    avg_hit = (
-        round(leaderboard.loc[leaderboard["played"] > 0, "hit_rate"].mean(), 1)
-        if leaderboard["played"].sum() > 0
-        else 0
-    )
     render_stat_cards(
-        [
-            (str(len(leaderboard)), "Người chơi", "👥"),
-            (str(total_pts), "Tổng điểm", "⭐"),
-            (f"{total_fines}k", "Tổng quỹ phạt", "💸"),
-            (str(len(finished_matches)), "Trận đã đá", "⚽"),
-            (f"{avg_hit}%", "TB tỉ lệ đúng", "🎯"),
-        ],
+        [(f"{total_fines}k", "Tổng quỹ phạt", "💸")],
         row_class="stats-row--lb",
     )
 
-    table_rows = leaderboard.to_dict("records")
-    chart_df = leaderboard[["name", "points"]].rename(columns={"name": "Người chơi", "points": "Tổng điểm"})
+    lb_sidebar_snapshot = leaderboard[["user_id", "name", "rank", "points"]].copy()
+    sidebar_bundle = load_lb_sidebar_bundle(
+        users_df,
+        preds_df,
+        matches_df,
+        finished_matches,
+        lb_sidebar_snapshot,
+        name_to_fifa,
+        id_to_name,
+    )
 
-    col_table, col_chart = st.columns([1.25, 1])
-    with col_table:
-        render_leaderboard_table(table_rows, highlight_user_id=current_user_id)
-    with col_chart:
-        if not chart_df.empty and chart_df["Tổng điểm"].sum() > 0:
-            fig = px.bar(
-                chart_df.sort_values("Tổng điểm", ascending=True),
-                y="Người chơi",
-                x="Tổng điểm",
-                orientation="h",
-                text="Tổng điểm",
-                color="Người chơi",
-                color_discrete_sequence=_LB_CHART_COLORS,
-            )
-            fig.update_traces(textposition="outside")
-            fig.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#cbd5e1", family="Inter", size=13),
-                xaxis=dict(gridcolor="rgba(255,255,255,0.06)", title="Điểm", dtick=1),
-                yaxis=dict(title=""),
-                margin=dict(l=0, r=16, t=8, b=0),
-                height=min(360, max(220, len(chart_df) * 24)),
-                showlegend=False,
-            )
-            st.plotly_chart(fig, width="stretch")
-        else:
-            st.info("Chưa có dữ liệu biểu đồ.")
+    render_lb_streak_cards_mobile(sidebar_bundle.get("streaks"))
+    render_lb_hero_cards(leaderboard)
+    render_leaderboard_dataframe(
+        leaderboard,
+        highlight_user_id=current_user_id,
+        sidebar_bundle=sidebar_bundle,
+    )
+    render_lb_hero_cards_mobile_compact(leaderboard)
 
     with st.expander("🔍 Chi tiết chấm điểm & tiền phạt từng trận"):
             if merged_df.empty:

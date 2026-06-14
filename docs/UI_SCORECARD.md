@@ -486,6 +486,60 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 
 ---
 
+## Sprint 8 — Late joiner users + data integrity (2026-06-14)
+
+**Phạm vi:** User mới không bị tính bỏ lỡ trận cũ; admin thêm người chơi; đọc/lưu/repair tab `predictions` an toàn. Commit `69d9560` → `main`.
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 8a | `active_from_kickoff` + `user_service` eligibility | `user_service.py`, `data_service.py` | ✅ Done |
+| 8b | BXH + insight lọc trận eligible per user | `leaderboard_service.py` | ✅ Done |
+| 8c | Analytics Momentum/Lead Time lọc theo join date | `analytics_service.py` | ✅ Done |
+| 8d | `read_predictions_sheet` + `upsert_user_predictions` + `repair_predictions_sheet_header` | `data_service.py` | ✅ Done |
+| 8e | Tab admin **👤 Thêm người chơi** + repair predictions UI | `pages/2_Lich_Thi_Dau.py` | ✅ Done |
+| 8f | Dự đoán / BXH dùng API đọc-lưu mới | `pages/1_Du_Doan.py`, `pages/3_Bang_Xep_Hang.py` | ✅ Done |
+| 8g | Script audit/repair + docs migration | `scripts/repair_predictions_sheet.py`, `data/SHEETS_PREDICTIONS_MIGRATION.md` | ✅ Done |
+| 8h | Tests late joiner + predictions sheet | `tests/test_user_service.py`, `tests/test_predictions_sheet.py`, `tests/test_leaderboard_service.py` | ✅ Done |
+
+**Quy tắc late joiner:**
+- User cũ (`active_from_kickoff` trống) → full history như trước
+- User mới → tính điểm/phạt/bỏ lỡ từ **trận pending đầu tiên** khi admin thêm
+
+**Sự cố đã xử lý trong sprint:**
+
+| Vấn đề | Root cause | Fix |
+|--------|------------|-----|
+| Crash tab Thêm user | Gán timestamp vào cột string Sheets | `normalize_users_df` → cột `object` |
+| Crash toàn site `KeyError: user_id` | Header `predictions` lệch | `read_predictions_sheet` positional fallback |
+| Dữ liệu predictions mất/lệch | `ensure_predictions_header` ghi đè row 1 | Xóa; thay `repair_*` (insert header, không xóa data) |
+| BXH crash user mới (edge) | So sánh kickoff naive vs tz-aware | `_to_vn_timestamp` trong `user_service` |
+
+### Audit Admin — tab Thêm người chơi (ước lượng)
+
+| Tiêu chí | Desktop | Tablet | Mobile | Ghi chú |
+|----------|---------|--------|--------|---------|
+| Visual design | 7.5 | 7.5 | 7.0 | Reuse admin tab pattern; chưa polish riêng |
+| Form clarity | **8.5** | 8.0 | 8.0 | Preview trận bắt đầu + gợi ý U## rõ |
+| Interaction safety | **8.5** | 8.5 | 8.0 | Validate trùng id/tên; repair không ghi đè data |
+| Data ops UX | **8.0** | 8.0 | 7.5 | Hiển thị số dự đoán đọc được + link Version history |
+| **Tổng (tab mới)** | **8.1** | **8.0** | **7.6** | Chức năng ổn; UI polish P2 |
+
+### Pre-push checklist (2026-06-14 — Sprint 8)
+
+| Gate | Status | Ghi chú |
+|------|--------|---------|
+| Unit tests feature (36) | ✅ | user + predictions sheet + leaderboard + analytics |
+| Full suite | 93/94 | `test_sidebar_overlay` fail có sẵn (boot v8 `resolveHostWindow`) |
+| Breaking changes | ✅ | User cũ backward compatible (cột `active_from_kickoff` trống) |
+| Secrets in diff | ✅ | Không commit `.streamlit/secrets.toml` |
+| Google Sheets migrate | ⚠️ Manual | Thêm cột `active_from_kickoff` tab `users`; verify tab `predictions` |
+| Data recovery | ⚠️ Manual | Version history hoặc `repair_predictions_sheet.py --repair` nếu cần |
+| Push `main` | ✅ | `69d9560` |
+
+**Verdict:** Pushed — cần smoke test production + sheet migrate.
+
+---
+
 ## Tiếp theo
 
 - [x] Sprint 2.5 Admin audit + fix
@@ -497,11 +551,15 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 - [x] Sprint 5 ma trận → Google Sheet
 - [x] Sprint 6 tra cứu đội hình
 - [x] Sprint 7 analytics dashboard (4 tabs + Risk Bias)
+- [x] Sprint 8 late joiner users + predictions sheet I/O
 
 ### Backlog P2
 
 - [ ] Audit scorecard riêng: Lịch thi đấu, Home
 - [ ] Thứ tự card iPad stack (0,2,4,1,3)
+- [ ] Admin tab Thêm user: polish visual (card layout, không chỉ form thuần)
+- [ ] Analytics Risk Bias lọc `active_from_kickoff` (nhất quán Sprint 8c)
+- [ ] Fix `test_sidebar_overlay` theo boot v8 (`resolveHostWindow`)
 
 ---
 
@@ -577,6 +635,7 @@ flowchart TB
 | 2026-06-11 | Lịch sử flags | — | — | — | flagcdn HTML table Win/mac |
 | 2026-06-11 | Admin matrix | — | — | — | Sprint 5 prediction_matrix sheet |
 | 2026-06-12 | Bảng XH — Sprint 7 analytics | **8.5** | 8.5 | 8.5 | 4 tabs: Momentum / Accuracy / Lead Time / Risk Bias; guide cards; premium tabs |
+| 2026-06-14 | Admin + data — Sprint 8 late joiner | **8.1** | 8.0 | 7.6 | Tab Thêm user; repair predictions; BXH không phạt trận cũ; sheet I/O an toàn |
 
 ---
 
@@ -588,7 +647,7 @@ flowchart TB
 4. **Bracket KO** — two-sided ✅ *(Sprint 3d)*
 5. **Home** — CTA grid, rules
 6. **Bảng xếp hạng** — podium, charts, detail table ✅; tab **Phân tích dữ liệu hành vi**: Momentum / Accuracy / Lead Time / Risk Bias ✅ *(Sprint 7)*
-7. **Admin** — pagination, preview, kickoff ✅ + ma trận Sheet ✅ *(Sprint 5)*
+7. **Admin** — pagination, preview, kickoff ✅ + ma trận Sheet ✅ *(Sprint 5)* + thêm user late joiner + repair predictions ✅ *(Sprint 8)*
 8. **Global** — sidebar overlay all viewports ✅, login ✅, menu FAB icon-only ✅
 9. **Docs** — README ✅, HUONG_DAN_DU_DOAN ✅, HUONG_DAN_ADMIN_SHEET (local)
 
