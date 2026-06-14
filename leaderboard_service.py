@@ -5,6 +5,7 @@ from __future__ import annotations
 import pandas as pd
 
 from scoring import calculate_fines, calculate_points, normalize_pred_outcome
+from user_service import eligible_finished_matches, is_match_eligible, user_active_from
 
 FINE_MISSED_MATCH = 10
 
@@ -56,7 +57,8 @@ def build_leaderboard(
     for _, user in users.iterrows():
         uid = str(user["user_id"])
         points = fines = correct = played = missed = 0
-        for _, match in finished.iterrows():
+        user_finished = eligible_finished_matches(finished, user)
+        for _, match in user_finished.iterrows():
             m_id = str(match[id_col])
             pred = pred_by_key.get((uid, m_id))
             pts, fine, has_pred = score_finished_match(pred, match)
@@ -77,7 +79,7 @@ def build_leaderboard(
                 "played": played,
                 "correct": correct,
                 "missed": missed,
-                "total_finished": len(finished),
+                "total_finished": len(user_finished),
             }
         )
 
@@ -174,10 +176,13 @@ def latest_match_insight(
         preds["user_id"] = preds["user_id"].astype(str)
 
     pred_by_key = _pred_lookup(preds)
-    total_users = len(users_df)
+    total_users = 0
     correct = wrong = missed = 0
 
     for _, user in users_df.iterrows():
+        if not is_match_eligible(latest, user_active_from(user)):
+            continue
+        total_users += 1
         uid = str(user["user_id"])
         pred = pred_by_key.get((uid, m_id))
         pts, _, has_pred = score_finished_match(pred, latest)

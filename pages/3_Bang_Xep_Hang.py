@@ -24,7 +24,7 @@ from analytics_service import (
     summarize_risk_bias,
     top_momentum_players,
 )
-from data_service import init_connection, normalize_predictions_df, prep_matches, read_sheet
+from data_service import init_connection, normalize_users_df, prep_matches, read_predictions_sheet, read_sheet
 from leaderboard_service import build_leaderboard, latest_match_insight, podium_entries, top_rank_tie_count
 from team_flags import build_name_to_fifa, flag_emoji
 from scoring import _parse_stage, calculate_fines, calculate_points, format_pred_display, format_real_display, normalize_pred_outcome
@@ -63,10 +63,9 @@ render_page_header("🏆 Bảng vinh danh", "Xếp hạng điểm số, quỹ ph
 @st.cache_data(ttl=300, show_spinner=False)
 def load_data_for_ranking():
     sh = init_connection()
-    users_df, preds_df = read_sheet(sh, "users"), read_sheet(sh, "predictions")
+    users_df = normalize_users_df(read_sheet(sh, "users"))
+    preds_df = read_predictions_sheet(sh)
     matches_raw, teams_df = read_sheet(sh, "matches"), read_sheet(sh, "teams")
-    users_df.replace("", pd.NA, inplace=True)
-    preds_df = normalize_predictions_df(preds_df)
     teams_df.replace("", pd.NA, inplace=True)
     matches_df = prep_matches(matches_raw, teams_df)
     return users_df, preds_df, matches_df, teams_df

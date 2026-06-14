@@ -1,10 +1,18 @@
-import hashlib
 import html
 
 import pandas as pd
 import streamlit as st
 
-from data_service import build_prediction_row, init_connection, normalize_predictions_df, prep_matches, read_sheet, vietnam_timestamp
+from data_service import (
+    hash_password,
+    init_connection,
+    normalize_users_df,
+    prep_matches,
+    read_predictions_sheet,
+    read_sheet,
+    upsert_user_predictions,
+    vietnam_timestamp,
+)
 from team_flags import build_name_to_fifa
 from schedule_service import match_round_label_vn
 from scoring import (
@@ -55,10 +63,6 @@ if "success_msg_pred" in st.session_state:
 
 render_page_header("Dự đoán", "Chọn kết quả Đội A / Hòa / Đội B và chốt trước giờ bóng lăn", variant="predict", eyebrow="Prediction Center")
 
-def hash_password(password):
-    salt = st.secrets.get("password_salt", "MuoiMacDinh_@123")
-    return hashlib.sha256((str(password) + salt).encode("utf-8")).hexdigest()
-
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_players_for_pred():
     sh = init_connection()
@@ -71,17 +75,14 @@ def load_players_for_pred():
 @st.cache_data(ttl=300, show_spinner=False)
 def load_and_prep_data():
     sh = init_connection()
-    users_df = read_sheet(sh, "users")
-    preds_df = read_sheet(sh, "predictions")
+    users_df = normalize_users_df(read_sheet(sh, "users"))
+    preds_df = read_predictions_sheet(sh)
     matches_raw = read_sheet(sh, "matches")
     teams_df = read_sheet(sh, "teams")
 
-    for df in (users_df, matches_raw): df.replace("", pd.NA, inplace=True)
-    if "password" not in users_df.columns: users_df["password"] = "1234"
+    for df in (matches_raw,):
+        df.replace("", pd.NA, inplace=True)
 
-    users_df["user_id"], users_df["name"], users_df["password"] = users_df["user_id"].astype(str), users_df["name"].astype(str), users_df["password"].astype(str)
-    
-    preds_df = normalize_predictions_df(preds_df)
     matches_df = prep_matches(matches_raw, teams_df)
     return users_df, matches_df, preds_df, teams_df
 
@@ -285,20 +286,11 @@ with tab1:
                 ws_matches = sh.worksheet("matches")
                 data_matches = ws_matches.get_all_values()
                 fresh_matches_df = pd.DataFrame(data_matches[1:], columns=data_matches[0]) if data_matches else pd.DataFrame()
-                
+
                 ignored_matches = []
                 ts = vietnam_timestamp()
-                
-                # Setup variables for append / update logic
                 ws_preds = sh.worksheet("predictions")
-                data_preds = ws_preds.get_all_values()
-                
-                existing_rows = {}
-                for i, row in enumerate(data_preds[1:], start=2):
-                    if len(row) >= 2: existing_rows[(str(row[0]), str(row[1]))] = i
-
-                updates = []
-                new_rows = []
+                entries = []
 
                 for m_id, (outcome, adv_t, is_ko) in user_inputs.items():
                     id_col_fresh = "id" if "id" in fresh_matches_df.columns else "match_id"
@@ -312,16 +304,9 @@ with tab1:
                         continue
 
                     adv_id = str(name_to_id.get(adv_t)) if (is_ko and outcome == "D" and adv_t != "TBD") else ""
-                    pred_row = [selected_user_id, m_id, normalize_pred_outcome(outcome) or "", adv_id, ts]
-                    
-                    if (selected_user_id, m_id) in existing_rows:
-                        row_idx = existing_rows[(selected_user_id, m_id)]
-                        updates.append({'range': f'A{row_idx}:E{row_idx}', 'values': [pred_row]})
-                    else:
-                        new_rows.append(pred_row)
+                    entries.append((m_id, normalize_pred_outcome(outcome) or "", adv_id, ts))
 
-                if updates: ws_preds.batch_update(updates)
-                if new_rows: ws_preds.append_rows(new_rows)
+                upsert_user_predictions(ws_preds, selected_user_id, entries)
 
                 for m_id in user_inputs:
                     st.session_state.pop(f"outcome_{selected_user_id}_{m_id}", None)

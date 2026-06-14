@@ -2,16 +2,21 @@ import pandas as pd
 import streamlit as st
 
 from data_service import (
+    append_user_row,
+    hash_password,
     init_connection,
-    normalize_predictions_df,
+    normalize_users_df,
     prep_matches,
+    read_predictions_sheet,
     read_sheet,
+    repair_predictions_sheet_header,
     vietnam_timestamp,
     write_worksheet_dataframe,
 )
 from prediction_matrix_service import MATRIX_SHEET_NAME, build_prediction_matrix
 from team_flags import build_name_to_fifa
 from schedule_service import format_date_compact_vn, format_time_vn
+from user_service import active_from_storage_value, get_next_upcoming_match, suggest_next_user_id
 from ui_components import (
     _get_col_letter,
     apply_global_styles,
@@ -77,10 +82,10 @@ def load_matches_data():
 def load_matrix_data():
     sh = init_connection()
     users_df = read_sheet(sh, "users")
-    preds_df = normalize_predictions_df(read_sheet(sh, "predictions"))
+    preds_df = read_predictions_sheet(sh)
     matches_raw = read_sheet(sh, "matches")
     teams_df = read_sheet(sh, "teams")
-    users_df.replace("", pd.NA, inplace=True)
+    users_df = normalize_users_df(users_df)
     teams_df.replace("", pd.NA, inplace=True)
     matches_df = prep_matches(matches_raw, teams_df)
     return users_df, preds_df, matches_df, teams_df
@@ -258,6 +263,7 @@ tab_options = [
     "🟢 Chỉnh sửa đã đá",
     "⚙️ Vòng Knock-out",
     "🔒 Khóa trận",
+    "👤 Thêm người chơi",
     "📊 Ma trận → Sheet",
 ]
 active_tab = st.radio("Chọn chức năng:", tab_options, horizontal=True, key="active_tab", label_visibility="collapsed")
@@ -428,6 +434,87 @@ elif active_tab == tab_options[3]:
                     _apply_admin_updates(changed, "lock")
 
 elif active_tab == tab_options[4]:
+    st.markdown('<div class="content-card-title">👤 Thêm người chơi mới</div>', unsafe_allow_html=True)
+    st.caption(
+        "User mới chỉ được tính điểm/phạt/bỏ lỡ từ trận sắp tới tiếp theo — "
+        "các trận đã đá trước đó sẽ không ảnh hưởng BXH."
+    )
+
+    with custom_loader("Đang tải danh sách người chơi..."):
+        users_df, preds_df, _, _ = load_matrix_data()
+
+    st.markdown("#### 🔧 Kiểm tra sheet predictions")
+    st.caption(
+        f"App đọc được **{len(preds_df)}** dự đoán. "
+        "Nếu số này thấp hơn thực tế, header sheet có thể bị lệch."
+    )
+    repair_col1, repair_col2 = st.columns([1, 2])
+    with repair_col1:
+        if st.button("Sửa header predictions (an toàn)", key="repair_preds_header"):
+            sh = init_connection()
+            action = repair_predictions_sheet_header(sh.worksheet("predictions"))
+            st.cache_data.clear()
+            st.session_state["success_msg"] = f"✅ Đã sửa header predictions ({action}). Reload trang để kiểm tra."
+            st.rerun()
+    with repair_col2:
+        st.caption(
+            "Khôi phục dữ liệu đã mất: mở Google Spreadsheet → "
+            "**File → Version history** → chọn bản trước khi lỗi → Restore."
+        )
+
+    st.write("---")
+    next_match = get_next_upcoming_match(matches_df)
+    suggested_id = suggest_next_user_id(users_df)
+
+    if next_match is None:
+        st.error("Không còn trận chờ kết quả — không thể xác định thời điểm bắt đầu tính điểm cho user mới.")
+    else:
+        kickoff_label = _kickoff_label(next_match)
+        st.info(
+            f"User mới sẽ được tính điểm từ **Trận {int(next_match['match_number'])}: "
+            f"{next_match['team_a']} vs {next_match['team_b']}**"
+            + (f" — {kickoff_label}" if kickoff_label else "")
+        )
+
+        with st.form("add_user_form"):
+            new_user_id = st.text_input("Mã người chơi", value=suggested_id)
+            new_name = st.text_input("Tên hiển thị")
+            new_password = st.text_input("Mật khẩu", value="1234", type="password")
+
+            if st.form_submit_button("➕ Thêm người chơi", type="primary", width="stretch"):
+                user_id_clean = new_user_id.strip()
+                name_clean = new_name.strip()
+                password_clean = new_password.strip()
+
+                if not user_id_clean:
+                    st.error("Mã người chơi không được để trống.")
+                elif not name_clean:
+                    st.error("Tên hiển thị không được để trống.")
+                elif len(password_clean) < 4:
+                    st.error("Mật khẩu phải có ít nhất 4 ký tự.")
+                elif user_id_clean in users_df["user_id"].astype(str).tolist():
+                    st.error(f"Mã `{user_id_clean}` đã tồn tại.")
+                elif name_clean in users_df["name"].astype(str).tolist():
+                    st.error(f"Tên `{name_clean}` đã được sử dụng.")
+                else:
+                    sh = init_connection()
+                    append_user_row(
+                        sh,
+                        {
+                            "user_id": user_id_clean,
+                            "name": name_clean,
+                            "password": hash_password(password_clean),
+                            "active_from_kickoff": active_from_storage_value(next_match),
+                        },
+                    )
+                    st.cache_data.clear()
+                    st.session_state["success_msg"] = (
+                        f"✅ Đã thêm {name_clean} ({user_id_clean}). "
+                        f"Tính điểm từ Trận {int(next_match['match_number'])}."
+                    )
+                    st.rerun()
+
+elif active_tab == tab_options[5]:
     st.markdown('<div class="content-card-title">📊 Ma trận dự đoán → Google Sheet</div>', unsafe_allow_html=True)
     st.caption(
         "Đẩy toàn bộ dự đoán (trận × người chơi) lên tab "

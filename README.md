@@ -70,7 +70,7 @@ flowchart TB
 
 | Sheet | Nội dung |
 |-------|----------|
-| `users` | `user_id`, `name`, `password` |
+| `users` | `user_id`, `name`, `password`, `active_from_kickoff` (tùy chọn — trận bắt đầu tính điểm cho user mới) |
 | `predictions` | Dự đoán theo `user_id` + `match_id` |
 | `matches` | Lịch 104 trận, tỉ số, khóa trận, knock-out |
 | `teams` | Đội, mã FIFA, bảng đấu |

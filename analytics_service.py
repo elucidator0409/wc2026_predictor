@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from scoring import calculate_points, normalize_pred_outcome
+from user_service import is_match_eligible, user_active_from
 
 VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
@@ -60,6 +61,27 @@ def _parse_prediction_timestamp(series: pd.Series) -> pd.Series:
     return ts.dt.tz_convert(VN_TZ)
 
 
+def _filter_merged_by_user_eligibility(
+    merged: pd.DataFrame,
+    users_df: pd.DataFrame,
+) -> pd.DataFrame:
+    if merged.empty or "kickoff_vn" not in merged.columns:
+        return merged
+
+    users = users_df.copy()
+    users["user_id"] = users["user_id"].astype(str)
+    active_map = {
+        str(row["user_id"]): user_active_from(row)
+        for _, row in users.iterrows()
+    }
+
+    mask = merged.apply(
+        lambda row: is_match_eligible(row, active_map.get(str(row["user_id"]))),
+        axis=1,
+    )
+    return merged[mask].copy()
+
+
 def build_scored_predictions(
     preds_df: pd.DataFrame,
     finished_matches_df: pd.DataFrame,
@@ -93,7 +115,7 @@ def build_scored_predictions(
     users = users_df.copy()
     users["user_id"] = users["user_id"].astype(str)
     merged = pd.merge(merged, users[["user_id", "name"]], on="user_id", how="left")
-    return merged
+    return _filter_merged_by_user_eligibility(merged, users_df)
 
 
 def get_cumulative_scores(scored_df: pd.DataFrame) -> pd.DataFrame:
@@ -170,6 +192,7 @@ def get_prediction_lead_time(
     merged["lead_hours"] = delta.dt.total_seconds() / 3600
     merged["is_late"] = merged["lead_hours"] < 0
 
+    merged = _filter_merged_by_user_eligibility(merged, users_df)
     return merged[cols]
 
 

@@ -8,6 +8,21 @@ user_id,match_id,pred_outcome,pred_advanced_team_id,timestamp
 
 Remove legacy columns: `pred_score_a`, `pred_score_b`.
 
+## Khôi phục khi mất / lệch dữ liệu
+
+1. **Google Sheets → File → Version history** → chọn bản trước khi lỗi → **Restore**
+2. Hoặc chạy audit (không ghi):
+   ```bash
+   python scripts/repair_predictions_sheet.py
+   ```
+3. Sửa header an toàn (chèn header nếu thiếu, không xóa dòng dữ liệu):
+   ```bash
+   python scripts/repair_predictions_sheet.py --repair
+   ```
+4. Trong app: **Góc của Elu → Thêm người chơi → Sửa header predictions (an toàn)**
+
+**Không** dùng hàm ghi đè header cũ khi row 1 đang là dữ liệu — app mới đã thay bằng `repair_predictions_sheet_header` (insert row).
+
 ## pred_outcome values
 
 | Code | Meaning |

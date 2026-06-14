@@ -92,3 +92,66 @@ def test_latest_match_insight():
     assert insight["correct"] == 1
     assert insight["wrong"] == 1
     assert insight["missed"] == 0
+
+
+def test_build_leaderboard_late_joiner_skips_old_missed():
+    t1 = pd.Timestamp("2026-06-11 20:00").tz_localize("Asia/Ho_Chi_Minh")
+    t2 = pd.Timestamp("2026-06-12 02:00").tz_localize("Asia/Ho_Chi_Minh")
+
+    users_df = pd.DataFrame(
+        [
+            {"user_id": "1", "name": "Alice", "active_from_kickoff": pd.NaT},
+            {
+                "user_id": "2",
+                "name": "Bob",
+                "active_from_kickoff": t2,
+            },
+        ]
+    )
+    finished = pd.DataFrame(
+        [
+            {
+                "match_id": "1",
+                "match_number": 1,
+                "real_score_a": 1,
+                "real_score_b": 0,
+                "stage_id": 1,
+                "team_a": "Mexico",
+                "team_b": "South Africa",
+                "team_a_fifa": "MEX",
+                "team_b_fifa": "RSA",
+                "kickoff_vn": t1,
+            },
+            {
+                "match_id": "2",
+                "match_number": 2,
+                "real_score_a": 2,
+                "real_score_b": 1,
+                "stage_id": 1,
+                "team_a": "France",
+                "team_b": "Germany",
+                "team_a_fifa": "FRA",
+                "team_b_fifa": "GER",
+                "kickoff_vn": t2,
+            },
+        ]
+    )
+    preds_df = pd.DataFrame(
+        [
+            {"user_id": "1", "match_id": "2", "pred_outcome": "A", "pred_advanced_team_id": None},
+            {"user_id": "2", "match_id": "2", "pred_outcome": "B", "pred_advanced_team_id": None},
+        ]
+    )
+
+    lb = build_leaderboard(users_df, preds_df, finished)
+    alice = lb.loc[lb["name"] == "Alice"].iloc[0]
+    bob = lb.loc[lb["name"] == "Bob"].iloc[0]
+
+    assert alice["missed"] == 1
+    assert alice["fines"] == 10
+    assert alice["total_finished"] == 2
+
+    assert bob["missed"] == 0
+    assert bob["fines"] == 10
+    assert bob["played"] == 1
+    assert bob["total_finished"] == 1
