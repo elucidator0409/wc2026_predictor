@@ -5058,6 +5058,126 @@ div[data-testid="stDataFrame"] .gdg-row:nth-child(even) .gdg-cell {
     }
 }
 
+/* Ultra-narrow mobile (≤450px): hide Phong độ + Sinh lực, widen badge area */
+@media (max-width: 450px) {
+    .lb-list--gamified-mobile {
+        overflow-x: visible;
+    }
+
+    .lb-list--gamified-mobile .lb-list-head,
+    .lb-list--gamified-mobile .lb-row {
+        grid-template-columns: 2.35rem minmax(0, 1fr) 2.15rem 2.55rem;
+        column-gap: 0;
+        padding: 0.42rem 0.4rem;
+        min-width: 100%;
+    }
+
+    .lb-list--gamified-mobile .lb-col-name,
+    .lb-list--gamified-mobile .lb-cell-name {
+        padding-right: 0.4rem;
+    }
+
+    /* Điểm — left pane of paired stats block */
+    .lb-list--gamified-mobile .lb-col-pts,
+    .lb-list--gamified-mobile .lb-cell-pts {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        min-width: 2.15rem;
+        padding: 0.3rem 0.22rem;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-right: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: var(--radius-md) 0 0 var(--radius-md);
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .lb-list--gamified-mobile .lb-list-head .lb-col-pts {
+        font-size: 0.52rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+
+    .lb-list--gamified-mobile .lb-cell-pts {
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    /* Đúng — right pane, flush against Điểm */
+    .lb-list--gamified-mobile .lb-stats-band {
+        grid-template-columns: 1fr;
+        min-width: 2.55rem;
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-left: none;
+        border-radius: 0 var(--radius-md) var(--radius-md) 0;
+        background: rgba(255, 255, 255, 0.04);
+        overflow: hidden;
+    }
+
+    .lb-list--gamified-mobile .lb-col-form,
+    .lb-list--gamified-mobile .lb-cell-form,
+    .lb-list--gamified-mobile .lb-col-hp,
+    .lb-list--gamified-mobile .lb-cell-hp {
+        display: none !important;
+    }
+
+    .lb-list--gamified-mobile .lb-cell-name {
+        font-size: 0.72rem;
+    }
+
+    .lb-list--gamified-mobile .lb-cell-name-line {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .lb-list--gamified-mobile .lb-cell-badges {
+        flex-wrap: wrap;
+        gap: 0.18rem;
+        max-width: 100%;
+    }
+
+    .lb-list--gamified-mobile .lb-badge-chip {
+        font-size: 0.52rem;
+        max-width: none;
+        padding: 0.08rem 0.32rem;
+    }
+
+    .lb-list--gamified-mobile .lb-col-acc,
+    .lb-list--gamified-mobile .lb-cell-acc {
+        justify-content: center;
+        text-align: center;
+        font-size: 0.68rem;
+        padding: 0.3rem 0.22rem;
+        border-right: none;
+    }
+
+    .lb-list--gamified-mobile .lb-stats-band--head .lb-col-acc {
+        font-size: 0.52rem;
+    }
+
+    .lb-list--gamified-mobile .lb-row:hover .lb-col-pts,
+    .lb-list--gamified-mobile .lb-row:hover .lb-cell-pts,
+    .lb-list--gamified-mobile .lb-row:hover .lb-stats-band {
+        background: rgba(255, 255, 255, 0.055);
+        border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .lb-list--gamified-mobile .lb-row--me .lb-col-pts,
+    .lb-list--gamified-mobile .lb-row--me .lb-cell-pts,
+    .lb-list--gamified-mobile .lb-row--me .lb-stats-band {
+        background: rgba(251, 191, 36, 0.07);
+        border-color: rgba(251, 191, 36, 0.24);
+    }
+
+    .lb-list--gamified-mobile .lb-row--me .lb-cell-pts {
+        border-right-color: rgba(251, 191, 36, 0.3);
+    }
+}
+
 /* Desktop leaderboard + activity sidebar */
 .lb-desktop-layout-marker {
     display: none !important;
