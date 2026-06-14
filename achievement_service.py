@@ -8,7 +8,7 @@ from typing import Callable
 
 import pandas as pd
 
-MAX_HP = 140  # 1.400.000 VNĐ budget — 1 HP = 10.000 VNĐ
+MAX_HP = 104  # 1.040.000 VNĐ budget — 1 HP = 10.000 VNĐ
 FINE_UNIT_HP = 10  # fines column stores 10 per 10k VNĐ penalty (10 → 1 HP)
 
 OPERATORS: dict[str, Callable[[float, float], bool]] = {

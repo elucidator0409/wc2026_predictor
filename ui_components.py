@@ -962,7 +962,7 @@ def _lb_hp_bar_html(remaining_hp: int, remaining_hp_pct: float, *, compact: bool
         f'<span class="lb-hp-bar-track">'
         f'<span class="lb-hp-bar-fill {tier}" style="width:{pct:.1f}%"></span>'
         f"</span>"
-        f'<span class="lb-hp-bar-label">{int(remaining_hp)}/140</span>'
+        f'<span class="lb-hp-bar-label">{int(remaining_hp)}/104</span>'
         f"</span>"
     )
 
@@ -1243,7 +1243,7 @@ def _render_leaderboard_mobile_html(
         name = html.escape(str(row["name"]))
         me_badge = '<span class="lb-you">Bạn</span>' if is_me else ""
         form = html.escape(_lb_form_html(row.get("recent_form", []), limit=_LB_FORM_LIMIT))
-        remaining_hp = int(row.get("remaining_hp", 140))
+        remaining_hp = int(row.get("remaining_hp", 104))
         remaining_hp_pct = float(row.get("remaining_hp_pct", 100))
         hp_html = _lb_hp_bar_html(remaining_hp, remaining_hp_pct, compact=True)
         badges_html = _lb_badges_html(row.get("badges", []), badge_rarity_map)
