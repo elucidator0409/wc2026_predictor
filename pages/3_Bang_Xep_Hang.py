@@ -24,8 +24,21 @@ from analytics_service import (
     summarize_risk_bias,
     top_momentum_players,
 )
-from data_service import init_connection, normalize_users_df, prep_matches, read_predictions_sheet, read_sheet
-from leaderboard_gamification_service import build_lb_desktop_sidebar_bundle
+from achievement_service import (
+    apply_achievements_to_leaderboard,
+    build_badge_collection_bundle,
+    build_badge_rarity_map,
+    build_per_user_streak_recent,
+)
+from data_service import (
+    init_connection,
+    normalize_users_df,
+    prep_matches,
+    read_achievements_sheet,
+    read_predictions_sheet,
+    read_sheet,
+)
+from leaderboard_gamification_service import _build_streak_timeline, build_lb_desktop_sidebar_bundle
 from leaderboard_service import (
     build_leaderboard_with_dynamics,
     latest_match_insight,
@@ -44,6 +57,7 @@ from ui_components import (
     render_analytics_sub_tabs,
     render_analytics_takeaway,
     render_lb_main_tabs,
+    render_badge_collection_board,
     render_leaderboard_insight,
     render_leaderboard_podium,
     render_lb_hero_cards,
@@ -78,6 +92,12 @@ def load_data_for_ranking():
     teams_df.replace("", pd.NA, inplace=True)
     matches_df = prep_matches(matches_raw, teams_df)
     return users_df, preds_df, matches_df, teams_df
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_achievements_rules():
+    sh = init_connection()
+    return read_achievements_sheet(sh)
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -143,7 +163,9 @@ if not merged_df.empty:
     merged_df["fines"] = pd.to_numeric(merged_df["fines"], errors="coerce").fillna(0).astype(int)
     merged_df["user_id"] = merged_df["user_id"].astype(str)
 
-tab1, tab2 = render_lb_main_tabs(["🏆 Leaderboard", "📊 Phân tích dữ liệu hành vi"])
+tab1, tab2, tab3 = render_lb_main_tabs(
+    ["🏆 Leaderboard", "🏅 Bộ sưu tập", "📊 Phân tích dữ liệu hành vi"]
+)
 
 chart_layout = dict(
     paper_bgcolor="rgba(0,0,0,0)",
@@ -180,12 +202,24 @@ with tab1:
         id_to_name,
     )
 
+    achievements_df = load_achievements_rules()
+    badge_rarity_map = build_badge_rarity_map(achievements_df)
+    streak_timeline = _build_streak_timeline(users_df, preds_df, finished_matches)
+    per_user_streaks = build_per_user_streak_recent(streak_timeline)
+    leaderboard = apply_achievements_to_leaderboard(
+        leaderboard,
+        achievements_df,
+        streaks=sidebar_bundle.get("streaks"),
+        per_user_streaks=per_user_streaks,
+    )
+
     render_lb_streak_cards_mobile(sidebar_bundle.get("streaks"))
     render_lb_hero_cards(leaderboard)
     render_leaderboard_dataframe(
         leaderboard,
         highlight_user_id=current_user_id,
         sidebar_bundle=sidebar_bundle,
+        badge_rarity_map=badge_rarity_map,
     )
     render_lb_hero_cards_mobile_compact(leaderboard)
 
@@ -259,6 +293,25 @@ with tab1:
                 st.dataframe(final_detail.sort_values(by=["Trận đấu", "Người chơi"]), width="stretch", hide_index=True)
 
 with tab2:
+    achievements_df = load_achievements_rules()
+    collection_lb = build_leaderboard_with_dynamics(users_df, preds_df, finished_matches)
+    streak_timeline = _build_streak_timeline(users_df, preds_df, finished_matches)
+    per_user_streaks = build_per_user_streak_recent(streak_timeline)
+    collection_lb = apply_achievements_to_leaderboard(
+        collection_lb,
+        achievements_df,
+        per_user_streaks=per_user_streaks,
+    )
+    collection_bundle = build_badge_collection_bundle(
+        users_df,
+        preds_df,
+        finished_matches,
+        achievements_df,
+        collection_lb,
+    )
+    render_badge_collection_board(collection_bundle, highlight_user_id=current_user_id)
+
+with tab3:
     _html('<div class="lb-analytics-panel-marker" aria-hidden="true"></div>')
     render_analytics_section_header(
         eyebrow="Insights",

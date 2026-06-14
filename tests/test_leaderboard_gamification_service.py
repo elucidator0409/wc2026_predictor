@@ -4,6 +4,7 @@ from leaderboard_gamification_service import (
     _build_streak_timeline,
     _format_streak_history_html,
     _max_streak_window,
+    _trailing_streak_window,
     build_activity_feed,
     compute_streak_milestones,
 )
@@ -38,6 +39,24 @@ def _timeline_row(
     }
 
 
+def test_trailing_streak_window_uses_recent_matches_only():
+    rows = [
+        _timeline_row("U1", "A", 1, "W"),
+        _timeline_row("U1", "A", 2, "W"),
+        _timeline_row("U1", "A", 3, "L"),
+        _timeline_row("U1", "A", 4, "W"),
+        _timeline_row("U1", "A", 5, "W"),
+        _timeline_row("U1", "A", 6, "W"),
+    ]
+    count, window = _trailing_streak_window(rows, {"W"})
+    assert count == 3
+    assert [r["global_order"] for r in window] == [4, 5, 6]
+
+    lose_count, lose_window = _trailing_streak_window(rows, {"L", "D"})
+    assert lose_count == 0
+    assert lose_window == []
+
+
 def test_max_streak_window_picks_longest_segment():
     rows = [
         _timeline_row("U1", "A", 1, "W"),
@@ -58,10 +77,10 @@ def test_compute_streak_milestones_win_and_lose_with_history():
             _timeline_row("U01", "Alice", 1, "W", pred_outcome="A", team_a="Mexico"),
             _timeline_row("U01", "Alice", 2, "W", pred_outcome="A", team_a="Korea", team_a_fifa="KOR"),
             _timeline_row("U01", "Alice", 3, "W", pred_outcome="A", team_a="Canada", team_a_fifa="CAN"),
-            _timeline_row("U02", "Bob", 1, "L", pred_outcome="A"),
-            _timeline_row("U02", "Bob", 2, "D", has_pred=False, pred_outcome=None),
-            _timeline_row("U02", "Bob", 3, "L", pred_outcome="B", team_b="France", team_b_fifa="FRA"),
-            _timeline_row("U02", "Bob", 4, "W"),
+            _timeline_row("U02", "Bob", 1, "W", pred_outcome="A"),
+            _timeline_row("U02", "Bob", 2, "L", pred_outcome="A"),
+            _timeline_row("U02", "Bob", 3, "D", has_pred=False, pred_outcome=None),
+            _timeline_row("U02", "Bob", 4, "L", pred_outcome="B", team_b="France", team_b_fifa="FRA"),
         ]
     )
     streaks = compute_streak_milestones(

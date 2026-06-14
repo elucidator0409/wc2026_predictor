@@ -78,6 +78,19 @@ def _match_label(row: pd.Series) -> str:
     return f"{a} vs {b}"
 
 
+def _trailing_streak_window(rows: list[dict], target: set[str]) -> tuple[int, list[dict]]:
+    """Trailing consecutive matches at the end of timeline matching target codes."""
+    if not rows:
+        return 0, []
+    window: list[dict] = []
+    for row in reversed(rows):
+        if row["form_code"] in target:
+            window.insert(0, row)
+        else:
+            break
+    return len(window), window
+
+
 def _max_streak_window(rows: list[dict], target: set[str]) -> tuple[int, list[dict]]:
     best_count = 0
     best_window: list[dict] = []
@@ -264,11 +277,11 @@ def _streak_record(
     for uid, group in timeline_df.groupby("user_id"):
         ordered = group.sort_values("global_order")
         rows = ordered.to_dict("records")
-        streak, window = _max_streak_window(rows, target)
+        streak, window = _trailing_streak_window(rows, target)
         if streak <= 0:
             continue
         name = str(ordered["name"].iloc[0])
-        end_order = int(window[-1]["global_order"]) if window else 0
+        end_order = int(rows[-1]["global_order"]) if rows else 0
         candidate = {
             "user_id": str(uid),
             "name": name,
@@ -506,7 +519,7 @@ def compute_streak_milestones(
     name_to_fifa: dict | None = None,
     id_to_name: dict[str, str] | None = None,
 ) -> dict:
-    """Win/lose streak records and sole upset predictor (Vua Bịp)."""
+    """Trailing win/lose streak leaders and sole upset predictor (Vua Bịp)."""
     win = _streak_record(
         timeline_df,
         {"W"},

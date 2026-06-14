@@ -314,6 +314,10 @@ def enrich_leaderboard_dynamics(
 
     enriched["phat_vnd"] = enriched["fines"].apply(format_fines_vnd)
 
+    from achievement_service import enrich_leaderboard_hp
+
+    enriched = enrich_leaderboard_hp(enriched)
+
     return enriched
 
 

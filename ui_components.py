@@ -9,6 +9,14 @@ from urllib.parse import parse_qsl, urlencode, urlsplit
 import pandas as pd
 import streamlit as st
 
+from achievement_service import (
+    BADGE_RARITIES,
+    RARITY_LABELS_VN,
+    badge_chip_style,
+    badge_rarity_slug,
+    normalize_badge_rarity,
+    parse_badge_list,
+)
 from scoring import normalize_pred_outcome
 from schedule_service import (
     format_date_compact_vn,
@@ -904,6 +912,7 @@ def _lb_accuracy(row: pd.Series) -> str:
 
 
 _FORM_EMOJI = {"W": "✅", "L": "❌", "D": "➖"}
+_LB_FORM_LIMIT = 3
 
 
 def _lb_rank_delta_html(delta: int) -> str:
@@ -936,10 +945,69 @@ def _lb_rank_cell_html(rank_label: str, delta: int, *, inline: bool = False) -> 
     )
 
 
+def _lb_hp_tier_class(remaining_hp_pct: float) -> str:
+    if remaining_hp_pct > 50:
+        return "lb-hp-bar-fill--high"
+    if remaining_hp_pct >= 20:
+        return "lb-hp-bar-fill--mid"
+    return "lb-hp-bar-fill--low"
+
+
+def _lb_hp_bar_html(remaining_hp: int, remaining_hp_pct: float, *, compact: bool = False) -> str:
+    pct = max(0.0, min(100.0, float(remaining_hp_pct)))
+    tier = _lb_hp_tier_class(pct)
+    compact_cls = " lb-hp-bar--compact" if compact else ""
+    return (
+        f'<span class="lb-hp-bar{compact_cls}">'
+        f'<span class="lb-hp-bar-track">'
+        f'<span class="lb-hp-bar-fill {tier}" style="width:{pct:.1f}%"></span>'
+        f"</span>"
+        f'<span class="lb-hp-bar-label">{int(remaining_hp)}/140</span>'
+        f"</span>"
+    )
+
+
+def _lb_badge_chip_html(name: str, rarity_map: dict[str, str] | None = None) -> str:
+    badge_name = str(name).strip()
+    rarity = normalize_badge_rarity((rarity_map or {}).get(badge_name, "Common"))
+    slug = badge_rarity_slug(rarity)
+    style = badge_chip_style(badge_name)
+    rarity_label = RARITY_LABELS_VN.get(rarity, rarity)
+    title = f"{badge_name} · {rarity_label}"
+    overlays = ""
+    if rarity == "Rare":
+        overlays = (
+            '<span class="lb-badge-chip-shine" aria-hidden="true"></span>'
+            '<span class="lb-badge-chip-spark" aria-hidden="true"></span>'
+        )
+    elif rarity == "Legend":
+        overlays = (
+            '<span class="lb-badge-chip-holo" aria-hidden="true"></span>'
+            '<span class="lb-badge-chip-prism" aria-hidden="true"></span>'
+            '<span class="lb-badge-chip-shine lb-badge-chip-shine--legend" aria-hidden="true"></span>'
+        )
+    return (
+        f'<span class="lb-badge-chip lb-badge-chip--{slug}" style="{style}" '
+        f'title="{html.escape(title)}">'
+        f"{overlays}"
+        f'<span class="lb-badge-chip-text">{html.escape(badge_name)}</span>'
+        "</span>"
+    )
+
+
+def _lb_badges_html(badges, rarity_map: dict[str, str] | None = None) -> str:
+    items = parse_badge_list(badges)
+    if not items:
+        return '<span class="lb-cell-badges lb-cell-badges--empty">—</span>'
+    chips = [_lb_badge_chip_html(name, rarity_map) for name in items]
+    return f'<span class="lb-cell-badges">{"".join(chips)}</span>'
+
+
 def _render_leaderboard_desktop_html(
     lb: pd.DataFrame,
     highlight_user_id: str | None = None,
     sidebar_bundle: dict | None = None,
+    badge_rarity_map: dict[str, str] | None = None,
 ) -> None:
     """Full HTML leaderboard for desktop — styled rank pills + optional sidebar."""
     highlight = str(highlight_user_id) if highlight_user_id else None
@@ -951,11 +1019,11 @@ def _render_leaderboard_desktop_html(
         rank = _lb_rank_cell_html(row["rank_label"], int(row.get("rank_movement_delta", 0)), inline=True)
         name = html.escape(str(row["name"]))
         me_badge = '<span class="lb-you">Bạn</span>' if is_me else ""
-        form = html.escape(str(row.get("recent_form_display", "")))
-        phat = html.escape(str(row.get("phat_vnd", "")))
-        fines = int(row["fines"])
-        fine_class = "lb-cell-fine lb-cell-fine--zero" if fines == 0 else "lb-cell-fine lb-cell-fine--due"
-        hit = f"{float(row['hit_rate']):.1f}%"
+        form = html.escape(_lb_form_html(row.get("recent_form", []), limit=_LB_FORM_LIMIT))
+        remaining_hp = int(row.get("remaining_hp", 140))
+        remaining_hp_pct = float(row.get("remaining_hp_pct", 100))
+        hp_html = _lb_hp_bar_html(remaining_hp, remaining_hp_pct)
+        badges_html = _lb_badges_html(row.get("badges", []), badge_rarity_map)
         played = int(row["played"])
         correct = int(row["correct"])
         accuracy = f"{correct}/{played}" if played else "—"
@@ -963,12 +1031,14 @@ def _render_leaderboard_desktop_html(
         body.append(
             f'<div class="{row_class}">'
             f'<span class="lb-cell-rank">{rank}</span>'
-            f'<span class="lb-cell-name">{name}{me_badge}</span>'
+            f'<span class="lb-cell-name">'
+            f'<span class="lb-cell-name-line">{name}{me_badge}</span>'
+            f'{badges_html}'
+            f"</span>"
             f'<span class="lb-cell-pts">{int(row["points"])}</span>'
             f'<div class="lb-stats-band">'
             f'<span class="lb-cell-form lb-stat-col">{form}</span>'
-            f'<span class="{fine_class} lb-stat-col">{phat}</span>'
-            f'<span class="lb-cell-rate lb-stat-col">{html.escape(hit)}</span>'
+            f'<span class="lb-cell-hp lb-stat-col">{hp_html}</span>'
             f'<span class="lb-cell-acc lb-stat-col">{html.escape(accuracy)}</span>'
             f'<span class="lb-cell-miss lb-stat-col">{missed if missed else "—"}</span>'
             f"</div>"
@@ -982,8 +1052,7 @@ def _render_leaderboard_desktop_html(
         '<span class="lb-col-pts">Điểm</span>'
         '<div class="lb-stats-band lb-stats-band--head">'
         '<span class="lb-col-form lb-stat-col">Phong độ</span>'
-        '<span class="lb-col-fine lb-stat-col">Phạt</span>'
-        '<span class="lb-col-rate lb-stat-col">Tỉ lệ</span>'
+        '<span class="lb-col-hp lb-stat-col">Sinh lực</span>'
         '<span class="lb-col-acc lb-stat-col">Đúng</span>'
         '<span class="lb-col-miss lb-stat-col">Bỏ lỡ</span>'
         "</div>"
@@ -1149,15 +1218,18 @@ def render_lb_streak_cards_mobile(streaks: dict) -> None:
     )
 
 
-def _lb_form_html(codes) -> str:
+def _lb_form_html(codes, *, limit: int | None = None) -> str:
     if not isinstance(codes, list):
         return ""
-    return " ".join(_FORM_EMOJI.get(c, "") for c in codes if c)
+    items = codes[-limit:] if limit else codes
+    emojis = [_FORM_EMOJI.get(c, "") for c in items if c]
+    return "\u00a0".join(emojis)
 
 
 def _render_leaderboard_mobile_html(
     lb: pd.DataFrame,
     highlight_user_id: str | None = None,
+    badge_rarity_map: dict[str, str] | None = None,
 ) -> None:
     """Compact HTML leaderboard for mobile — full CSS control over column spacing."""
     highlight = str(highlight_user_id) if highlight_user_id else None
@@ -1170,20 +1242,27 @@ def _render_leaderboard_mobile_html(
         rank = _lb_rank_cell_html(row["rank_label"], int(row.get("rank_movement_delta", 0)))
         name = html.escape(str(row["name"]))
         me_badge = '<span class="lb-you">Bạn</span>' if is_me else ""
-        form = html.escape(_lb_form_html(row.get("recent_form", [])))
-        fines = int(row["fines"])
-        fine_class = "lb-cell-fine lb-cell-fine--zero" if fines == 0 else "lb-cell-fine lb-cell-fine--due"
+        form = html.escape(_lb_form_html(row.get("recent_form", []), limit=_LB_FORM_LIMIT))
+        remaining_hp = int(row.get("remaining_hp", 140))
+        remaining_hp_pct = float(row.get("remaining_hp_pct", 100))
+        hp_html = _lb_hp_bar_html(remaining_hp, remaining_hp_pct, compact=True)
+        badges_html = _lb_badges_html(row.get("badges", []), badge_rarity_map)
         played = int(row["played"])
         correct = int(row["correct"])
         accuracy = f"{correct}/{played}" if played else "—"
         body.append(
             f'<div class="{row_class}">'
             f'<span class="lb-cell-rank">{rank}</span>'
-            f'<span class="lb-cell-name">{name}{me_badge}</span>'
+            f'<span class="lb-cell-name">'
+            f'<span class="lb-cell-name-line">{name}{me_badge}</span>'
+            f'{badges_html}'
+            f"</span>"
             f'<span class="lb-cell-pts">{int(row["points"])}</span>'
-            f'<span class="lb-cell-form">{form}</span>'
-            f'<span class="{fine_class}">{fines}k</span>'
-            f'<span class="lb-cell-acc">{html.escape(accuracy)}</span>'
+            f'<div class="lb-stats-band lb-stats-band--mobile">'
+            f'<span class="lb-cell-form lb-stat-col">{form}</span>'
+            f'<span class="lb-cell-hp lb-stat-col">{hp_html}</span>'
+            f'<span class="lb-cell-acc lb-stat-col">{html.escape(accuracy)}</span>'
+            f"</div>"
             f"</div>"
         )
 
@@ -1192,9 +1271,11 @@ def _render_leaderboard_mobile_html(
         '<span class="lb-col-rank">Hạng</span>'
         '<span class="lb-col-name">Người chơi</span>'
         '<span class="lb-col-pts">Điểm</span>'
-        '<span class="lb-col-form">Phong độ</span>'
-        '<span class="lb-col-fine lb-col-fine--gap">Phạt</span>'
-        '<span class="lb-col-acc">Đúng</span>'
+        '<div class="lb-stats-band lb-stats-band--head lb-stats-band--mobile">'
+        '<span class="lb-col-form lb-stat-col">Phong độ</span>'
+        '<span class="lb-col-hp lb-stat-col">Sinh lực</span>'
+        '<span class="lb-col-acc lb-stat-col">Đúng</span>'
+        "</div>"
         "</div>"
     )
     _html(
@@ -1207,14 +1288,422 @@ def render_leaderboard_dataframe(
     lb: pd.DataFrame,
     highlight_user_id: str | None = None,
     sidebar_bundle: dict | None = None,
+    badge_rarity_map: dict[str, str] | None = None,
 ) -> None:
     """HTML leaderboard: desktop full columns + sidebar, mobile compact."""
     if lb.empty:
         st.info("Chưa có dữ liệu bảng xếp hạng.")
         return
 
-    _render_leaderboard_desktop_html(lb, highlight_user_id, sidebar_bundle=sidebar_bundle)
-    _render_leaderboard_mobile_html(lb, highlight_user_id)
+    _render_leaderboard_desktop_html(lb, highlight_user_id, sidebar_bundle=sidebar_bundle, badge_rarity_map=badge_rarity_map)
+    _render_leaderboard_mobile_html(lb, highlight_user_id, badge_rarity_map=badge_rarity_map)
+
+
+def _badge_collection_slot_icon(badge_name: str) -> str:
+    text = str(badge_name).strip()
+    if not text:
+        return "🏅"
+    first = text.split(maxsplit=1)[0] if text else "🏅"
+    if len(first) <= 2:
+        return first
+    return "🏅"
+
+
+def _badge_collection_progress_pct(unlocked: int, total: int) -> float:
+    if total <= 0:
+        return 0.0
+    return round(unlocked / total * 100, 1)
+
+
+def _badge_collection_rarity_sample_html(rarity: str) -> str:
+    slug = badge_rarity_slug(rarity)
+    sample_name = {"Common": "Common", "Rare": "Rare ✦", "Legend": "Legend ★"}.get(rarity, rarity)
+    style = badge_chip_style(sample_name)
+    overlays = ""
+    if rarity == "Rare":
+        overlays = (
+            '<span class="lb-badge-chip-shine" aria-hidden="true"></span>'
+            '<span class="lb-badge-chip-spark" aria-hidden="true"></span>'
+        )
+    elif rarity == "Legend":
+        overlays = (
+            '<span class="lb-badge-chip-holo" aria-hidden="true"></span>'
+            '<span class="lb-badge-chip-prism" aria-hidden="true"></span>'
+            '<span class="lb-badge-chip-shine lb-badge-chip-shine--legend" aria-hidden="true"></span>'
+        )
+    label = RARITY_LABELS_VN.get(rarity, rarity)
+    return (
+        f'<span class="badge-collection-rarity-sample lb-badge-chip lb-badge-chip--{slug}" style="{style}">'
+        f"{overlays}"
+        f'<span class="lb-badge-chip-text">{html.escape(label)}</span>'
+        "</span>"
+    )
+
+
+_TROPHY_GRID_COLS = 2
+_TROPHY_DESC_FALLBACK = "Chưa có mô tả cho danh hiệu này."
+_TROPHY_LOCKED_DESC_FALLBACK = "Chưa mở khóa — hoàn thành điều kiện để nhận danh hiệu."
+_TROPHY_METRIC_FILTER_ALL = "all"
+
+ACHIEVEMENT_GALLERY_METRIC_MAP: dict[str, str] = {
+    "all": "🌟 Tất cả",
+    "total_penalties": "💸 Đóng Góp Quỹ Phạt",
+    "win_streak": "🔥 Chuỗi Thắng",
+    "lose_streak": "🤡 Chuỗi Thua",
+    "underdog_picks": "💣 Nằm Cửa Dưới",
+    "late_picks": "⏳ Chốt Kèo Sát Giờ",
+    "points": "🏆 Điểm Số",
+    "hit_rate": "🎯 Tỉ Lệ Trúng",
+    "correct": "✅ Trận Đúng",
+    "missed": "😴 Bỏ Lỡ",
+    "played": "📋 Số Trận Đã Dự Đoán",
+    "remaining_hp": "❤️ Sinh Lực",
+}
+
+
+def format_gallery_metric(metric: str) -> str:
+    """Human-readable gallery filter label with fallback."""
+    key = str(metric or "").strip()
+    if not key:
+        return "Khác"
+    if key in ACHIEVEMENT_GALLERY_METRIC_MAP:
+        return ACHIEVEMENT_GALLERY_METRIC_MAP[key]
+    return key.replace("_", " ").capitalize()
+
+
+def _gallery_metric_filter_options(catalog_meta: list[dict]) -> list[str]:
+    """Unique metrics in sheet order, prefixed with 'all'."""
+    options = [_TROPHY_METRIC_FILTER_ALL]
+    seen: set[str] = set()
+    for item in catalog_meta:
+        metric = str(item.get("metric", "")).strip()
+        if metric and metric not in seen:
+            options.append(metric)
+            seen.add(metric)
+    return options
+
+
+def _filter_catalog_by_metric(catalog: list[str], catalog_meta: list[dict], metric: str) -> list[str]:
+    """Filter badge catalog by metric using pandas (preserves catalog order)."""
+    if metric == _TROPHY_METRIC_FILTER_ALL:
+        return catalog
+    if not catalog_meta:
+        return []
+    meta_df = pd.DataFrame(catalog_meta)
+    if meta_df.empty or "metric" not in meta_df.columns:
+        return []
+    metric_key = str(metric).strip()
+    matched = meta_df.loc[meta_df["metric"].astype(str).str.strip() == metric_key, "name"].astype(str).tolist()
+    matched_set = set(matched)
+    return [badge for badge in catalog if badge in matched_set]
+
+
+def _inject_trophy_room_styles() -> None:
+    """Scoped layout helpers — main trophy styles live in assets/style.css."""
+    st.markdown(
+        """
+<style>
+.trophy-room-marker { display: none; }
+[data-testid="column"] .trophy-card { width: 100%; box-sizing: border-box; }
+[data-testid="stVerticalBlock"]:has(.trophy-room-marker) [data-testid="column"] {
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+}
+</style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _trophy_card_description_text(description: str, *, state: str) -> str:
+    text = str(description or "").strip()
+    if state == "locked":
+        return f"🔒 {text or _TROPHY_LOCKED_DESC_FALLBACK}"
+    return text or _TROPHY_DESC_FALLBACK
+
+
+def _trophy_card_html(
+    badge: str,
+    *,
+    rarity: str,
+    state: str,
+    state_title: str,
+    description: str = "",
+) -> str:
+    """Slim horizontal trophy row card for the 2-column gallery."""
+    slug = badge_rarity_slug(rarity)
+    icon = html.escape(_badge_collection_slot_icon(badge))
+    label = html.escape(badge)
+    if state == "locked":
+        label = f"🔒 {label}"
+    desc_text = html.escape(_trophy_card_description_text(description, state=state))
+    rarity_label = html.escape(RARITY_LABELS_VN.get(rarity, rarity))
+
+    overlays = ""
+    status_html = ""
+    if state == "active":
+        status_html = '<span class="trophy-card-ribbon">Đang mang</span>'
+    elif state == "archived":
+        status_html = '<span class="trophy-card-ribbon trophy-card-ribbon--archived">Đã đạt</span>'
+
+    if state != "locked" and rarity == "Rare":
+        overlays = '<span class="trophy-card-shine" aria-hidden="true"></span>'
+    elif state != "locked" and rarity == "Legend":
+        overlays = (
+            '<span class="trophy-card-holo" aria-hidden="true"></span>'
+            '<span class="trophy-card-prism" aria-hidden="true"></span>'
+            '<span class="trophy-card-shine" aria-hidden="true"></span>'
+        )
+
+    return (
+        f'<div class="trophy-card trophy-card--horizontal trophy-card--{state} '
+        f'trophy-card--rarity-{slug}">'
+        f'<span class="trophy-card-rarity trophy-card-rarity--{slug}">{rarity_label}</span>'
+        f"{status_html}"
+        f'<span class="trophy-card-icon" aria-hidden="true">{icon}</span>'
+        '<div class="trophy-card-body">'
+        f'<span class="trophy-card-title">{label}</span>'
+        f'<span class="trophy-card-desc">{desc_text}</span>'
+        "</div>"
+        f"{overlays}"
+        "</div>"
+    )
+
+
+def _render_trophy_gallery_grid(
+    catalog: list[str],
+    *,
+    ever_set: set[str],
+    current_set: set[str],
+    rarity_map: dict[str, str],
+    description_map: dict[str, str] | None = None,
+    cols: int = _TROPHY_GRID_COLS,
+) -> None:
+    """Place horizontal trophy cards into a 2-column Streamlit grid."""
+    desc_lookup = description_map or {}
+    entries: list[tuple[str, str, str, str, str]] = []
+    for badge in catalog:
+        rarity = normalize_badge_rarity(rarity_map.get(badge))
+        description = str(desc_lookup.get(badge, "")).strip()
+        if badge in ever_set:
+            if badge in current_set:
+                state, state_title = "active", "Đang mang"
+            else:
+                state, state_title = "archived", "Đã từng đạt"
+        else:
+            state, state_title = "locked", "Chưa mở khóa"
+        entries.append((badge, rarity, state, state_title, description))
+
+    st.markdown('<div class="trophy-room-marker" aria-hidden="true"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="trophy-room-grid-wrap">', unsafe_allow_html=True)
+
+    for row_start in range(0, len(entries), cols):
+        row_entries = entries[row_start : row_start + cols]
+        columns = st.columns(cols)
+        for col_idx, column in enumerate(columns):
+            if col_idx >= len(row_entries):
+                break
+            badge, rarity, state, state_title, description = row_entries[col_idx]
+            card_html = _trophy_card_html(
+                badge,
+                rarity=rarity,
+                state=state,
+                state_title=state_title,
+                description=description,
+            )
+            with column:
+                st.markdown(card_html, unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_badge_collection_board(
+    bundle: dict,
+    highlight_user_id: str | None = None,
+) -> None:
+    """Trophy Room gallery — grid of custom HTML trophy cards per player."""
+    catalog = bundle.get("catalog") or []
+    catalog_meta = bundle.get("catalog_meta") or [{"name": n, "rarity": "Common"} for n in catalog]
+    rarity_map = bundle.get("rarity_map") or {item["name"]: item.get("rarity", "Common") for item in catalog_meta}
+    description_map = bundle.get("description_map") or {
+        item["name"]: item.get("description", "") for item in catalog_meta
+    }
+    rarity_totals = bundle.get("rarity_totals") or {}
+    players = bundle.get("players") or []
+    total_badges = int(bundle.get("total_badges", 0) or 0)
+    total_unlocked = int(bundle.get("total_unlocked", 0) or 0)
+    total_slots = int(bundle.get("total_slots", 0) or 0)
+    highlight = str(highlight_user_id) if highlight_user_id else None
+
+    if not catalog:
+        st.info("Chưa có danh hiệu nào trong hệ thống. Thêm rule tại tab Danh hiệu ẩn trên Lịch thi đấu.")
+        return
+
+    if not players:
+        st.info("Chưa có người chơi để hiển thị bộ sưu tập.")
+        return
+
+    _inject_trophy_room_styles()
+    global_pct = _badge_collection_progress_pct(total_unlocked, total_slots)
+
+    rarity_meta_pills = []
+    for rarity in BADGE_RARITIES:
+        count = int(rarity_totals.get(rarity, 0) or 0)
+        if count <= 0:
+            continue
+        slug = badge_rarity_slug(rarity)
+        label = RARITY_LABELS_VN.get(rarity, rarity)
+        rarity_meta_pills.append(
+            f'<span class="badge-collection-meta-pill badge-collection-meta-pill--{slug}">'
+            f"<strong>{count}</strong> {html.escape(label)}"
+            "</span>"
+        )
+
+    rarity_legend_items = []
+    for rarity in BADGE_RARITIES:
+        label = RARITY_LABELS_VN.get(rarity, rarity)
+        slug = badge_rarity_slug(rarity)
+        rarity_legend_items.append(
+            f'<span class="badge-collection-rarity-legend-item badge-collection-rarity-legend-item--{slug}">'
+            f"{_badge_collection_rarity_sample_html(rarity)}"
+            f'<span class="badge-collection-rarity-legend-copy">'
+            f"<strong>{html.escape(label)}</strong>"
+            f"<span>{html.escape(rarity)}</span>"
+            "</span></span>"
+        )
+
+    hero = (
+        '<div class="badge-collection-hero">'
+        '<div class="badge-collection-hero-glow" aria-hidden="true"></div>'
+        '<div class="badge-collection-hero-inner">'
+        '<span class="badge-collection-eyebrow">Achievement Hall</span>'
+        '<h2 class="badge-collection-title">🏅 Bộ sưu tập danh hiệu</h2>'
+        '<p class="badge-collection-subtitle">'
+        "Toàn bộ huy hiệu từng mở khóa — kể cả danh hiệu không còn đang mang."
+        "</p>"
+        '<div class="badge-collection-meta">'
+        f'<span class="badge-collection-meta-pill"><strong>{total_badges}</strong> danh hiệu trong game</span>'
+        f'<span class="badge-collection-meta-pill"><strong>{total_unlocked}</strong> lần mở khóa</span>'
+        f'<span class="badge-collection-meta-pill"><strong>{len(players)}</strong> người chơi</span>'
+        f'{"".join(rarity_meta_pills)}'
+        "</div>"
+        '<div class="badge-collection-global-bar">'
+        '<div class="badge-collection-global-bar-track">'
+        f'<div class="badge-collection-global-bar-fill" style="width:{global_pct}%"></div>'
+        "</div>"
+        f'<span class="badge-collection-global-bar-label">{global_pct}% tổng tiến độ</span>'
+        "</div>"
+        '<div class="badge-collection-legend">'
+        '<span class="badge-collection-legend-item badge-collection-legend-item--active">'
+        '<span class="badge-collection-legend-dot"></span>Đang mang</span>'
+        '<span class="badge-collection-legend-item badge-collection-legend-item--archived">'
+        '<span class="badge-collection-legend-dot"></span>Đã từng đạt</span>'
+        '<span class="badge-collection-legend-item badge-collection-legend-item--locked">'
+        '<span class="badge-collection-legend-dot"></span>Chưa mở</span>'
+        "</div>"
+        '<div class="badge-collection-rarity-legend">'
+        f'{"".join(rarity_legend_items)}'
+        "</div>"
+        "</div></div>"
+    )
+
+    _html(
+        '<div class="badge-collection-marker" aria-hidden="true"></div>'
+        f"{hero}"
+    )
+
+    player_ids = [str(p.get("user_id", "")) for p in players]
+    default_uid = highlight if highlight in player_ids else player_ids[0]
+
+    def _player_label(uid: str) -> str:
+        player = next(p for p in players if str(p.get("user_id")) == uid)
+        rank = int(player.get("rank", 0) or 0)
+        rank_txt = f"#{rank} " if rank > 0 else ""
+        name = str(player.get("name", ""))
+        unlocked = int(player.get("unlocked_count", 0) or 0)
+        you = " (Bạn)" if highlight and uid == highlight else ""
+        return f"{rank_txt}{name}{you} — {unlocked}/{total_badges}"
+
+    selected_uid = st.selectbox(
+        "🏛️ Chọn phòng danh hiệu",
+        player_ids,
+        index=player_ids.index(default_uid),
+        format_func=_player_label,
+        key="trophy_room_player_pick",
+    )
+    selected = next(p for p in players if str(p.get("user_id")) == str(selected_uid))
+    is_me = highlight and str(selected_uid) == highlight
+    unlocked = int(selected.get("unlocked_count", 0) or 0)
+    pct = _badge_collection_progress_pct(unlocked, total_badges)
+    ever_set = set(selected.get("ever_badges") or [])
+    current_set = set(selected.get("current_badges") or [])
+    rank = int(selected.get("rank", 0) or 0)
+    rank_label = f"Hạng #{rank}" if rank > 0 else "Chưa xếp hạng"
+    player_name = html.escape(str(selected.get("name", "")))
+    you_tag = ' <span class="badge-collection-you">Bạn</span>' if is_me else ""
+
+    panel_head = (
+        '<section class="trophy-room-panel">'
+        '<div class="trophy-room-panel-head">'
+        "<div>"
+        f'<h3 class="trophy-room-player-title">{player_name}{you_tag}</h3>'
+        f'<p class="trophy-room-player-sub">{html.escape(rank_label)} · '
+        f"{unlocked}/{total_badges} danh hiệu đã mở · {pct}% hoàn thành</p>"
+        "</div>"
+        '<div class="trophy-room-progress">'
+        '<div class="trophy-room-progress-track">'
+        f'<div class="trophy-room-progress-fill" style="width:{pct}%"></div>'
+        "</div>"
+        "</div>"
+        "</div>"
+    )
+    st.markdown(panel_head, unsafe_allow_html=True)
+
+    metric_options = _gallery_metric_filter_options(catalog_meta)
+    selected_metric = st.radio(
+        "Lọc theo loại danh hiệu",
+        metric_options,
+        horizontal=True,
+        format_func=format_gallery_metric,
+        key="trophy_room_metric_filter",
+        label_visibility="collapsed",
+    )
+    filtered_catalog = _filter_catalog_by_metric(catalog, catalog_meta, selected_metric)
+    filter_label = format_gallery_metric(selected_metric)
+    st.caption(f"{len(filtered_catalog)} danh hiệu · {filter_label}")
+
+    if not filtered_catalog:
+        st.info(f"Không có danh hiệu nào trong nhóm «{filter_label}».")
+    else:
+        _render_trophy_gallery_grid(
+            filtered_catalog,
+            ever_set=ever_set,
+            current_set=current_set,
+            rarity_map=rarity_map,
+            description_map=description_map,
+        )
+
+    st.markdown("</section>", unsafe_allow_html=True)
+
+    mini_stats = []
+    for player in players:
+        uid = str(player.get("user_id", ""))
+        stat_class = "trophy-room-mini-stat trophy-room-mini-stat--me" if highlight and uid == highlight else "trophy-room-mini-stat"
+        p_name = html.escape(str(player.get("name", "")))
+        p_unlocked = int(player.get("unlocked_count", 0) or 0)
+        p_pct = _badge_collection_progress_pct(p_unlocked, total_badges)
+        mini_stats.append(
+            f'<div class="{stat_class}">'
+            f"<strong>{p_name}</strong>"
+            f"{p_unlocked}/{total_badges} · {p_pct}%"
+            "</div>"
+        )
+
+    _html(
+        '<div class="trophy-room-all-players">'
+        f'{"".join(mini_stats)}'
+        "</div>"
+    )
 
 
 def render_squad_team_header(

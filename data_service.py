@@ -13,6 +13,22 @@ VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
 USERS_COLUMNS = ("user_id", "name", "password", "active_from_kickoff")
 PREDICTIONS_COLUMNS = ("user_id", "match_id", "pred_outcome", "pred_advanced_team_id", "timestamp")
+ACHIEVEMENTS_COLUMNS = ("id", "badge_name", "metric", "operator", "threshold_value", "rarity", "description")
+ACHIEVEMENTS_SHEET_NAME = "Achievements"
+
+# Google Sheets treats values starting with "=" as formulas — store "==" as "eq".
+_OPERATOR_TO_SHEET = {"==": "eq"}
+_OPERATOR_FROM_SHEET = {"eq": "==", "=": "=="}
+
+
+def _serialize_operator_for_sheet(operator: str) -> str:
+    op = str(operator).strip()
+    return _OPERATOR_TO_SHEET.get(op, op)
+
+
+def _normalize_operator_from_sheet(raw: str) -> str:
+    key = str(raw).strip().lower()
+    return _OPERATOR_FROM_SHEET.get(key, str(raw).strip())
 
 
 def _col_letter(n: int) -> str:
@@ -70,13 +86,115 @@ def init_connection():
 
 
 def read_sheet(sh, sheet_name: str) -> pd.DataFrame:
-    data = sh.worksheet(sheet_name).get_all_values()
+    try:
+        data = sh.worksheet(sheet_name).get_all_values()
+    except gspread.exceptions.WorksheetNotFound:
+        return pd.DataFrame()
     if not data or not data[0]:
         return pd.DataFrame()
     headers = [str(h).strip() for h in data[0]]
     if len(data) == 1:
         return pd.DataFrame(columns=headers)
     return pd.DataFrame(data[1:], columns=headers)
+
+
+def read_achievements_sheet(sh) -> pd.DataFrame:
+    """Read achievement rules from the Achievements worksheet."""
+    df = read_sheet(sh, ACHIEVEMENTS_SHEET_NAME)
+    if df.empty:
+        return pd.DataFrame(columns=list(ACHIEVEMENTS_COLUMNS))
+
+    df = df.copy()
+    df.columns = [str(c).strip() for c in df.columns]
+    for col in ACHIEVEMENTS_COLUMNS:
+        if col not in df.columns:
+            df[col] = ""
+    df = df[list(ACHIEVEMENTS_COLUMNS)]
+    df = df[df["badge_name"].astype(str).str.strip() != ""]
+    df["operator"] = df["operator"].apply(_normalize_operator_from_sheet)
+    df["rarity"] = df["rarity"].apply(_normalize_badge_rarity_from_sheet)
+    return df.reset_index(drop=True)
+
+
+def _normalize_badge_rarity_from_sheet(raw) -> str:
+    """Map sheet rarity cell to Common / Rare / Legend (default Common)."""
+    text = str(raw or "").strip().lower()
+    if text in ("rare", "hiếm", "hiem"):
+        return "Rare"
+    if text in ("legend", "legendary", "huyền thoại", "huyen thoai", "huyenthoai"):
+        return "Legend"
+    return "Common"
+
+
+def _next_achievement_id(existing_ids: list[str]) -> str:
+    nums = []
+    for raw in existing_ids:
+        text = str(raw).strip().upper()
+        if text.startswith("A") and text[1:].isdigit():
+            nums.append(int(text[1:]))
+    n = max(nums, default=0) + 1
+    return f"A{n:03d}"
+
+
+def append_achievement_row(sh, row_dict: dict) -> str:
+    """Append one achievement rule; returns generated id."""
+    ws = ensure_worksheet(sh, ACHIEVEMENTS_SHEET_NAME, rows=200, cols=8)
+    data = ws.get_all_values()
+    headers = list(ACHIEVEMENTS_COLUMNS)
+    if not data or not data[0]:
+        ws.update("A1:G1", [headers], value_input_option="USER_ENTERED")
+        existing_ids: list[str] = []
+    else:
+        row_headers = [str(h).strip() for h in data[0]]
+        if row_headers != headers:
+            ws.update("A1:G1", [headers], value_input_option="USER_ENTERED")
+        existing_ids = [str(r[0]).strip() for r in data[1:] if r and str(r[0]).strip()]
+
+    new_id = str(row_dict.get("id") or "").strip() or _next_achievement_id(existing_ids)
+    row = {
+        "id": new_id,
+        "badge_name": str(row_dict.get("badge_name", "")).strip(),
+        "metric": str(row_dict.get("metric", "")).strip(),
+        "operator": _serialize_operator_for_sheet(str(row_dict.get("operator", "")).strip()),
+        "threshold_value": str(row_dict.get("threshold_value", "")).strip(),
+        "rarity": _normalize_badge_rarity_from_sheet(row_dict.get("rarity", "Common")),
+        "description": str(row_dict.get("description", "")).strip(),
+    }
+    ws.append_row([row[c] for c in headers], value_input_option="USER_ENTERED")
+    return new_id
+
+
+def update_achievement_row(sh, rule_id: str, row_dict: dict) -> None:
+    """Update an existing achievement rule by id."""
+    ws = ensure_worksheet(sh, ACHIEVEMENTS_SHEET_NAME, rows=200, cols=8)
+    data = ws.get_all_values()
+    headers = list(ACHIEVEMENTS_COLUMNS)
+    if not data or len(data) < 2:
+        raise ValueError(f"Không tìm thấy quy tắc {rule_id}")
+
+    target_id = str(rule_id).strip()
+    sheet_row = None
+    for idx, raw in enumerate(data[1:], start=2):
+        if raw and str(raw[0]).strip() == target_id:
+            sheet_row = idx
+            break
+    if sheet_row is None:
+        raise ValueError(f"Không tìm thấy quy tắc {target_id}")
+
+    row = {
+        "id": target_id,
+        "badge_name": str(row_dict.get("badge_name", "")).strip(),
+        "metric": str(row_dict.get("metric", "")).strip(),
+        "operator": _serialize_operator_for_sheet(str(row_dict.get("operator", "")).strip()),
+        "threshold_value": str(row_dict.get("threshold_value", "")).strip(),
+        "rarity": _normalize_badge_rarity_from_sheet(row_dict.get("rarity", "Common")),
+        "description": str(row_dict.get("description", "")).strip(),
+    }
+    ws.update(
+        f"A{sheet_row}:G{sheet_row}",
+        [[row[c] for c in headers]],
+        value_input_option="USER_ENTERED",
+    )
 
 
 def ensure_worksheet(sh, sheet_name: str, rows: int = 120, cols: int = 20):

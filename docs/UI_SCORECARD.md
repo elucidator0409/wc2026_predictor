@@ -38,7 +38,7 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 - [ ] P2 — Thứ tự card khi stack 1 cột (0,2,4,1,3) trên iPad
 - [ ] P2 — Trang Home CTA polish
 - [ ] P2 — Trang Lịch thi đấu (fixture rows)
-- [ ] P2 — Trang Bảng xếp hạng
+- [ ] P2 — Trang Bảng xếp hạng *(Sprint 9: HP + achievements + gallery — xem Sprint 9)*
 - [x] P3 — Login flow UX *(done Sprint 1.9)*
 - [x] P3 — Lịch sử: feedback kết quả thật *(done Sprint 2.1)*
 - [x] P3 — Lịch sử: chuỗi dài mobile *(done Sprint 2.1)*
@@ -540,6 +540,68 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 
 ---
 
+## Sprint 9 — HP Bar, Achievements & Bộ sưu tập (2026-06-14)
+
+**Phạm vi:** Gamification BXH: Sinh lực (HP), danh hiệu ẩn từ Google Sheets, tab Bộ sưu tập, rarity overlay, sidebar streak trailing. Commit sau `556bae7`.
+
+| # | Việc | File | Trạng thái |
+|---|------|------|------------|
+| 9a | `achievement_service.py` — HP, rule engine, tier penalty, badge history | `achievement_service.py` | ✅ Done |
+| 9b | Sheet I/O Achievements (+ `rarity`, `description`) | `data_service.py` | ✅ Done |
+| 9c | HP bar thay cột Phạt; badges chip dưới tên | `ui_components.py`, `style.css` | ✅ Done |
+| 9d | Tab admin 🏅 Danh hiệu ẩn (thêm + sửa rule) | `pages/2_Lich_Thi_Dau.py` | ✅ Done |
+| 9e | Tab 🏅 Bộ sưu tập (giữa Leaderboard ↔ Phân tích) | `pages/3_Bang_Xep_Hang.py` | ✅ Done |
+| 9f | Gallery: thẻ ngang slim, `st.columns(2)`, filter metric | `ui_components.py` | ✅ Done |
+| 9g | Rarity Common/Rare/Legend — holo/shine overlay | `achievement_service.py`, CSS | ✅ Done |
+| 9h | Sidebar Chuỗi Thắng/Thua → trailing streak (fix lịch sử sai) | `leaderboard_gamification_service.py` | ✅ Done |
+| 9i | Tests achievement + gamification streak | `tests/test_achievement_service.py`, `tests/test_leaderboard_gamification_service.py` | ✅ Done |
+| 9j | Docs engine | `docs/ACHIEVEMENT_ENGINE.md` | ✅ Done |
+
+### Layout BXH sau Sprint 9
+
+| Thành phần | Desktop | Mobile |
+|------------|---------|--------|
+| Main tabs | Leaderboard · **Bộ sưu tập** · Phân tích | Cùng 3 tab (pill switcher) |
+| Stats band | Phong độ 3 · Sinh lực · Đúng · Bỏ lỡ | Phong độ 3 · Sinh lực · Đúng |
+| Badges | Chip màu + rarity dưới tên | Cùng |
+| Sidebar | Activity + Chuỗi Thắng/Thua/Vua Bịp | Streak cards trên đầu bảng |
+
+### Bộ sưu tập — UX flow
+
+1. Hero Achievement Hall (tổng danh hiệu, tiến độ, legend rarity).
+2. Chọn người chơi (`st.selectbox`).
+3. Lọc loại (`st.radio` horizontal — `ACHIEVEMENT_GALLERY_METRIC_MAP`).
+4. Grid 2 cột: thẻ ngang (icon + tên + **description**); locked = grayscale + 🔒.
+
+### Sự cố đã xử lý
+
+| Vấn đề | Root cause | Fix |
+|--------|------------|-----|
+| HP 1:1 fines | `remaining_hp = 140 - fines` | `fines // 10` (1 HP = 10k) |
+| Grid BXH vỡ | Cột Danh hiệu + Tỉ lệ | Bỏ Tỉ lệ; badge dưới tên |
+| Mọi user nhận hết badge phạt | Rule `<=` chồng tier | Tier exclusive + hướng dẫn `>=` |
+| Sidebar Thua hiện “thắng” | `_max_streak_window` (kỷ lục cũ) | `_trailing_streak_window` |
+| `==` trên sheet | Sheets parse formula | Serialize `eq` |
+
+### Điểm UI (ước lượng)
+
+| Tiêu chí | Trước | Sau Sprint 9 |
+|----------|-------|--------------|
+| Gamification BXH | 5.0 | **8.5** |
+| Bộ sưu tập readability | — | **8.0** |
+| Sidebar streak accuracy | 6.0 | **8.5** |
+| Admin achievements UX | — | **7.5** |
+
+### Sheet migrate (manual)
+
+| Cột | Header | Ghi chú |
+|-----|--------|---------|
+| A–E | id, badge_name, metric, operator, threshold_value | Có từ v1 |
+| F | `rarity` | Common / Rare / Legend |
+| G | `description` | Hiển thị trong gallery |
+
+---
+
 ## Tiếp theo
 
 - [x] Sprint 2.5 Admin audit + fix
@@ -552,6 +614,7 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 - [x] Sprint 6 tra cứu đội hình
 - [x] Sprint 7 analytics dashboard (4 tabs + Risk Bias)
 - [x] Sprint 8 late joiner users + predictions sheet I/O
+- [x] Sprint 9 HP + achievements + Bộ sưu tập
 
 ### Backlog P2
 
@@ -560,6 +623,7 @@ Audit trang **Dự đoán** (`pages/1_Du_Doan.py`), user U01, card trận đấu
 - [ ] Admin tab Thêm user: polish visual (card layout, không chỉ form thuần)
 - [ ] Analytics Risk Bias lọc `active_from_kickoff` (nhất quán Sprint 8c)
 - [ ] Fix `test_sidebar_overlay` theo boot v8 (`resolveHostWindow`)
+- [ ] Metric `underdog_picks` / `late_picks` trong achievement engine
 
 ---
 

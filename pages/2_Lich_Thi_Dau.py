@@ -1,15 +1,19 @@
 import pandas as pd
 import streamlit as st
 
+from achievement_service import ALLOWED_METRICS, BADGE_RARITIES, METRIC_LABELS_VN, OPERATORS, RARITY_LABELS_VN, THRESHOLD_HINTS_VN
 from data_service import (
+    append_achievement_row,
     append_user_row,
     hash_password,
     init_connection,
     normalize_users_df,
     prep_matches,
+    read_achievements_sheet,
     read_predictions_sheet,
     read_sheet,
     repair_predictions_sheet_header,
+    update_achievement_row,
     vietnam_timestamp,
     write_worksheet_dataframe,
 )
@@ -89,6 +93,12 @@ def load_matrix_data():
     teams_df.replace("", pd.NA, inplace=True)
     matches_df = prep_matches(matches_raw, teams_df)
     return users_df, preds_df, matches_df, teams_df
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_achievements_admin():
+    sh = init_connection()
+    return read_achievements_sheet(sh)
 
 
 with custom_loader("Đang đồng bộ dữ liệu quản trị..."):
@@ -265,6 +275,7 @@ tab_options = [
     "🔒 Khóa trận",
     "👤 Thêm người chơi",
     "📊 Ma trận → Sheet",
+    "🏅 Danh hiệu ẩn",
 ]
 active_tab = st.radio("Chọn chức năng:", tab_options, horizontal=True, key="active_tab", label_visibility="collapsed")
 st.write("---")
@@ -560,3 +571,168 @@ elif active_tab == tab_options[5]:
     if spreadsheet_id:
         sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
         st.link_button("Mở Google Spreadsheet", sheet_url)
+
+elif active_tab == tab_options[6]:
+    st.markdown('<div class="content-card-title">🏅 Danh hiệu ẩn (Achievements)</div>', unsafe_allow_html=True)
+    st.caption(
+        "Quy tắc đọc từ tab `Achievements` trên Google Sheet. "
+        "Người chơi đạt điều kiện sẽ hiện danh hiệu trên Bảng Xếp Hạng. "
+        "Toán tử bằng (`==`) được lưu trên sheet dưới dạng `eq`. "
+        "Badge phạt (`total_penalties`): dùng `>=` cho tier cống hiến — mỗi người chỉ nhận **một** tier cao nhất. "
+        "Cột `rarity`: `Common`, `Rare`, hoặc `Legend` — để trống = Common. "
+        "Cột `description`: mô tả hiển thị trong Bộ sưu tập danh hiệu."
+    )
+
+    achievements_df = load_achievements_admin()
+    if achievements_df.empty:
+        st.info("Chưa có quy tắc nào. Thêm quy tắc đầu tiên bên dưới — tab sheet sẽ được tạo tự động.")
+    else:
+        st.dataframe(achievements_df, use_container_width=True, hide_index=True)
+
+    metric_options = sorted(ALLOWED_METRICS)
+    metric_labels = {m: f"{METRIC_LABELS_VN.get(m, m)} (`{m}`)" for m in metric_options}
+    operator_options = list(OPERATORS.keys())
+
+    if not achievements_df.empty:
+        st.markdown("**Chỉnh sửa quy tắc**")
+        rule_ids = achievements_df["id"].astype(str).tolist()
+
+        def _achievement_rule_label(rule_id: str) -> str:
+            row = achievements_df[achievements_df["id"].astype(str) == str(rule_id)].iloc[0]
+            return f"{rule_id} — {row['badge_name']}"
+
+        edit_id = st.selectbox(
+            "Chọn quy tắc cần sửa",
+            rule_ids,
+            format_func=_achievement_rule_label,
+            key="achievement_edit_pick",
+        )
+        edit_row = achievements_df[achievements_df["id"].astype(str) == str(edit_id)].iloc[0]
+        edit_metric = str(edit_row.get("metric", metric_options[0])).strip()
+        edit_operator = str(edit_row.get("operator", operator_options[0])).strip()
+        if edit_metric not in metric_options:
+            edit_metric = metric_options[0]
+        if edit_operator not in operator_options:
+            edit_operator = operator_options[0]
+        try:
+            edit_threshold = float(edit_row.get("threshold_value", 0) or 0)
+        except (TypeError, ValueError):
+            edit_threshold = 0.0
+        edit_rarity = str(edit_row.get("rarity", "Common")).strip()
+        if edit_rarity not in BADGE_RARITIES:
+            edit_rarity = "Common"
+
+        with st.form("edit_achievement_rule"):
+            edit_badge_name = st.text_input("Tên danh hiệu", value=str(edit_row.get("badge_name", "")))
+            edit_rarity_sel = st.selectbox(
+                "Tính chất (rarity)",
+                BADGE_RARITIES,
+                index=BADGE_RARITIES.index(edit_rarity),
+                format_func=lambda r: f"{RARITY_LABELS_VN.get(r, r)} ({r})",
+            )
+            edit_description = st.text_area(
+                "Mô tả (description)",
+                value=str(edit_row.get("description", "")),
+                placeholder="Điều kiện hoặc câu chuyện đằng sau danh hiệu…",
+            )
+            edit_metric_sel = st.selectbox(
+                "Chỉ số (metric)",
+                metric_options,
+                index=metric_options.index(edit_metric),
+                format_func=lambda m: metric_labels[m],
+            )
+            edit_operator_sel = st.selectbox(
+                "Toán tử",
+                operator_options,
+                index=operator_options.index(edit_operator),
+            )
+            edit_threshold_value = st.number_input("Ngưỡng (threshold)", value=edit_threshold, step=1.0)
+            if edit_metric_sel in THRESHOLD_HINTS_VN:
+                st.caption(THRESHOLD_HINTS_VN[edit_metric_sel])
+            edit_submitted = st.form_submit_button("💾 Lưu thay đổi", type="primary")
+
+        if edit_submitted:
+            badge_clean = str(edit_badge_name).strip()
+            if not badge_clean:
+                st.error("Vui lòng nhập tên danh hiệu.")
+            elif edit_metric_sel not in ALLOWED_METRICS:
+                st.error("Chỉ số không hợp lệ.")
+            elif edit_operator_sel not in OPERATORS:
+                st.error("Toán tử không hợp lệ.")
+            else:
+                try:
+                    sh = init_connection()
+                    update_achievement_row(
+                        sh,
+                        str(edit_id),
+                        {
+                            "badge_name": badge_clean,
+                            "metric": edit_metric_sel,
+                            "operator": edit_operator_sel,
+                            "threshold_value": edit_threshold_value,
+                            "rarity": edit_rarity_sel,
+                            "description": str(edit_description).strip(),
+                        },
+                    )
+                    load_achievements_admin.clear()
+                    st.cache_data.clear()
+                    st.session_state["success_msg"] = (
+                        f"✅ Đã cập nhật quy tắc {edit_id}: {badge_clean} "
+                        f"({edit_metric_sel} {edit_operator_sel} {edit_threshold_value})."
+                    )
+                    st.rerun()
+                except ValueError as exc:
+                    st.error(str(exc))
+
+    with st.form("add_achievement_rule", clear_on_submit=True):
+        st.markdown("**Thêm quy tắc mới**")
+        badge_name = st.text_input("Tên danh hiệu", placeholder="🔮 Pháp Sư Mù")
+        rarity = st.selectbox(
+            "Tính chất (rarity)",
+            BADGE_RARITIES,
+            index=0,
+            format_func=lambda r: f"{RARITY_LABELS_VN.get(r, r)} ({r})",
+        )
+        description = st.text_area(
+            "Mô tả (description)",
+            placeholder="Điều kiện hoặc câu chuyện đằng sau danh hiệu…",
+        )
+        metric = st.selectbox(
+            "Chỉ số (metric)",
+            metric_options,
+            format_func=lambda m: metric_labels[m],
+        )
+        operator = st.selectbox("Toán tử", operator_options)
+        threshold_value = st.number_input("Ngưỡng (threshold)", value=0.0, step=1.0)
+        if metric in THRESHOLD_HINTS_VN:
+            st.caption(THRESHOLD_HINTS_VN[metric])
+        submitted = st.form_submit_button("➕ Thêm quy tắc", type="primary")
+
+    if submitted:
+        badge_clean = str(badge_name).strip()
+        if not badge_clean:
+            st.error("Vui lòng nhập tên danh hiệu.")
+        elif metric not in ALLOWED_METRICS:
+            st.error("Chỉ số không hợp lệ.")
+        elif operator not in OPERATORS:
+            st.error("Toán tử không hợp lệ.")
+        else:
+            sh = init_connection()
+            new_id = append_achievement_row(
+                sh,
+                {
+                    "badge_name": badge_clean,
+                    "metric": metric,
+                    "operator": operator,
+                    "threshold_value": threshold_value,
+                    "rarity": rarity,
+                    "description": str(description).strip(),
+                },
+            )
+            load_achievements_admin.clear()
+            st.cache_data.clear()
+            st.session_state["success_msg"] = (
+                f"✅ Đã thêm quy tắc {new_id}: {badge_clean} "
+                f"({metric} {operator} {threshold_value})."
+            )
+            st.rerun()
