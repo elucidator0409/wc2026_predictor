@@ -302,9 +302,9 @@ if active_tab == tab_options[0]:
                 st.warning("Một số trận đã xác nhận nhưng chưa nhập tỉ số: " + "; ".join(missing))
             elif not admin_inputs:
                 st.warning("Chưa xác nhận trận nào!")
-            elif zero_warn:
-                st.warning("⚠️ Có trận 0–0 — kiểm tra lại: " + "; ".join(zero_warn))
             else:
+                if zero_warn:
+                    st.info("ℹ️ Đã ghi nhận các trận có tỉ số 0-0: " + "; ".join(zero_warn))
                 st.session_state["success_msg"] = f"✅ Đã cập nhật {len(admin_inputs)} trận thành công!"
                 _apply_admin_updates(admin_inputs, "score")
 
