@@ -240,7 +240,7 @@ with tab1:
     if upcoming_matches.empty:
         st.info("Tất cả trận hiện tại đã khóa hoặc kết thúc. Không còn trận để dự đoán!")
     else:
-        upcoming_matches = upcoming_matches.sort_values(["kickoff_vn", "match_number"]).head(6)
+        upcoming_matches = upcoming_matches.sort_values(["kickoff_vn", "match_number"]).head(10)
         render_pred_page_banner(selected_user_name, len(upcoming_matches), saved_count)
         st.markdown('<div class="pred-form-actions-marker"></div>', unsafe_allow_html=True)
 
@@ -433,6 +433,29 @@ with tab2:
         if momentum:
             summary_text = f"{momentum} · {summary_text}"
 
-        render_pred_history_mobile_section(display_history)
-        render_pred_history_desktop_table(display_history)
+        # 🤖 Tự động phát hiện thiết bị qua User-Agent trực tiếp từ Python
+        try:
+            user_agent = st.context.headers.get("User-Agent", "")
+            is_mobile = any(kw in user_agent for kw in ["Mobile", "Android", "iPhone", "iPad", "webOS", "Opera Mini"])
+            default_view = "📱 Bản Điện thoại" if is_mobile else "💻 Bản Máy tính"
+        except Exception:
+            default_view = "📱 Bản Điện thoại"
+
+        # Đổi sang st.radio horizontal để tự động thừa hưởng class CSS Custom cực đẹp của App
+        view_mode = st.radio(
+            "Chế độ xem lịch sử",
+            options=["📱 Bản Điện thoại", "💻 Bản Máy tính"],
+            index=0 if default_view == "📱 Bản Điện thoại" else 1,
+            horizontal=True,
+            key="history_view_toggle",
+            label_visibility="collapsed"
+        )
+        
+        _html('<div style="margin-top: 15px;"></div>')
+        
+        if view_mode == "💻 Bản Máy tính":
+            render_pred_history_desktop_table(display_history)
+        else:
+            render_pred_history_mobile_section(display_history)
+            
         _html(f'<div class="pred-history-summary">{html.escape(summary_text)}</div>')

@@ -532,3 +532,55 @@ def format_risk_bias_takeaway(summary: dict) -> str:
             f"{summary['riskiest_name']} hay chọn ngược số đông nhất ({summary['riskiest_pct']:.0f}% Risky)."
         )
     return " ".join(parts)
+
+
+def calculate_fund_forecast(leaderboard_df: pd.DataFrame, finished_matches_count: int) -> dict:
+    """
+    Tính dự phóng quỹ phạt (Expected Value) dựa trên Hit Rate cá nhân của từng user.
+    """
+    TOTAL_MATCHES = 104
+    PENALTY_FEE = 10000  # 10k VNĐ mỗi trận sai/miss
+    
+    if leaderboard_df.empty:
+        return {"current_fund": 0, "projected_fund": 0, "finished_matches": 0, "total_matches": TOTAL_MATCHES}
+
+    current_total_fund = 0
+    projected_total_fund = 0
+    remaining_matches = max(0, TOTAL_MATCHES - finished_matches_count)
+
+    # Tính dự phóng cho TỪNG USER
+    for _, row in leaderboard_df.iterrows():
+        # 1. Quỹ hiện tại của user này (1 đơn vị fines = 1000 VNĐ)
+        user_current_fine = int(row.get("fines", 0)) * 1000
+        current_total_fund += user_current_fine
+
+        # 2. Lấy tỉ lệ trúng (Hit Rate) hiện tại
+        # Ví dụ hit_rate = 40.5 (%) -> Xác suất đoán đúng là 0.405
+        hit_rate_pct = float(row.get("hit_rate", 0.0))
+        prob_correct = hit_rate_pct / 100.0
+
+        # Nếu user chưa chơi trận nào (hoặc data lỗi), để mặc định xác suất sai là 50%
+        if float(row.get("played", 0)) == 0:
+            prob_correct = 0.5
+
+        # 3. Xác suất bị phạt (Đoán sai hoặc Bỏ lỡ)
+        prob_penalty = 1.0 - prob_correct
+
+        # 4. Kỳ vọng tiền phạt trong các trận còn lại
+        expected_future_fines = prob_penalty * remaining_matches * PENALTY_FEE
+
+        # 5. Cộng dồn vào quỹ dự phóng tổng
+        projected_total_fund += (user_current_fine + expected_future_fines)
+
+    # Tính thêm một baseline ngây thơ (Naive) để so sánh vui
+    naive_projected = 0
+    if finished_matches_count > 0:
+        naive_projected = int((current_total_fund / finished_matches_count) * TOTAL_MATCHES)
+
+    return {
+        "current_fund": int(current_total_fund),
+        "projected_fund": int(projected_total_fund),
+        "naive_fund": int(naive_projected), # Dùng để soi xem model AI tính lệch model cơ bản bao nhiêu
+        "finished_matches": finished_matches_count,
+        "total_matches": TOTAL_MATCHES
+    }

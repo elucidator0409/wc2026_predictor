@@ -23,6 +23,7 @@ from analytics_service import (
     summarize_momentum,
     summarize_risk_bias,
     top_momentum_players,
+    calculate_fund_forecast,
 )
 from achievement_service import (
     apply_achievements_to_leaderboard,
@@ -322,8 +323,8 @@ with tab3:
         users_df, preds_df, matches_df, finished_matches
     )
     outcome_caption = " · ".join(f"{code} = {OUTCOME_LABELS[code]}" for code in OUTCOME_ORDER)
-    t_mom, t_acc, t_lead, t_risk = render_analytics_sub_tabs(
-        ["🏁 Momentum", "🎯 Accuracy", "⏱️ Lead Time", "🎲 Risk Bias"]
+    t_mom, t_acc, t_lead, t_risk, t_fund = render_analytics_sub_tabs(
+        ["🏁 Momentum", "🎯 Accuracy", "⏱️ Lead Time", "🎲 Risk Bias", "💰 Fund Forecast"]
     )
 
     with t_mom:
@@ -600,3 +601,61 @@ with tab3:
             )
             st.plotly_chart(fig, width="stretch")
             render_analytics_takeaway(format_risk_bias_takeaway(risk_summary))
+
+    with t_fund:
+        render_analytics_guide(
+            icon="📈",
+            title="Dự Đoán Quỹ Phạt Cuối Mùa ",
+            summary=(
+                "Sử dụng mô hình Giá trị kỳ vọng (Expected Value) để soi phong độ hiện tại "
+                "của TỪNG NGƯỜI CHƠI, từ đó dự đoán tổng số tiền phạt khi khép lại 104 trận World Cup."
+            ),
+            tips=[
+                "Công thức: Quỹ hiện tại + Tổng [ Xác suất sai (100% - Hit Rate) × Số trận còn lại × 10k ] của từng cá nhân.",
+                "Hệ thống tự nhận diện các 'Báo thủ' (Hit Rate thấp) để tính dồn tiền phạt, ai đoán hay sẽ không bị cộng tiền oan.",
+            ],
+        )
+        
+        # Gọi hàm tính toán đã dán ở analytics_service.py
+        # Truyền độ dài của bảng finished_matches thay vì cả bảng
+        finished_count = len(finished_matches) 
+        forecast_data = calculate_fund_forecast(leaderboard, finished_count)
+        
+        current_fund = forecast_data["current_fund"]
+        projected_fund = forecast_data["projected_fund"]
+        naive_fund = forecast_data["naive_fund"]
+        total_matches = forecast_data["total_matches"]
+        
+        if finished_count == 0:
+            st.info("Chưa có trận nào kết thúc nên chưa thể tính toán dự phóng.")
+        else:
+            _html('<div style="margin-top: 1.5rem;"></div>')
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric(
+                    label="💸 Quỹ Phạt Hiện Tại", 
+                    value=f"{current_fund:,.0f} đ"
+                )
+            with col2:
+                delta_val = projected_fund - current_fund
+                st.metric(
+                    label="📈 Dự Phóng Cuối Mùa", 
+                    value=f"{projected_fund:,.0f} đ",
+                    delta=f"+ {delta_val:,.0f} đ (dự kiến)"
+                )
+            with col3:
+                st.metric(
+                    label="📊 Tiến độ giải đấu",
+                    value=f"{finished_count} / {total_matches} trận"
+                )
+                
+            _html('<div style="margin-top: 1.5rem;"></div>')
+            
+            # Khung text khịa (Gamification)
+            # Gamification Text sử dụng AI Logic
+            st.markdown("---")
+            if projected_fund > naive_fund:
+                st.warning(f"🤖 **AI Analysis:** Dựa trên tỉ lệ Hit Rate hiện tại, hệ thống dự đoán quỹ sẽ **cao hơn {projected_fund - naive_fund:,.0f} đ** so với tính toán trung bình! Nguyên nhân do có nhiều anh em phong độ đang chạm đáy, xác suất nộp tiền các trận tới cực cao.")
+            elif projected_fund < naive_fund:
+                st.success(f"🤖 **AI Analysis:** Cả nhóm đang đoán tay vào form! Hệ thống đánh giá quỹ sẽ **thấp hơn {naive_fund - projected_fund:,.0f} đ** so với đà tăng hiện tại. Anh em kèo trên đang làm chủ cuộc chơi.")
