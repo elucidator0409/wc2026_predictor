@@ -23,8 +23,9 @@ from analytics_service import (
     summarize_momentum,
     summarize_risk_bias,
     top_momentum_players,
-    calculate_fund_forecast,
-    calculate_advanced_forecast
+    calculate_fund_forecast,  # pyright: ignore[reportUnusedImport, reportUnusedImport, reportUnusedImport, reportUnusedImport]
+    calculate_advanced_forecast,
+    generate_financial_insights
 )
 from achievement_service import (
     apply_achievements_to_leaderboard,
@@ -692,6 +693,28 @@ with tab3:
         )
 
         st.plotly_chart(fig, use_container_width=True)
+
+        # --- RENDER FINANCIAL INSIGHTS ---
+        _html('<div style="margin-top: 2.5rem;"></div>')
+        st.subheader("🧠 Liên bang Xô Xát insights")
+        
+        # Gọi hàm lấy insight
+        insights = generate_financial_insights(leaderboard, merged_df, forecast["mid"], TARGET_FUND)
+        
+        if insights:
+            for item in insights:
+                if item["type"] == "profiling":
+                    # Xanh lá cho việc ca ngợi
+                    st.success(f"{item['title']}\n\n{item['content']}")
+                elif item["type"] == "burn_rate":
+                    # Cam/Đỏ cảnh báo nếu thiếu tiền, Xanh dương nếu đủ tiền
+                    if forecast["mid"] >= TARGET_FUND:
+                        st.info(f"{item['title']}\n\n{item['content']}")
+                    else:
+                        st.warning(f"{item['title']}\n\n{item['content']}")
+                elif item["type"] == "what_if":
+                    # Đỏ nhạt cho các kịch bản rủi ro
+                    st.error(f"{item['title']}\n\n{item['content']}")
 
         # 4. Insight chuyên sâu
         if forecast["mid"] >= TARGET_FUND:

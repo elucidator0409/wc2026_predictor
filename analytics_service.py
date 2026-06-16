@@ -5,6 +5,9 @@ from __future__ import annotations
 from zoneinfo import ZoneInfo
 
 import pandas as pd
+import numpy as np
+
+
 
 from scoring import calculate_points, normalize_pred_outcome
 from user_service import is_match_eligible, user_active_from
@@ -626,3 +629,166 @@ def calculate_advanced_forecast(leaderboard_df, finished_matches_count, target=1
         "target": target,
         'current_fund': current_total,
     }
+
+
+
+
+
+def generate_financial_insights(leaderboard_df: pd.DataFrame, merged_df: pd.DataFrame, projected_fund: int, target_fund: int = 11000000) -> list[dict]:
+    insights = []
+    if leaderboard_df.empty:
+        return insights
+        
+    TOTAL_MATCHES = 104
+    PENALTY_FEE = 10000
+    
+    # 1. Tự động dò tìm tên cột
+    col_map = {str(c).lower(): c for c in leaderboard_df.columns}
+    fines_col = col_map.get("fines") or col_map.get("tiền phạt") or col_map.get("phạt") or col_map.get("fines_k")
+    name_col = col_map.get("name") or col_map.get("tên") or col_map.get("người chơi") or col_map.get("user") or col_map.get("user_id")
+    hr_col = col_map.get("hit_rate") or col_map.get("accuracy") or col_map.get("tỉ lệ") or col_map.get("tỉ lệ đúng")
+    played_col = col_map.get("played") or col_map.get("số trận") or col_map.get("đã chơi")
+
+    if not name_col and len(leaderboard_df.columns) > 0:
+        name_col = leaderboard_df.columns[0]
+        
+    df_safe = leaderboard_df.copy()
+    num_players = len(df_safe)
+    if num_players == 0:
+        return insights
+    
+    # 2. Xác định số trận đã đá và còn lại
+    if played_col and not df_safe.empty:
+        finished_matches = int(pd.to_numeric(df_safe[played_col], errors='coerce').max())
+    else:
+        match_col = "match_number" if "match_number" in merged_df.columns else ("match_id" if "match_id" in merged_df.columns else None)
+        finished_matches = merged_df[match_col].nunique() if match_col and match_col in merged_df.columns else 0
+        
+    remaining_matches = max(0, TOTAL_MATCHES - finished_matches)
+
+    # 3. Tính Quỹ hiện tại và Khoảng cách thực tế
+    current_fund = 0
+    if fines_col:
+        df_safe[fines_col] = pd.to_numeric(df_safe[fines_col], errors='coerce').fillna(0)
+        current_fund = df_safe[fines_col].sum()
+        if df_safe[fines_col].max() < 10000 and current_fund > 0:
+            current_fund *= 1000
+    current_fund = int(current_fund)
+    real_gap = target_fund - current_fund
+
+    # =========================================================================
+    # BỘ 3 INSIGHT CŨ (ĐÃ CHỐT)
+    # =========================================================================
+
+    # --- INSIGHT 1: ĐỘI HÌNH "GÁNH QUỸ" ---
+    top_drivers = pd.DataFrame()
+    if hr_col and name_col and remaining_matches > 0:
+        df_safe[hr_col] = pd.to_numeric(df_safe[hr_col], errors='coerce').fillna(50.0)
+        df_safe['expected_contribution'] = (1 - df_safe[hr_col] / 100.0) * remaining_matches * PENALTY_FEE
+        top_drivers = df_safe.sort_values(by='expected_contribution', ascending=False).head(2)
+        
+        if len(top_drivers) >= 2:
+            name_1, expected_1 = str(top_drivers.iloc[0][name_col]), float(top_drivers.iloc[0]['expected_contribution'])
+            name_2, expected_2 = str(top_drivers.iloc[1][name_col]), float(top_drivers.iloc[1]['expected_contribution'])
+            content_1 = f"Dựa trên phong độ, **{name_1}** (dự kiến cúng thêm {expected_1:,.0f} đ) và **{name_2}** (dự kiến {expected_2:,.0f} đ) sẽ là 2 'đầu kéo' chính đưa quỹ về đích. Hãy chăm sóc kỹ 2 nguồn thu này!"
+        else:
+            name_1, expected_1 = str(top_drivers.iloc[0][name_col]), float(top_drivers.iloc[0]['expected_contribution'])
+            content_1 = f"Dựa trên phong độ, **{name_1}** dự kiến sẽ là 'đầu kéo' chính với mức cúng thêm {expected_1:,.0f} đ."
+            
+        insights.append({"type": "profiling", "title": "🚜 Đội hình 'Gánh Quỹ'", "content": content_1})
+
+    # --- INSIGHT 2: KỊCH BẢN "GIẢI CỨU QUỸ" ---
+    if real_gap > 0:
+        misses_per_person = (real_gap / PENALTY_FEE) / num_players
+        content_2 = f"Quỹ thực tế mới đang có **{current_fund:,.0f} đ**. Để cán đích 11M, mỗi anh em cần 'tự nguyện' đoán sai trung bình **{misses_per_person:.1f} trận** nữa. Áp lực đang rất lớn!"
+        insights.append({"type": "what_if", "title": "🚑 Kịch Bản 'Giải Cứu Quỹ'", "content": content_2})
+    else:
+        surplus = current_fund - target_fund
+        insights.append({"type": "profiling", "title": "🎉 Mục Tiêu Hoàn Thành", "content": f"Quỹ đã vượt mục tiêu **{surplus:,.0f} đ**. Anh em chuẩn bị liên hoan thôi!"})
+
+    # --- INSIGHT 3: CHỈ SỐ TIẾN ĐỘ ---
+    match_completion_pct = (finished_matches / TOTAL_MATCHES) * 100 if TOTAL_MATCHES > 0 else 0
+    fund_completion_pct = (current_fund / target_fund) * 100 if target_fund > 0 else 0
+
+    if fund_completion_pct < match_completion_pct:
+        diff = match_completion_pct - fund_completion_pct
+        content_3 = f"Giải đấu đã trôi qua **{match_completion_pct:.1f}%**, nhưng quỹ mới gom được **{fund_completion_pct:.1f}%**. Tốc độ nộp phạt đang chậm hơn tiến độ giải ({diff:.1f}%)."
+        insights.append({"type": "burn_rate", "title": "⏱️ Chỉ số Tiến Độ (Pacing)", "content": content_3})
+    else:
+        diff = fund_completion_pct - match_completion_pct
+        content_3 = f"Mới trôi qua **{match_completion_pct:.1f}%** chặng đường mà quỹ đã hoàn thành **{fund_completion_pct:.1f}%** (Vượt tiến độ {diff:.1f}%). Tốc độ 'báo' đang cực kỳ xuất sắc!"
+        insights.append({"type": "profiling", "title": "⏱️ Chỉ số Tiến Độ (Pacing)", "content": content_3})
+
+
+    # =========================================================================
+    # BỘ 3 INSIGHT MỚI (SENIOR FORECASTING)
+    # =========================================================================
+
+    # --- INSIGHT 4: RỦI RO "CÁ MẬP" (Whale Dependency) ---
+    if not top_drivers.empty and remaining_matches > 0:
+        total_expected = df_safe['expected_contribution'].sum()
+        top_2_expected = top_drivers['expected_contribution'].sum()
+        
+        if total_expected > 0:
+            dependency_pct = (top_2_expected / total_expected) * 100
+            content_4 = f"Top 2 'Báo thủ' đang nắm giữ tới **{dependency_pct:.1f}%** dòng tiền dự phóng tương lai của quỹ. \n\n⚠️ **Cảnh báo:** Nếu 2 anh này đột nhiên 'vào form' và đoán trúng liên tục, quỹ dự phóng sẽ sụp đổ. Các anh em khác cần chia lửa gấp, không thể ỷ lại!"
+            
+            insights.append({
+                "type": "what_if",  # Render màu Đỏ
+                "title": "🐳 Rủi ro 'Cá Mập' (Whale Dependency)",
+                "content": content_4
+            })
+
+    # --- INSIGHT 5: NGƯỠNG SINH TỬ (Goal-Seek Hit Rate) ---
+    if real_gap > 0 and remaining_matches > 0:
+        total_remaining_picks = remaining_matches * num_players
+        misses_needed = real_gap / PENALTY_FEE
+        
+        if misses_needed > total_remaining_picks:
+            content_5 = f"Dù TẤT CẢ {num_players} anh em đều đoán sai {remaining_matches} trận còn lại, quỹ vẫn KHÔNG THỂ chạm mốc 11 Triệu. Target đã vỡ!"
+            i5_type = "what_if"
+        else:
+            required_miss_rate = misses_needed / total_remaining_picks
+            required_hit_rate = (1 - required_miss_rate) * 100
+            current_group_hr = df_safe[hr_col].mean() if hr_col else 50.0
+            
+            if current_group_hr > required_hit_rate:
+                status = f"Hiện tại nhóm đang đoán quá mượt ({current_group_hr:.1f}%). Cần 'tâm linh' hơn nữa!"
+                i5_type = "what_if"
+            else:
+                status = f"Phong độ hiện tại ({current_group_hr:.1f}%) đang rất lý tưởng để bào tiền. Cứ thế phát huy!"
+                i5_type = "profiling"
+                
+            content_5 = f"Để cán đích 11M, Hit Rate trung bình của cả nhóm trong các trận còn lại **PHẢI THẤP HƠN {required_hit_rate:.1f}%**. \n\n{status}"
+            
+        insights.append({
+            "type": i5_type, # Tự đổi màu dựa theo việc có vượt ngưỡng hay không
+            "title": "🎯 Ngưỡng Sinh Tử (Survival Hit Rate)",
+            "content": content_5
+        })
+
+    # --- INSIGHT 6: THỜI ĐIỂM ĐẠT TARGET (The ETA Deadline) ---
+    if finished_matches > 0 and real_gap > 0:
+        avg_fine_per_match = current_fund / finished_matches
+        
+        if avg_fine_per_match > 0:
+            matches_needed = real_gap / avg_fine_per_match
+            projected_match_to_hit = finished_matches + matches_needed
+            
+            if projected_match_to_hit <= TOTAL_MATCHES:
+                content_6 = f"Với tốc độ 'đóng họ' hiện tại ({avg_fine_per_match:,.0f} đ/trận), quỹ dự kiến sẽ cán mốc 11 Triệu vào khoảng **trận đấu thứ {projected_match_to_hit:.0f}**. Có thể bắt đầu booking nhà hàng trước thềm chung kết!"
+                i6_type = "profiling" # Render Xanh
+            else:
+                content_6 = f"Với tốc độ nộp phạt hẻo lánh hiện tại ({avg_fine_per_match:,.0f} đ/trận), phải đến... **trận thứ {projected_match_to_hit:.0f}** chúng ta mới đủ 11 Triệu (mà giải chỉ có {TOTAL_MATCHES} trận). Mission Impossible nếu không lật kèo!"
+                i6_type = "burn_rate" # Render Vàng cảnh báo
+        else:
+             content_6 = "Chưa có ai nộp phạt, không thể tính toán ETA."
+             i6_type = "burn_rate"
+             
+        insights.append({
+            "type": i6_type,
+            "title": "🗓️ Dự Báo Deadline (ETA)",
+            "content": content_6
+        })
+
+    return insights
