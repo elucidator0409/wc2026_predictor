@@ -24,6 +24,7 @@ from analytics_service import (
     summarize_risk_bias,
     top_momentum_players,
     calculate_fund_forecast,
+    calculate_advanced_forecast
 )
 from achievement_service import (
     apply_achievements_to_leaderboard,
@@ -603,59 +604,139 @@ with tab3:
             render_analytics_takeaway(format_risk_bias_takeaway(risk_summary))
 
     with t_fund:
+        import plotly.graph_objects as go
+
         render_analytics_guide(
-            icon="📈",
-            title="Dự Đoán Quỹ Phạt Cuối Mùa ",
+            icon="🍻",
+            title="Dự Phóng Quỹ Nhậu WC 2026",
             summary=(
-                "Sử dụng mô hình Giá trị kỳ vọng (Expected Value) để soi phong độ hiện tại "
-                "của TỪNG NGƯỜI CHƠI, từ đó dự đoán tổng số tiền phạt khi khép lại 104 trận World Cup."
+                "Mục tiêu: 11,000,000 đ. Hãy cùng theo dõi xem anh em nộp phạt "
+                "có đủ để book phòng VIP hay chỉ đủ uống Starbucks!"
             ),
             tips=[
-                "Công thức: Quỹ hiện tại + Tổng [ Xác suất sai (100% - Hit Rate) × Số trận còn lại × 10k ] của từng cá nhân.",
-                "Hệ thống tự nhận diện các 'Báo thủ' (Hit Rate thấp) để tính dồn tiền phạt, ai đoán hay sẽ không bị cộng tiền oan.",
+                "Target 11M: Dự kiến chầu nhậu tổng kết giải hoành tráng.",
+                "Thanh tiến độ: Càng về bên phải, mồi càng ngon, khổ qua càng đắng!"
             ],
         )
         
-        # Gọi hàm tính toán đã dán ở analytics_service.py
-        # Truyền độ dài của bảng finished_matches thay vì cả bảng
+        # 1. Lấy dữ liệu
         finished_count = len(finished_matches) 
-        forecast_data = calculate_fund_forecast(leaderboard, finished_count)
+        forecast = calculate_advanced_forecast(leaderboard, finished_count)
         
-        current_fund = forecast_data["current_fund"]
-        projected_fund = forecast_data["projected_fund"]
-        naive_fund = forecast_data["naive_fund"]
-        total_matches = forecast_data["total_matches"]
-        
-        if finished_count == 0:
-            st.info("Chưa có trận nào kết thúc nên chưa thể tính toán dự phóng.")
+        current_fund = forecast["current_fund"]
+        # projected_fund = forecast["projected_fund"]
+        # naive_fund = forecast["naive_fund"]
+        total_matches = 104
+        TARGET_FUND = 11000000 # 11 Triệu
+
+        # 2. Render Stat Cards
+        stats = [
+            (f"{current_fund:,.0f} đ", "Đã thu", "💵"),
+            (f"{forecast['mid']:,.0f} đ", "Dự kiến", "🚀"),
+            (f"{((forecast['mid']/TARGET_FUND)*100):.1f}%", "Đạt mục tiêu", "🎯"),
+        ]
+        render_stat_cards(stats)
+
+        # 3. Vẽ biểu đồ Fan Chart (Biểu đồ quạt)
+        import plotly.graph_objects as go
+
+        # Khởi tạo dữ liệu lịch sử quỹ cho biểu đồ
+        hist_x, hist_y = [0], [0]
+        # Giả sử bạn có biến 'merged_df' chứa lịch sử dự đoán/phạt
+        if not merged_df.empty and "match_number" in merged_df.columns:
+            match_fines = merged_df.groupby("match_number")["fines"].sum().reset_index()
+            match_fines = match_fines.sort_values("match_number")
+            match_fines["fines_vnd"] = match_fines["fines"] * 1000
+            match_fines["cumulative_fund"] = match_fines["fines_vnd"].cumsum()
+            
+            hist_x.extend(match_fines["match_number"].tolist())
+            hist_y.extend(match_fines["cumulative_fund"].tolist())
         else:
-            _html('<div style="margin-top: 1.5rem;"></div>')
-            col1, col2, col3 = st.columns(3)
+            # Fallback nếu chưa có dữ liệu lịch sử
+            hist_x.append(finished_count)
+            hist_y.append(current_fund)
+        
+        fig = go.Figure()
+
+        # Đường dải tin cậy (Cận trên/dưới)
+        fig.add_trace(go.Scatter(
+            x=[hist_x[-1], total_matches], y=[forecast["lower"], forecast["lower"]],
+            mode='lines', line=dict(width=0), showlegend=False
+        ))
+        fig.add_trace(go.Scatter(
+            x=[hist_x[-1], total_matches], y=[forecast["upper"], forecast["upper"]],
+            mode='lines', line=dict(width=0), fill='tonexty', 
+            fillcolor='rgba(251, 191, 36, 0.15)', name='Dải biến động (Range)'
+        ))
+
+        # Đường dự phóng trung bình (Mid)
+        fig.add_trace(go.Scatter(
+            x=hist_x + [total_matches], 
+            y=hist_y + [forecast["mid"]],
+            mode='lines+markers', name='Dự phóng (Mid)',
+            line=dict(color='#fbbf24', width=3, dash='dot'),
+            marker=dict(size=8, symbol='circle')
+        ))
+
+        # Đường Target 11M
+        fig.add_hline(y=TARGET_FUND, line_dash="solid", line_color="#ef4444", 
+                      line_width=2, annotation_text="🎯 Target 11M")
+
+        fig.update_layout(
+            **chart_layout,
+            height=400,
+            xaxis=dict(title="Trận đấu", gridcolor="rgba(255,255,255,0.06)"),
+            yaxis=dict(title="Tổng quỹ (VNĐ)", gridcolor="rgba(255,255,255,0.06)"),
+            hovermode="x unified",
+            margin=dict(l=20, r=20, t=50, b=20)
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        # 4. Insight chuyên sâu
+        if forecast["mid"] >= TARGET_FUND:
+            st.success("🎊 Tin tốt: Với đà này, nhóm sẽ dư dả tiền cho một chầu nhậu hạng sang!")
+        else:
+            gap = TARGET_FUND - forecast["mid"]
+            st.warning(f"⚠️ Cảnh báo: Forecast cần thêm {gap:,.0f} đ nữa để cán đích 11M. Hãy khuyến khích anh em... dự đoán sai nhiều hơn!")
+
+
+        # KHUNG GIẢI THÍCH PHƯƠNG PHÁP LUẬN (METHODOLOGY)
+        with st.expander("📝 Giải thích phương pháp tính Dự phóng"):
+            st.markdown("""
+            Chúng tôi sử dụng mô hình **Giá trị kỳ vọng (Expected Value - EV)** để dự báo ngân sách cuối giải. Logic tính toán được thực hiện qua 3 bước:
             
-            with col1:
-                st.metric(
-                    label="💸 Quỹ Phạt Hiện Tại", 
-                    value=f"{current_fund:,.0f} đ"
-                )
-            with col2:
-                delta_val = projected_fund - current_fund
-                st.metric(
-                    label="📈 Dự Phóng Cuối Mùa", 
-                    value=f"{projected_fund:,.0f} đ",
-                    delta=f"+ {delta_val:,.0f} đ (dự kiến)"
-                )
-            with col3:
-                st.metric(
-                    label="📊 Tiến độ giải đấu",
-                    value=f"{finished_count} / {total_matches} trận"
-                )
-                
-            _html('<div style="margin-top: 1.5rem;"></div>')
+            1. **Xác định Phong độ (Individual Hit Rate):** Hệ thống tính toán `Hit Rate` dựa trên tỉ lệ dự đoán đúng của từng cá nhân qua các trận đã qua. 
+               *Công thức:* `Hit Rate = (Số trận đúng / Tổng số trận đã có kết quả) * 100%`.
+               
+            2. **Dự báo rủi ro tương lai (Penalty Projection):**
+               Chúng tôi nhân xác suất "đoán sai" của bạn với số trận còn lại của giải đấu.
+               *Công thức:* `Tiền dự kiến nộp thêm = (100% - Hit Rate) * Số trận còn lại * 10.000 đ`.
+               
+            3. **Hiệu chỉnh (Smoothing Factor):**
+               Để tránh dự báo quá khắt khe, chúng tôi áp dụng hệ số làm mượt **0.85** (Learning Rate), giả định rằng anh em sẽ dần "vào form" và đoán đúng nhiều hơn về cuối giải.
             
-            # Khung text khịa (Gamification)
-            # Gamification Text sử dụng AI Logic
-            st.markdown("---")
-            if projected_fund > naive_fund:
-                st.warning(f"🤖 **AI Analysis:** Dựa trên tỉ lệ Hit Rate hiện tại, hệ thống dự đoán quỹ sẽ **cao hơn {projected_fund - naive_fund:,.0f} đ** so với tính toán trung bình! Nguyên nhân do có nhiều anh em phong độ đang chạm đáy, xác suất nộp tiền các trận tới cực cao.")
-            elif projected_fund < naive_fund:
-                st.success(f"🤖 **AI Analysis:** Cả nhóm đang đoán tay vào form! Hệ thống đánh giá quỹ sẽ **thấp hơn {naive_fund - projected_fund:,.0f} đ** so với đà tăng hiện tại. Anh em kèo trên đang làm chủ cuộc chơi.")
+            **Tổng quỹ cuối mùa** = `Tiền đã thu thực tế` + `Tổng tiền dự kiến nộp thêm của tất cả người chơi`.
+            """)
+            
+            # Bảng giải thích chi tiết biến số
+            st.table(pd.DataFrame({
+                "Biến số": ["Hit Rate", "Remaining Matches", "Learning Rate", "Penalty Fee"],
+                "Ý nghĩa": ["Thực lực đoán đúng cá nhân", "Số trận chưa đá", "Hệ số làm mượt (giả định tiến bộ)", "Mức phạt/trận"],
+                "Giá trị": [f"{leaderboard['hit_rate'].mean():.1f}%", f"số trận còn lại", "0.85", "10,000 đ"]
+            }))
+        
+        with st.expander("🔍 Tại sao lại dự phóng con số này?"):
+            # Tạo DataFrame giải thích
+            analysis_data = {
+                "Hạng mục": ["Tiền đã thu", "Dự kiến nộp thêm", "Tổng quỹ cuối mùa", "Mục tiêu"],
+                "Giá trị": [current_fund, forecast['mid'] - current_fund, forecast['mid'], TARGET_FUND],
+                "Giải thích": [
+                    "Số tiền phạt thực tế đã vào quỹ tính đến thời điểm này.",
+                    f"Dựa trên tỉ lệ sai trung bình {(100 - leaderboard['hit_rate'].mean()):.1f}% trên số trận còn lại.",
+                    "Tổng tiền dự kiến theo mô hình xác suất.",
+                    "Đích đến để làm chầu nhậu 11M."
+                ]   
+            }
+            df_analysis = pd.DataFrame(analysis_data)
+            st.table(df_analysis)

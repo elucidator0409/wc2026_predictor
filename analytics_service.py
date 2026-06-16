@@ -584,3 +584,45 @@ def calculate_fund_forecast(leaderboard_df: pd.DataFrame, finished_matches_count
         "finished_matches": finished_matches_count,
         "total_matches": TOTAL_MATCHES
     }
+
+
+def calculate_advanced_forecast(leaderboard_df, finished_matches_count, target=11000000):
+    """
+    Tính dự phóng quỹ với biên độ an toàn (Confidence Interval).
+    """
+    TOTAL_MATCHES = 104
+    PENALTY_FEE = 10000
+    remaining_matches = max(0, TOTAL_MATCHES - finished_matches_count)
+    
+    # --- 1. TÍNH BASE_PROJ (Dựa trên logic EV chúng ta đã chốt) ---
+    current_total = 0
+    projected_total = 0
+    
+    for _, row in leaderboard_df.iterrows():
+        user_current = int(row.get("fines", 0)) * 1000
+        current_total += user_current
+        
+        # Lấy hit_rate an toàn
+        hit_rate = float(row.get("hit_rate", 50.0))
+        prob_penalty = 1.0 - (max(0, min(100, hit_rate)) / 100.0)
+        
+        # Dự phóng phần còn lại
+        expected_future = prob_penalty * remaining_matches * PENALTY_FEE
+        projected_total += (user_current + expected_future)
+    
+    base_proj = projected_total
+    
+    # --- 2. TÍNH MARGIN (Biên độ dao động) ---
+    # Tính độ lệch chuẩn của số tiền phạt mỗi user để làm margin
+    # Nếu nhóm dự đoán bất ổn (std cao), margin sẽ rộng ra
+    std_dev = leaderboard_df["fines"].std() * 1000 if "fines" in leaderboard_df.columns else 0
+    # Giả định margin là 15% hoặc 1.5 lần độ lệch chuẩn, lấy cái nào lớn hơn
+    margin = max(base_proj * 0.15, std_dev * 1.5)
+    
+    return {
+        "lower": max(0, base_proj - margin),
+        "mid": base_proj,
+        "upper": base_proj + margin,
+        "target": target,
+        'current_fund': current_total,
+    }
