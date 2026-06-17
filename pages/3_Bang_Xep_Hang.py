@@ -25,7 +25,8 @@ from analytics_service import (
     top_momentum_players,
     calculate_fund_forecast,  # pyright: ignore[reportUnusedImport, reportUnusedImport, reportUnusedImport, reportUnusedImport]
     calculate_advanced_forecast,
-    generate_financial_insights
+    generate_financial_insights,
+    generate_weekly_trend_data
 )
 from achievement_service import (
     apply_achievements_to_leaderboard,
@@ -217,6 +218,8 @@ with tab1:
     )
 
     render_lb_streak_cards_mobile(sidebar_bundle.get("streaks"))
+    scored_df_for_cards = build_scored_predictions(preds_df, finished_matches, users_df)
+    st.session_state["scored_df"] = scored_df_for_cards
     render_lb_hero_cards(leaderboard)
     render_leaderboard_dataframe(
         leaderboard,
@@ -693,6 +696,76 @@ with tab3:
         )
 
         st.plotly_chart(fig, use_container_width=True)
+
+        # --- RENDER WEEKLY TREND CHART (BIỂU ĐỒ PHONG ĐỘ TUẦN) ---
+        _html('<div style="margin-top: 3rem;"></div>')
+        st.subheader("📈 Phân tích Phong độ theo Giai đoạn")
+        
+        # Gọi data trend từ hàm vừa viết
+        trend_data = generate_weekly_trend_data(merged_df, penalty_fee=10000)
+        
+        if not trend_data["df"].empty:
+            tdf = trend_data["df"]
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+            
+            # Tạo biểu đồ Combo 2 trục (Trái: Tiền, Phải: Hit Rate)
+            fig_trend = make_subplots(specs=[[{"secondary_y": True}]])
+            
+            # CỘT (Bar): Số tiền phạt
+            fig_trend.add_trace(
+                go.Bar(
+                    x=tdf["period"],
+                    y=tdf["fines"],
+                    name="Tiền thu được (VNĐ)",
+                    marker_color="#ef4444", # Màu đỏ cảnh báo tiền nong
+                    opacity=0.8,
+                    text=tdf["fines"].apply(lambda x: f"{x/1000:,.0f}k"),
+                    textposition="auto"
+                ),
+                secondary_y=False,
+            )
+            
+            # ĐƯỜNG (Line): Hit Rate
+            fig_trend.add_trace(
+                go.Scatter(
+                    x=tdf["period"],
+                    y=tdf["hit_rate"],
+                    name="Hit Rate (%)",
+                    mode="lines+markers",
+                    line=dict(color="#3b82f6", width=3), # Màu xanh hy vọng
+                    marker=dict(size=8, color="#fff", line=dict(color="#3b82f6", width=2))
+                ),
+                secondary_y=True,
+            )
+            
+            # Làm đẹp Layout giống phong cách Dark Mode của app
+            fig_trend.update_layout(
+                height=380,
+                margin=dict(l=20, r=20, t=30, b=20),
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                hovermode="x unified"
+            )
+
+            fig_trend.update_xaxes(
+                type='category',
+                categoryorder='array',
+                categoryarray=tdf["period"].tolist(),
+                gridcolor="rgba(255,255,255,0.06)"
+            )
+            
+            # Setup 2 trục Y
+            fig_trend.update_yaxes(title_text="Tiền phạt thu về (VNĐ)", secondary_y=False, gridcolor="rgba(255,255,255,0.06)", showticklabels=False)
+            fig_trend.update_yaxes(title_text="Hit Rate Cả Nhóm (%)", secondary_y=True, showgrid=False, range=[0, 100])
+            
+            st.plotly_chart(fig_trend, use_container_width=True)
+            
+            # Đẩy lời bình luận AI lên UI
+            st.info(trend_data["insight"])
+        else:
+            st.caption("Chưa đủ dữ liệu thời gian để vẽ biểu đồ phong độ.")
 
         # --- RENDER FINANCIAL INSIGHTS ---
         _html('<div style="margin-top: 2.5rem;"></div>')

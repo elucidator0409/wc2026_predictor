@@ -792,3 +792,104 @@ def generate_financial_insights(leaderboard_df: pd.DataFrame, merged_df: pd.Data
         })
 
     return insights
+
+def generate_weekly_trend_data(merged_df: pd.DataFrame, penalty_fee: int = 10000) -> dict:
+    if merged_df.empty:
+        return {"df": pd.DataFrame(), "insight": ""}
+        
+    df = merged_df.copy()
+    df["points"] = pd.to_numeric(df.get("points", 0), errors="coerce").fillna(0)
+    
+    group_col = "period"
+    df[group_col] = "N/A"
+    
+    time_col = None
+    if "date_time" in df.columns:
+        time_col = "date_time"
+    elif "timestamp" in df.columns:
+        time_col = "timestamp"
+    else:
+        for c in df.columns:
+            if "date" in str(c).lower() or "time" in str(c).lower():
+                time_col = c
+                break
+
+    has_time = False
+    if time_col:
+        df["datetime"] = pd.to_datetime(df[time_col], format="mixed", errors="coerce")
+        df_valid_time = df.dropna(subset=["datetime"]).copy()
+        
+        if not df_valid_time.empty:
+            df = df_valid_time.sort_values("datetime")
+            
+            # --- FIX CHUẨN LỊCH THỰC TẾ (Thứ 2 đến Chủ Nhật) ---
+            # Lấy số thứ tự tuần chuẩn theo Lịch quốc tế ISO (Bắt đầu T2, Kết thúc CN)
+            df["iso_week"] = df["datetime"].dt.isocalendar().week
+            
+            # Đánh số Tuần 1, Tuần 2... dựa trên tuần bắt đầu của giải đấu
+            min_iso_week = df["iso_week"].min()
+            df["week_num"] = df["iso_week"] - min_iso_week + 1
+            
+            # Tạo nhãn hiển thị: lấy ngày đá sớm nhất và trễ nhất TRONG TUẦN ĐÓ
+            week_groups = df.groupby("week_num")["datetime"]
+            week_labels = {}
+            for w, dates in week_groups:
+                start_str = dates.min().strftime("%d/%m")
+                end_str = dates.max().strftime("%d/%m")
+                if start_str == end_str:
+                    week_labels[w] = f"Tuần {w} ({start_str})"
+                else:
+                    week_labels[w] = f"Tuần {w} ({start_str}-{end_str})"
+            
+            df[group_col] = df["week_num"].map(week_labels)
+            has_time = True
+            df["sort_order"] = df["week_num"]
+            
+    if not has_time:
+        match_col = "match_number" if "match_number" in df.columns else ("match_id" if "match_id" in df.columns else None)
+        if match_col:
+            df[match_col] = pd.to_numeric(df[match_col], errors="coerce").fillna(0)
+            start_match = ((df[match_col] - 1) // 10 * 10 + 1).astype(int)
+            end_match = start_match + 9
+            df[group_col] = "Trận " + start_match.astype(str) + "-" + end_match.astype(str)
+            df["sort_order"] = start_match
+        else:
+            return {"df": pd.DataFrame(), "insight": ""}
+
+    df = df[df[group_col] != "N/A"]
+    if df.empty:
+        return {"df": pd.DataFrame(), "insight": ""}
+
+    trend_df = df.groupby([group_col, "sort_order"]).agg(
+        total_predictions=("points", "count"),
+        correct_predictions=("points", lambda x: (x > 0).sum())
+    ).reset_index()
+    
+    trend_df = trend_df[trend_df["total_predictions"] > 0]
+    trend_df["missed_predictions"] = trend_df["total_predictions"] - trend_df["correct_predictions"]
+    trend_df["fines"] = trend_df["missed_predictions"] * penalty_fee
+    trend_df["hit_rate"] = (trend_df["correct_predictions"] / trend_df["total_predictions"]) * 100
+    
+    trend_df = trend_df.sort_values("sort_order")
+    
+    insight_text = ""
+    if len(trend_df) >= 2:
+        last_week = trend_df.iloc[-1]
+        prev_week = trend_df.iloc[-2]
+        
+        hr_diff = last_week["hit_rate"] - prev_week["hit_rate"]
+        fines_diff = last_week["fines"] - prev_week["fines"]
+        last_week_name = str(last_week[group_col]).split('(')[0].strip().lower()
+        
+        if hr_diff < -3:
+            insight_text = f"📉 **Khủng hoảng tâm lý:** Ở {last_week_name}, Hit Rate giảm mạnh ({hr_diff:.1f}%), anh em bắt đầu rơi vào chuỗi hoảng loạn. Dòng tiền đổ về quỹ tăng thêm **{fines_diff:,.0f} đ** so với kỳ trước!"
+        elif hr_diff > 3:
+            insight_text = f"⚠️ **Cảnh báo học hỏi:** Anh em đã 'bắt bài' được nhà cái! Tỉ lệ đoán trúng {last_week_name} tăng vọt ({hr_diff:+.1f}%), quỹ bị hụt đi **{abs(fines_diff):,.0f} đ**. Tốc độ gom tiền đang chững lại!"
+        else:
+            insight_text = f"⚖️ **Giữ vững phong độ:** Hit Rate {last_week_name} dao động nhẹ ({hr_diff:+.1f}%), anh em duy trì mức cống hiến ổn định. Quỹ thu về **{last_week['fines']:,.0f} đ** trong đợt này."
+    else:
+        insight_text = "⏳ Giai đoạn đầu giải, hệ thống đang thu thập thêm dữ liệu để đánh giá xem phong độ anh em đang đi lên hay cắm đầu."
+        
+    return {"df": trend_df, "insight": insight_text}
+
+

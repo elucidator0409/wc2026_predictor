@@ -121,74 +121,107 @@ def _score_all_user_matches(
 
 
 def _aggregate_leaderboard(long_df: pd.DataFrame, users_df: pd.DataFrame) -> pd.DataFrame:
-    """Build one row per user from the long match timeline."""
+    """Build one row per user from the long match timeline. Phá vỡ đồng hạng, xếp theo Phong độ!"""
     users = users_df.copy()
-    users["user_id"] = users["user_id"].astype(str)
-
+    users['user_id'] = users['user_id'].astype(str)
+    
     if long_df.empty:
-        rows = [
-            {
-                "user_id": str(u["user_id"]),
-                "name": u["name"],
-                "points": 0,
-                "fines": 0,
-                "played": 0,
-                "correct": 0,
-                "missed": 0,
-                "total_finished": 0,
-            }
-            for _, u in users.iterrows()
-        ]
+        rows = [{'user_id': str(u['user_id']), 'name': u['name'], 'points': 0, 'fines': 0, 'played': 0, 'correct': 0, 'missed': 0, 'total_finished': 0, 'current_streak': 0} for (_, u) in users.iterrows()]
         lb = pd.DataFrame(rows)
     else:
-        agg = long_df.groupby("user_id", as_index=False).agg(
-            points=("match_pts", "sum"),
-            fines=("match_fines", "sum"),
-            played=("has_pred", "sum"),
-            total_finished=("global_order", "count"),
+        # Nhóm dữ liệu cơ bản
+        agg = long_df.groupby('user_id', as_index=False).agg(
+            points=('match_pts', 'sum'), 
+            fines=('match_fines', 'sum'), 
+            played=('has_pred', 'sum'), 
+            total_finished=('global_order', 'count')
         )
-        agg["played"] = agg["played"].astype(int)
-        agg["total_finished"] = agg["total_finished"].astype(int)
-
-        correct = (
-            long_df[long_df["match_pts"] >= 3]
-            .groupby("user_id")
-            .size()
-            .rename("correct")
-        )
-        missed = (
-            long_df[~long_df["has_pred"]]
-            .groupby("user_id")
-            .size()
-            .rename("missed")
-        )
-        agg = agg.merge(correct, on="user_id", how="left")
-        agg = agg.merge(missed, on="user_id", how="left")
-        agg["correct"] = agg["correct"].fillna(0).astype(int)
-        agg["missed"] = agg["missed"].fillna(0).astype(int)
-
-        names = users[["user_id", "name"]]
-        lb = users[["user_id"]].merge(agg, on="user_id", how="left")
-        lb = lb.merge(names, on="user_id", how="left")
-        lb["points"] = lb["points"].fillna(0).astype(int)
-        lb["fines"] = lb["fines"].fillna(0).astype(int)
-        lb["played"] = lb["played"].fillna(0).astype(int)
-        lb["correct"] = lb["correct"].fillna(0).astype(int)
-        lb["missed"] = lb["missed"].fillna(0).astype(int)
-        lb["total_finished"] = lb["total_finished"].fillna(0).astype(int)
-
+        agg['played'] = agg['played'].astype(int)
+        agg['total_finished'] = agg['total_finished'].astype(int)
+        
+        correct = long_df[long_df['match_pts'] >= 3].groupby('user_id').size().rename('correct')
+        missed = long_df[~long_df['has_pred']].groupby('user_id').size().rename('missed')
+        
+        agg = agg.merge(correct, on='user_id', how='left')
+        agg = agg.merge(missed, on='user_id', how='left')
+        agg['correct'] = agg['correct'].fillna(0).astype(int)
+        agg['missed'] = agg['missed'].fillna(0).astype(int)
+        
+        # --- TÍNH TOÁN CHUỖI PHONG ĐỘ (current_streak) ĐỂ TIE-BREAK ---
+        # Tính chuỗi Thắng/Thua trận gần nhất: Thắng liên tiếp -> Dương (+), Thua liên tiếp -> Âm (-)
+        streak_dict = {}
+        for uid, group in long_df.groupby('user_id'):
+            codes = group.sort_values('global_order')['form_code'].tolist()
+            streak = 0
+            if codes:
+                last_code = codes[-1]
+                if last_code == 'W':
+                    for c in reversed(codes):
+                        if c == 'W': streak += 1
+                        else: break
+                elif last_code == 'L':
+                    for c in reversed(codes):
+                        if c == 'L': streak -= 1
+                        else: break
+            streak_dict[str(uid)] = streak
+            
+        streak_df = pd.DataFrame(list(streak_dict.items()), columns=['user_id', 'current_streak'])
+        agg = agg.merge(streak_df, on='user_id', how='left')
+        # -------------------------------------------------------------
+        
+        names = users[['user_id', 'name']]
+        lb = users[['user_id']].merge(agg, on='user_id', how='left')
+        lb = lb.merge(names, on='user_id', how='left')
+        
+        # Ép kiểu dữ liệu tránh lỗi
+        lb['points'] = lb['points'].fillna(0).astype(int)
+        lb['fines'] = lb['fines'].fillna(0).astype(int)
+        lb['played'] = lb['played'].fillna(0).astype(int)
+        lb['correct'] = lb['correct'].fillna(0).astype(int)
+        lb['missed'] = lb['missed'].fillna(0).astype(int)
+        lb['total_finished'] = lb['total_finished'].fillna(0).astype(int)
+        lb['current_streak'] = lb['current_streak'].fillna(0).astype(int)
+        
     if lb.empty:
         return lb
-
-    lb["hit_rate"] = lb.apply(
-        lambda r: round(r["correct"] / r["played"] * 100, 1) if r["played"] > 0 else 0.0,
-        axis=1,
-    )
-    lb = lb.sort_values(by=["points", "fines", "name"], ascending=[False, True, True]).reset_index(drop=True)
-    lb["rank"] = _competition_rank(lb, ["points", "fines"])
-    lb["rank_label"] = lb["rank"].apply(_rank_label)
+        
+    # Tính tỷ lệ trúng Hit Rate
+    lb['hit_rate'] = lb.apply(lambda r: round(r['correct'] / r['played'] * 100, 1) if r['played'] > 0 else 0.0, axis=1)
+    
+    # =========================================================
+    # CƠ CHẾ SẮP XẾP MỚI: PHÁ VỠ "ĐỒNG HẠNG"
+    # =========================================================
+    sort_cols = ['points']
+    asc_orders = [False]
+    
+    # 1. Điểm số là Vua (Giảm dần)
+    # 2. Bằng điểm -> Xét Chuỗi phong độ (current_streak: Số dương xếp trên, số âm xếp dưới)
+    if 'current_streak' in lb.columns:
+        sort_cols.append('current_streak')
+        asc_orders.append(False) 
+        
+    # 3. Vẫn bằng nhau -> Xét Hit rate tổng thể (Giảm dần)
+    if 'hit_rate' in lb.columns:
+        sort_cols.append('hit_rate')
+        asc_orders.append(False)
+        
+    # 4. Cuối cùng -> Xét theo Bảng chữ cái (A -> Z)
+    sort_cols.append('name')
+    asc_orders.append(True) 
+    
+    # Áp dụng sắp xếp
+    lb = lb.sort_values(by=sort_cols, ascending=asc_orders).reset_index(drop=True)
+    
+    # NGẮT LOGIC TIE-BREAK: Ép cứng Hạng (Rank) là số thứ tự đếm từ 1,2,3.. (Không bao giờ trùng lặp)
+    lb['rank'] = lb.index + 1
+    
+    # Tạo nhãn rank dùng cho các UI (Ví dụ gọi hàm _rank_label cũ)
+    try:
+        lb['rank_label'] = lb['rank'].apply(_rank_label)
+    except NameError:
+        lb['rank_label'] = lb['rank'].astype(str)
+        
     return lb
-
 
 def build_leaderboard(
     users_df: pd.DataFrame,

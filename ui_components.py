@@ -695,34 +695,63 @@ def render_analytics_section_header(*, eyebrow: str, title: str, subtitle: str) 
 
 def render_analytics_sub_tabs(labels: list[str]):
     """Segmented control for analytics sub-views."""
-    _html('<div class="lb-analytics-tabs-marker" aria-hidden="true"></div>')
+    _html('''
+        <style>
+        /* Vá lỗi CSS: Ép TẤT CẢ các tab (kể cả tab số 5) phải sáng lên khi Active/Hover */
+        [data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"][aria-selected="true"],
+        [data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"][aria-selected="true"] * {
+            color: #ffffff !important;
+        }
+        [data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"]:hover,
+        [data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"]:hover * {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        /* Phục hồi vạch kẻ dưới (border-bottom) nếu theme gốc sử dụng */
+        [data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"][aria-selected="true"] {
+            border-bottom-color: rgba(255, 255, 255, 1) !important;
+        }
+        </style>
+        <div class="lb-analytics-tabs-marker" aria-hidden="true"></div>
+    ''')
     return st.tabs(labels)
 
 
 def render_leaderboard_podium(entries: list[dict]) -> None:
     if not entries:
         return
-    bar_map = {1: "1", 2: "2", 3: "3"}
+        
     medal_map = {1: "🥇", 2: "🥈", 3: "🥉"}
-    order = [1, 0, 2] if len(entries) >= 3 else list(range(len(entries)))
+    
+    # ÉP CỨNG: Dù có bao nhiêu người gửi vào, bục chỉ lấy ĐÚNG 3 người đầu tiên
+    top_3_entries = entries[:3]
+    
+    # Sắp xếp DOM theo Flexbox: [Trái (Hạng 2), Giữa (Hạng 1), Phải (Hạng 3)]
+    if len(top_3_entries) >= 3:
+        order = [1, 0, 2]
+    elif len(top_3_entries) == 2:
+        order = [1, 0]
+    else:
+        order = [0]
+        
     items = []
     for slot in order:
-        if slot >= len(entries):
-            continue
-        entry = entries[slot]
-        rank = int(entry["rank"])
-        bar = bar_map.get(rank, str(rank))
-        medal = medal_map.get(rank, f"#{rank}")
-        tie = int(entry.get("tie_count", 1))
-        tie_html = f'<div class="podium-tie">+{tie - 1} đồng hạng</div>' if tie > 1 else ""
+        entry = top_3_entries[slot]
+        
+        # NGẮT KẾT NỐI ĐIỂM SỐ: 
+        # Hạng được quyết định 100% bằng vị trí trong mảng (slot 0 -> Hạng 1, slot 1 -> Hạng 2...)
+        math_rank = slot + 1
+        visual_bar = str(math_rank)
+        medal = medal_map.get(math_rank, f"#{math_rank}")
+        
+        # Xóa bỏ hoàn toàn HTML của "Đồng hạng"
         items.append(
-            f'<div class="podium-item podium-item--rank-{bar}">'
-            f'<div class="podium-bar podium-bar--{bar}">{medal}</div>'
-            f'<div class="podium-name">{html.escape(str(entry["name"]))}</div>'
-            f'<div class="podium-pts">{int(entry["points"])} điểm</div>'
-            f"{tie_html}"
+            f'<div class="podium-item podium-item--rank-{visual_bar}">'
+            f'<div class="podium-bar podium-bar--{visual_bar}">{medal}</div>'
+            f'<div class="podium-name">{html.escape(str(entry.get("name", "")))}</div>'
+            f'<div class="podium-pts">{int(entry.get("points", 0))} điểm</div>'
             f"</div>"
         )
+        
     _html(f'<div class="podium podium--leaderboard">{"".join(items)}</div>')
 
 
@@ -788,36 +817,71 @@ def _pick_hero_shame(lb: pd.DataFrame) -> pd.Series | None:
 
 
 def _lb_hero_cards_payload(lb: pd.DataFrame) -> list[dict]:
-    """Three hero highlights: king, sniper, shame."""
+    """Three hero highlights: king, overthinker (phút 90), shame."""
     king = _pick_hero_king(lb)
-    sniper = _pick_hero_sniper(lb)
     shame = _pick_hero_shame(lb)
+
+    # =========================================================
+    # LOGIC MỚI: TÍNH TOÁN "CHÚA TỂ PHÚT 90" THAY TAY SĂN BÀN
+    # =========================================================
+    panic_name = "—"
+    panic_metric = "Chưa có dữ liệu"
+    
+    # Sử dụng biến 'scored_df' toàn cục từ session state hoặc luồng chạy nếu có
+    # Trong trường hợp hàm này chỉ nhận đầu vào là 'lb' (leaderboard), ta tận dụng dữ liệu phong độ/hit rate thấp để mô phỏng
+    # Hoặc nếu sếp muốn lấy chuẩn từ timestamp, ta quét nhanh qua dataframe:
+    import streamlit as st
+    if "scored_df" in st.session_state and not st.session_state["scored_df"].empty:
+        df_panic = st.session_state["scored_df"].copy()
+        if "timestamp" in df_panic.columns and "kickoff_vn" in df_panic.columns:
+            df_panic["kickoff_vn"] = pd.to_datetime(df_panic["kickoff_vn"], format="mixed", errors="coerce", utc=True)
+            df_panic["timestamp"] = pd.to_datetime(df_panic["timestamp"], format="mixed", errors="coerce", utc=True)
+            df_panic = df_panic.dropna(subset=["kickoff_vn", "timestamp"])
+            
+            if not df_panic.empty:
+                df_panic["delta_mins"] = (df_panic["kickoff_vn"] - df_panic["timestamp"]).dt.total_seconds() / 60.0
+                if "match_pts" not in df_panic.columns:
+                    df_panic["match_pts"] = 0
+                df_panic["match_pts"] = pd.to_numeric(df_panic["match_pts"], errors="coerce").fillna(0)
+                
+                # Chốt kèo <= 60 phút và điểm = 0 (đoán sai bét)
+                fail_sps = df_panic[(df_panic["delta_mins"] > 0) & (df_panic["delta_mins"] <= 60) & (df_panic["match_pts"] == 0)]
+                if not fail_sps.empty:
+                    counts = fail_sps.groupby("name").size().reset_index(name="fails")
+                    top_overthinker = counts.sort_values(by=["fails", "name"], ascending=[False, True]).iloc[0]
+                    panic_name = str(top_overthinker["name"])
+                    panic_metric = f"Có {int(top_overthinker['fails'])} trận tự hủy sát giờ"
+
+    # Nếu session_state chưa kịp lưu, giải pháp fallback lấy người có hit_rate thấp nhất trong Top chơi đủ trận
+    if panic_name == "—" and not lb.empty:
+        eligible_players = lb[lb["played"] >= 5]
+        if not eligible_players.empty:
+            bot_sniper = eligible_players.sort_values(by=["hit_rate", "points"], ascending=[True, True]).iloc[0]
+            panic_name = str(bot_sniper["name"])
+            panic_metric = f"📉 Hit Rate chỉ {float(bot_sniper['hit_rate']):.1f}%"
 
     cards = [
         {
-            "icon": "👑",
-            "title": "Vua Dự Đoán",
+            "icon": "🇵🇹🐐🇵🇹",
+            "title": "SIUUUU",
             "name": str(king["name"]) if king is not None else "—",
-            "metric": f"{int(king['points'])} điểm" if king is not None else "Chưa có dữ liệu",
+            "metric": f"{int(king['points'])} điểm - với tỉ lệ trúng {float(king['hit_rate']):.1f}%" if king is not None else "Chưa có dữ liệu",
             "extra_class": "",
         },
         {
-            "icon": "🎯",
-            "title": "Tay Săn Bàn",
-            "name": str(sniper["name"]) if sniper is not None else "—",
-            "metric": (
-                f"{float(sniper['hit_rate']):.1f}% trúng"
-                if sniper is not None
-                else "Chưa có dữ liệu"
-            ),
+            "icon": "⏱️",
+            "title": "Nghĩ như Pep , bet như sh!t",  # Sửa đổi tiêu đề hiển thị động cứng
+            "name": panic_name,
+            "metric": panic_metric,
             "extra_class": "",
         },
     ]
+    
     if shame is not None:
         cards.append(
             {
                 "icon": "💸",
-                "title": "Thánh Cống Hiến",
+                "title": "Khổ qua dĩa lớn",
                 "name": str(shame["name"]),
                 "metric": f"{int(shame['fines'])}k phạt",
                 "extra_class": "lb-hero-card--shame",
