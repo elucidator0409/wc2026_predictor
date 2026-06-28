@@ -215,3 +215,155 @@ def squad_by_position(df: pd.DataFrame) -> dict[str, list[dict]]:
         if pos in grouped:
             grouped[pos].append(row.to_dict())
     return {k: v for k, v in grouped.items() if v}
+
+
+# Pitch slot layout for 4-2-3-1 (x%, y% — GK at bottom, ST at top)
+FORMATION_4231_SLOTS: tuple[tuple[str, float, float], ...] = (
+    ("GK", 50.0, 90.0),
+    ("DF", 12.0, 72.0),
+    ("DF", 38.0, 72.0),
+    ("DF", 62.0, 72.0),
+    ("DF", 88.0, 72.0),
+    ("DM", 35.0, 54.0),
+    ("DM", 65.0, 54.0),
+    ("AM", 12.0, 36.0),
+    ("AM", 50.0, 32.0),
+    ("AM", 88.0, 36.0),
+    ("FW", 50.0, 10.0),
+)
+
+DEFAULT_FORMATION = "4-2-3-1"
+
+
+def _rank_squad_pool(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df
+    return df.sort_values(["caps", "goals", "player_name"], ascending=[False, False, True])
+
+
+def _take_n(pool: pd.DataFrame, n: int, picked_keys: set[str]) -> list[dict]:
+    rows: list[dict] = []
+    for _, row in pool.iterrows():
+        key = str(row.get("player_name", ""))
+        if key in picked_keys:
+            continue
+        picked_keys.add(key)
+        rows.append(row.to_dict())
+        if len(rows) >= n:
+            break
+    return rows
+
+
+def pick_starting_xi(squad_df: pd.DataFrame, formation: str = DEFAULT_FORMATION) -> list[dict]:
+    """
+    Heuristic XI: 1 GK, 4 DF, 2 DM, 3 AM, 1 FW by caps/goals.
+    Returns list of {player, slot, x_pct, y_pct, formation}.
+    """
+    if squad_df.empty:
+        return []
+
+    if formation != DEFAULT_FORMATION:
+        formation = DEFAULT_FORMATION
+
+    picked: set[str] = set()
+    by_pos = {p: _rank_squad_pool(squad_df[squad_df["position"] == p]) for p in POSITION_ORDER}
+
+    xi_rows: list[dict] = []
+    xi_rows.extend(_take_n(by_pos["GK"], 1, picked))
+    xi_rows.extend(_take_n(by_pos["DF"], 4, picked))
+
+    mf_pool = _rank_squad_pool(by_pos["MF"][~by_pos["MF"]["player_name"].isin(picked)])
+    xi_rows.extend(_take_n(mf_pool, 2, picked))
+
+    am_pool = _rank_squad_pool(
+        squad_df[(squad_df["position"].isin(["MF", "FW"])) & (~squad_df["player_name"].isin(picked))]
+    )
+    xi_rows.extend(_take_n(am_pool, 3, picked))
+
+    fw_pool = _rank_squad_pool(by_pos["FW"][~by_pos["FW"]["player_name"].isin(picked)])
+    striker = _take_n(fw_pool, 1, picked)
+    if not striker:
+        rest_attack = _rank_squad_pool(squad_df[~squad_df["player_name"].isin(picked)])
+        striker = _take_n(rest_attack, 1, picked)
+    xi_rows.extend(striker)
+
+    while len(xi_rows) < 11:
+        rest = _rank_squad_pool(squad_df[~squad_df["player_name"].isin(picked)])
+        extra = _take_n(rest, 1, picked)
+        if not extra:
+            break
+        xi_rows.extend(extra)
+
+    result: list[dict] = []
+    for idx, player in enumerate(xi_rows[:11]):
+        slot, x_pct, y_pct = FORMATION_4231_SLOTS[idx]
+        result.append(
+            {
+                "player": player,
+                "slot": slot,
+                "x_pct": x_pct,
+                "y_pct": y_pct,
+                "formation": formation,
+            }
+        )
+    return result
+
+
+def normalize_player_search_name(row) -> str:
+    """Build a searchable full name from CSV player_name / player_name_raw."""
+    raw = _clean_text(row.get("player_name_raw") if isinstance(row, dict) else row.get("player_name_raw", ""))
+    short = _clean_text(row.get("player_name") if isinstance(row, dict) else row.get("player_name", ""))
+    source = raw or short
+    if not source:
+        return ""
+
+    parts = short.split() if short else []
+    if len(parts) >= 2:
+        surname_token = parts[0].upper()
+        tokens = re.findall(r"[A-Za-zÀ-ÿ'.]+", source)
+        for i, tok in enumerate(tokens):
+            if tok.upper() != surname_token or i == 0:
+                continue
+            given: list[str] = []
+            j = i - 1
+            while j >= 0:
+                t = tokens[j]
+                if t.upper() == surname_token:
+                    break
+                if len(t) <= 1 and t.isalpha():
+                    given.insert(0, t.upper())
+                elif t[0].isupper():
+                    given.insert(0, t.title())
+                else:
+                    break
+                j -= 1
+            if given:
+                return f"{' '.join(given)} {parts[0].title()}"
+
+        given = " ".join(p.title() for p in parts[1:])
+        return f"{given} {parts[0].title()}"
+
+    return source.title()
+
+
+def short_player_label(display_name: str, number: str | int | None = None) -> str:
+    """Format label like '9 H. Kane' or 'H. Kane' when number unknown."""
+    name = _clean_text(display_name)
+    if not name:
+        return "—"
+    tokens = name.split()
+    if len(tokens) >= 2:
+        label = f"{tokens[0][0].upper()}. {tokens[-1]}"
+    else:
+        label = name
+    if number is not None and str(number).strip():
+        return f"{str(number).strip()} {label}"
+    return label
+
+
+def player_initials(display_name: str) -> str:
+    name = _clean_text(display_name)
+    tokens = name.split()
+    if len(tokens) >= 2:
+        return f"{tokens[0][0]}{tokens[-1][0]}".upper()
+    return name[:2].upper() if name else "?"

@@ -4,8 +4,11 @@ from players_service import (
     PLAYERS_CSV_PATH,
     filter_squad,
     load_players_df,
+    normalize_player_search_name,
     normalize_team_code,
+    pick_starting_xi,
     prep_players,
+    short_player_label,
     squad_summary,
     top_players,
 )
@@ -69,3 +72,31 @@ def test_squad_summary_and_top_players():
     top = top_players(players, "ALG", limit=3)
     assert len(top) == 3
     assert top.iloc[0]["goals"] >= top.iloc[1]["goals"]
+
+
+def test_pick_starting_xi_eleven_players():
+    players = prep_players(load_players_df(sh=None), _teams_df())
+    squad = filter_squad(players, "ENG")
+    xi = pick_starting_xi(squad)
+    assert len(xi) == 11
+    slots = [e["slot"] for e in xi]
+    assert slots.count("GK") == 1
+    assert slots.count("DF") == 4
+    assert slots.count("DM") == 2
+    assert slots.count("AM") == 3
+    assert slots.count("FW") == 1
+    assert all("x_pct" in e and "y_pct" in e for e in xi)
+
+
+def test_normalize_player_search_name_kane():
+    players = prep_players(load_players_df(sh=None), _teams_df())
+    kane = players[(players["fifa_code"] == "ENG") & (players["player_name"].str.contains("KANE", case=False))]
+    assert not kane.empty
+    name = normalize_player_search_name(kane.iloc[0].to_dict())
+    assert "Kane" in name
+    assert "Harry" in name or "Harr" in name
+
+
+def test_short_player_label_with_number():
+    assert short_player_label("Harry Kane", 9) == "9 H. Kane"
+    assert short_player_label("Harry Kane") == "H. Kane"

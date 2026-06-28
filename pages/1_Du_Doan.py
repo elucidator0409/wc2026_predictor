@@ -8,6 +8,7 @@ from data_service import (
     init_connection,
     normalize_users_df,
     prep_matches,
+    read_lineups_sheet,
     read_predictions_sheet,
     read_sheet,
     upsert_user_predictions,
@@ -26,8 +27,10 @@ from scoring import (
     format_pred_pick_html,
     is_match_finished,
     normalize_pred_outcome,
+    build_pred_adv_fields,
 )
-from players_service import load_players_df, prep_players, top_players
+from lineup_service import get_match_lineups, lineups_window_open
+from player_media_service import enrich_xi_with_media
 from ui_components import (
     apply_global_styles,
     custom_loader,
@@ -42,7 +45,7 @@ from ui_components import (
     render_pred_history_mobile_section,
     render_pred_tabs,
     render_sidebar,
-    render_squad_mini_panel,
+    render_squad_pitch_panel,
     render_user_account_panel,
     sync_auth_session,
     _html,
@@ -63,13 +66,10 @@ if "success_msg_pred" in st.session_state:
 
 render_page_header("Dự đoán", "Chọn kết quả Đội A / Hòa / Đội B và chốt trước giờ bóng lăn", variant="predict", eyebrow="Prediction Center")
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def load_players_for_pred():
+@st.cache_data(ttl=300, show_spinner=False)
+def load_lineups_for_pred():
     sh = init_connection()
-    players_raw = load_players_df(sh)
-    teams_df = read_sheet(sh, "teams")
-    teams_df.replace("", pd.NA, inplace=True)
-    return prep_players(players_raw, teams_df)
+    return read_lineups_sheet(sh)
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -178,38 +178,54 @@ def _render_one_match(row, selected_user_id, preds_df, id_to_name):
         default_outcome,
         widget_key=f"outcome_{selected_user_id}_{m_id}",
     )
+    outcome = normalize_pred_outcome(outcome) or "D"
 
     if team_a != "TBD" and team_b != "TBD":
         with st.expander("Đội hình 2 đội", expanded=False):
-            players_df = load_players_for_pred()
-            code_a = str(team_a_fifa or name_to_fifa.get(team_a, "")).strip().upper()
-            code_b = str(team_b_fifa or name_to_fifa.get(team_b, "")).strip().upper()
-            col_a, col_b = st.columns(2)
-            with col_a:
-                if code_a:
-                    render_squad_mini_panel(
-                        team_a,
-                        code_a,
-                        top_players(players_df, code_a, limit=3).to_dict("records"),
-                        name_to_fifa=name_to_fifa,
-                    )
+            if not lineups_window_open(row.get("kickoff_vn")):
+                st.info("Đội hình chưa công bố — thường có ~1 giờ trước giờ đá.")
+            else:
+                pitch_key = f"pitch_{selected_user_id}_{m_id}"
+                if not st.session_state.get(pitch_key):
+                    st.caption("Đội hình chính thức từ Sheet — bấm để xem sân.")
+                    if st.button("Xem sân đội hình", key=f"btn_pitch_{selected_user_id}_{m_id}"):
+                        st.session_state[pitch_key] = True
+                        st.rerun()
                 else:
-                    st.caption("Chưa có mã FIFA đội A.")
-            with col_b:
-                if code_b:
-                    render_squad_mini_panel(
-                        team_b,
-                        code_b,
-                        top_players(players_df, code_b, limit=3).to_dict("records"),
-                        name_to_fifa=name_to_fifa,
-                    )
-                else:
-                    st.caption("Chưa có mã FIFA đội B.")
+                    lineups_df = load_lineups_for_pred()
+                    code_a = str(team_a_fifa or name_to_fifa.get(team_a, "")).strip().upper()
+                    code_b = str(team_b_fifa or name_to_fifa.get(team_b, "")).strip().upper()
+                    bundle = get_match_lineups(lineups_df, m_id, code_a, code_b)
+                    if not bundle["is_complete"]:
+                        missing = []
+                        if code_a and not bundle["is_complete_a"]:
+                            missing.append(team_a)
+                        if code_b and not bundle["is_complete_b"]:
+                            missing.append(team_b)
+                        teams_txt = ", ".join(missing) if missing else "một hoặc hai đội"
+                        st.warning(f"Chưa có đội hình chính thức đủ 11 cầu thủ cho {teams_txt}.")
+                    else:
+                        col_a, col_b = st.columns(2)
+                        with st.spinner("Đang tải ảnh cầu thủ..."):
+                            with col_a:
+                                if code_a and bundle["xi_a"]:
+                                    xi_a = enrich_xi_with_media(bundle["xi_a"], code_a, team_a)
+                                    render_squad_pitch_panel(
+                                        team_a, code_a, xi_a, name_to_fifa=name_to_fifa, lineup_source="official"
+                                    )
+                            with col_b:
+                                if code_b and bundle["xi_b"]:
+                                    xi_b = enrich_xi_with_media(bundle["xi_b"], code_b, team_b)
+                                    render_squad_pitch_panel(
+                                        team_b, code_b, xi_b, name_to_fifa=name_to_fifa, lineup_source="official"
+                                    )
 
     adv_team = "TBD"
+    adv_key = f"adv_{selected_user_id}_{m_id}"
     dynamic_chk_key = f"chk_pred_{selected_user_id}_{m_id}_{st.session_state['chk_reset_counter']}"
+    show_pen_picker = is_knockout and outcome == "D" and team_a != "TBD" and team_b != "TBD"
 
-    if is_knockout and outcome == "D" and team_a != "TBD" and team_b != "TBD":
+    if show_pen_picker:
         _html('<div class="pen-picker-shell"><span class="pen-picker-label">Đội đi tiếp sau loạt PEN</span></div>')
         options_adv = [team_a, team_b]
         idx_adv = options_adv.index(old_adv_name) if old_adv_name in options_adv else 0
@@ -217,14 +233,17 @@ def _render_one_match(row, selected_user_id, preds_df, id_to_name):
             "Đội đi tiếp (PEN):",
             options_adv,
             index=idx_adv,
-            key=f"adv_{selected_user_id}_{m_id}",
+            key=adv_key,
             label_visibility="collapsed",
         )
-        is_confirmed = render_pred_confirm_checkbox(dynamic_chk_key)
     else:
-        is_confirmed = render_pred_confirm_checkbox(dynamic_chk_key)
+        st.session_state.pop(adv_key, None)
 
-    if is_confirmed: return m_id, (outcome, adv_team, is_knockout)
+    is_confirmed = render_pred_confirm_checkbox(dynamic_chk_key)
+
+    if is_confirmed:
+        adv_for_save = adv_team if show_pen_picker else "TBD"
+        return m_id, (outcome, adv_for_save, is_knockout)
     return None
 
 with st.sidebar:
@@ -240,43 +259,42 @@ with tab1:
     if upcoming_matches.empty:
         st.info("Tất cả trận hiện tại đã khóa hoặc kết thúc. Không còn trận để dự đoán!")
     else:
-        upcoming_matches = upcoming_matches.sort_values(["kickoff_vn", "match_number"]).head(10)
+        upcoming_matches = upcoming_matches.sort_values(["kickoff_vn", "match_number"]).head(20)
         render_pred_page_banner(selected_user_name, len(upcoming_matches), saved_count)
         st.markdown('<div class="pred-form-actions-marker"></div>', unsafe_allow_html=True)
 
-        with st.form("prediction_form"):
-            user_inputs = {}
-            use_two_cols = len(upcoming_matches) >= 3
-            matches_list = list(upcoming_matches.iterrows())
+        user_inputs = {}
+        use_two_cols = len(upcoming_matches) >= 3
+        matches_list = list(upcoming_matches.iterrows())
 
-            def _render_match_card(row):
-                with st.container(border=True):
-                    return _render_one_match(row, selected_user_id, preds_df, id_to_name)
+        def _render_match_card(row):
+            with st.container(border=True):
+                return _render_one_match(row, selected_user_id, preds_df, id_to_name)
 
-            if use_two_cols:
-                for i in range(0, len(matches_list), 2):
-                    col_left, col_right = st.columns(2, gap="large")
-                    with col_left:
-                        result = _render_match_card(matches_list[i][1])
-                        if result:
-                            m_id, payload = result
-                            user_inputs[m_id] = payload
-                    if i + 1 < len(matches_list):
-                        with col_right:
-                            result = _render_match_card(matches_list[i + 1][1])
-                            if result:
-                                m_id, payload = result
-                                user_inputs[m_id] = payload
-            else:
-                for _, row in matches_list:
-                    result = _render_match_card(row)
+        if use_two_cols:
+            for i in range(0, len(matches_list), 2):
+                col_left, col_right = st.columns(2, gap="large")
+                with col_left:
+                    result = _render_match_card(matches_list[i][1])
                     if result:
                         m_id, payload = result
                         user_inputs[m_id] = payload
+                if i + 1 < len(matches_list):
+                    with col_right:
+                        result = _render_match_card(matches_list[i + 1][1])
+                        if result:
+                            m_id, payload = result
+                            user_inputs[m_id] = payload
+        else:
+            for _, row in matches_list:
+                result = _render_match_card(row)
+                if result:
+                    m_id, payload = result
+                    user_inputs[m_id] = payload
 
-            st.markdown('<div class="pred-form-actions">', unsafe_allow_html=True)
-            submitted = st.form_submit_button("💾 Lưu tất cả dự đoán đã chốt", type="primary", width="stretch")
-            st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown('<div class="pred-form-actions">', unsafe_allow_html=True)
+        submitted = st.button("💾 Lưu tất cả dự đoán đã chốt", type="primary", width="stretch")
+        st.markdown("</div>", unsafe_allow_html=True)
 
         if submitted:
             if not user_inputs:
@@ -303,8 +321,8 @@ with tab1:
                         ignored_matches.append(m_id)
                         continue
 
-                    adv_id = str(name_to_id.get(adv_t)) if (is_ko and outcome == "D" and adv_t != "TBD") else ""
-                    entries.append((m_id, normalize_pred_outcome(outcome) or "", adv_id, ts))
+                    outcome_norm, adv_id = build_pred_adv_fields(outcome, adv_t, is_ko, name_to_id)
+                    entries.append((m_id, outcome_norm, adv_id, ts))
 
                 upsert_user_predictions(ws_preds, selected_user_id, entries)
 
@@ -334,7 +352,7 @@ with tab2:
     else:
         display_history = pd.merge(user_history_df, matches_df, on="match_id", how="inner")
         display_history["match_number"] = pd.to_numeric(display_history["match_number"], errors="coerce")
-        display_history = display_history.sort_values(by=["kickoff_vn", "match_number"])
+        display_history = display_history.sort_values(by=["kickoff_vn", "match_number"]).tail(10).iloc[::-1]
 
         def _history_stage_id(row):
             try:

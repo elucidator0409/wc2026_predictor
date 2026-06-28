@@ -1,8 +1,12 @@
 import pandas as pd
 import streamlit as st
 
+from datetime import datetime, timedelta
+
 from achievement_service import ALLOWED_METRICS, BADGE_RARITIES, METRIC_LABELS_VN, OPERATORS, RARITY_LABELS_VN, THRESHOLD_HINTS_VN
 from data_service import (
+    LINEUPS_COLUMNS,
+    LINEUPS_SHEET_NAME,
     append_achievement_row,
     append_user_row,
     hash_password,
@@ -10,13 +14,17 @@ from data_service import (
     normalize_users_df,
     prep_matches,
     read_achievements_sheet,
+    read_lineups_sheet,
     read_predictions_sheet,
     read_sheet,
     repair_predictions_sheet_header,
     update_achievement_row,
+    upsert_match_lineups,
     vietnam_timestamp,
     write_worksheet_dataframe,
+    VN_TZ,
 )
+from lineup_service import SLOT_LABELS_VN, SLOT_ORDER
 from prediction_matrix_service import MATRIX_SHEET_NAME, build_prediction_matrix
 from team_flags import build_name_to_fifa
 from schedule_service import format_date_compact_vn, format_time_vn
@@ -268,11 +276,21 @@ def _render_submit_preview(lines: list[str], title: str):
             st.markdown(f"- {line}")
 
 
+def _team_fifa_code(team_name: str) -> str:
+    if not team_name or team_name == "TBD":
+        return ""
+    hit = teams_df[teams_df["team_name"] == team_name]
+    if hit.empty:
+        return ""
+    return str(hit.iloc[0].get("fifa_code", "")).strip().upper()
+
+
 tab_options = [
     "🔴 Chờ cập nhật",
     "🟢 Chỉnh sửa đã đá",
     "⚙️ Vòng Knock-out",
     "🔒 Khóa trận",
+    "👕 Đội hình",
     "👤 Thêm người chơi",
     "📊 Ma trận → Sheet",
     "🏅 Danh hiệu ẩn",
@@ -316,7 +334,7 @@ elif active_tab == tab_options[1]:
         display_limit = st.slider(
             "Số trận hiển thị",
             min_value=5,
-            max_value=50,
+            max_value=104,
             value=15,
             step=5,
             key="edit_display_limit",
@@ -445,6 +463,114 @@ elif active_tab == tab_options[3]:
                     _apply_admin_updates(changed, "lock")
 
 elif active_tab == tab_options[4]:
+    st.markdown('<div class="content-card-title">👕 Đội hình chính thức (Sheet)</div>', unsafe_allow_html=True)
+    st.caption(
+        f"Nhập 11 cầu thủ/đội vào tab `{LINEUPS_SHEET_NAME}`. "
+        "Người chơi chỉ thấy sân trong cửa sổ ~1 giờ trước kickoff."
+    )
+
+    now_vn = datetime.now(VN_TZ)
+    lineup_pool = matches_df[
+        matches_df["kickoff_vn"].notna()
+        & (matches_df["real_score_a"].isna() | matches_df["real_score_b"].isna())
+        & (matches_df["kickoff_vn"] >= now_vn - timedelta(hours=1))
+        & (matches_df["kickoff_vn"] <= now_vn + timedelta(hours=48))
+    ].sort_values(["kickoff_vn", "match_number"])
+
+    if lineup_pool.empty:
+        st.info("Không có trận sắp đá trong 48 giờ tới.")
+    else:
+        labels = [
+            f"#{int(row['match_number'])} · {row['team_a']} vs {row['team_b']} · {_kickoff_label(row)}"
+            for _, row in lineup_pool.iterrows()
+        ]
+        pick_idx = st.selectbox("Chọn trận", range(len(labels)), format_func=lambda i: labels[i], key="lineup_match_pick")
+        row = lineup_pool.iloc[pick_idx]
+        m_id = _match_id(row)
+        team_a, team_b = row["team_a"], row["team_b"]
+        code_a, code_b = _team_fifa_code(team_a), _team_fifa_code(team_b)
+
+        sh = init_connection()
+        try:
+            ws_lineups = sh.worksheet(LINEUPS_SHEET_NAME)
+        except Exception:
+            ws_lineups = sh.add_worksheet(title=LINEUPS_SHEET_NAME, rows=500, cols=7)
+            ws_lineups.update("A1:G1", [list(LINEUPS_COLUMNS)], value_input_option="USER_ENTERED")
+
+        existing = read_lineups_sheet(sh)
+        formation = st.selectbox(
+            "Formation",
+            ["4-2-3-1", "4-3-3", "3-5-2", "4-4-2"],
+            index=0,
+            key=f"lineup_formation_{m_id}",
+        )
+
+        def _prefill(team_code: str, slot: str) -> tuple[str, str]:
+            if existing.empty or not team_code:
+                return "", ""
+            hit = existing[
+                (existing["match_id"].astype(str) == m_id)
+                & (existing["fifa_code"].astype(str).str.upper() == team_code.upper())
+                & (existing["slot"].astype(str).str.upper() == slot.upper())
+            ]
+            if hit.empty:
+                return "", ""
+            r = hit.iloc[0]
+            return str(r.get("shirt_number", "")), str(r.get("player_name", ""))
+
+        def _render_team_lineup_form(side_label: str, team_name: str, team_code: str, key_prefix: str):
+            st.markdown(f"**{side_label}: {team_name}** ({team_code or '—'})")
+            rows = []
+            for slot in SLOT_ORDER:
+                default_num, default_name = _prefill(team_code, slot)
+                c1, c2, c3 = st.columns([1, 2, 2])
+                with c1:
+                    st.caption(SLOT_LABELS_VN.get(slot, slot))
+                with c2:
+                    num = st.text_input(
+                        "Số",
+                        value=default_num,
+                        key=f"{key_prefix}_num_{slot}",
+                        label_visibility="collapsed",
+                        placeholder="#",
+                    )
+                with c3:
+                    pname = st.text_input(
+                        "Tên",
+                        value=default_name,
+                        key=f"{key_prefix}_name_{slot}",
+                        label_visibility="collapsed",
+                        placeholder="Tên cầu thủ",
+                    )
+                if str(pname).strip():
+                    rows.append(
+                        {
+                            "player_name": str(pname).strip(),
+                            "shirt_number": str(num).strip(),
+                            "slot": slot,
+                            "formation": formation,
+                        }
+                    )
+            return rows
+
+        col_la, col_lb = st.columns(2)
+        with col_la:
+            rows_a = _render_team_lineup_form("Đội A", team_a, code_a, f"la_{m_id}") if code_a else []
+        with col_lb:
+            rows_b = _render_team_lineup_form("Đội B", team_b, code_b, f"lb_{m_id}") if code_b else []
+
+        if st.button("💾 Lưu đội hình lên Sheet", type="primary", key=f"save_lineup_{m_id}"):
+            ts = vietnam_timestamp()
+            saved = 0
+            if code_a and rows_a:
+                saved += upsert_match_lineups(ws_lineups, m_id, code_a, rows_a, timestamp=ts)
+            if code_b and rows_b:
+                saved += upsert_match_lineups(ws_lineups, m_id, code_b, rows_b, timestamp=ts)
+            st.cache_data.clear()
+            st.session_state["success_msg"] = f"✅ Đã lưu {saved} dòng đội hình (trận #{row['match_number']})."
+            st.rerun()
+
+elif active_tab == tab_options[5]:
     st.markdown('<div class="content-card-title">👤 Thêm người chơi mới</div>', unsafe_allow_html=True)
     st.caption(
         "User mới chỉ được tính điểm/phạt/bỏ lỡ từ trận sắp tới tiếp theo — "
@@ -525,7 +651,7 @@ elif active_tab == tab_options[4]:
                     )
                     st.rerun()
 
-elif active_tab == tab_options[5]:
+elif active_tab == tab_options[6]:
     st.markdown('<div class="content-card-title">📊 Ma trận dự đoán → Google Sheet</div>', unsafe_allow_html=True)
     st.caption(
         "Đẩy toàn bộ dự đoán (trận × người chơi) lên tab "
@@ -572,7 +698,7 @@ elif active_tab == tab_options[5]:
         sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
         st.link_button("Mở Google Spreadsheet", sheet_url)
 
-elif active_tab == tab_options[6]:
+elif active_tab == tab_options[7]:
     st.markdown('<div class="content-card-title">🏅 Danh hiệu ẩn (Achievements)</div>', unsafe_allow_html=True)
     st.caption(
         "Quy tắc đọc từ tab `Achievements` trên Google Sheet. "

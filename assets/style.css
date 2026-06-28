@@ -6011,6 +6011,192 @@ div[data-testid="stDataFrame"] .gdg-row:nth-child(even) .gdg-cell {
     text-decoration: underline;
 }
 
+/* ── Squad pitch (pre-match expected XI) ── */
+.squad-pitch-wrap {
+    margin-top: 0.35rem;
+}
+
+.squad-pitch-field {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    max-height: 420px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(180deg, #1a5c32 0%, #0f4224 55%, #0a3320 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.squad-pitch-markings {
+    position: absolute;
+    inset: 6% 8%;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 2px;
+    pointer-events: none;
+}
+
+.squad-pitch-markings::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    border-top: 2px solid rgba(255, 255, 255, 0.35);
+}
+
+.squad-pitch-markings::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 22%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50%;
+}
+
+.squad-pitch-player {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    width: 4.2rem;
+    z-index: 2;
+}
+
+.squad-pitch-photo {
+    position: relative;
+    width: 2.65rem;
+    height: 2.65rem;
+    border-radius: 50%;
+    background: rgba(9, 16, 29, 0.85);
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.squad-pitch-photo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.squad-pitch-initials {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--wc-gold);
+    letter-spacing: 0.02em;
+}
+
+.squad-pitch-club-badge {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 0.95rem;
+    height: 0.95rem;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    background: #fff;
+    object-fit: contain;
+}
+
+.squad-pitch-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    line-height: 1.15;
+    max-width: 4.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+}
+
+.squad-pitch-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.82rem;
+}
+
+.squad-pitch-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.45rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: var(--radius-sm);
+    background: rgba(9, 16, 29, 0.5);
+    border: 1px solid var(--border-subtle);
+}
+
+.squad-pitch-footer-team {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    min-width: 0;
+}
+
+.squad-pitch-footer-team span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.squad-pitch-formation-badge {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.12);
+    color: var(--wc-gold);
+    border: 1px solid rgba(251, 191, 36, 0.28);
+}
+
+.squad-pitch-caption {
+    margin-top: 0.3rem;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.squad-pitch-full-link {
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .squad-pitch-player {
+        width: 3.4rem;
+    }
+
+    .squad-pitch-photo {
+        width: 2.15rem;
+        height: 2.15rem;
+    }
+
+    .squad-pitch-label {
+        font-size: 0.55rem;
+        max-width: 3.6rem;
+    }
+}
+
 .grp-team-link {
     color: inherit;
     text-decoration: none;

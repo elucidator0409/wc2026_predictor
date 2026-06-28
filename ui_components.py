@@ -1870,6 +1870,69 @@ def render_squad_mini_panel(
     )
 
 
+def render_squad_pitch_panel(
+    team_name: str,
+    fifa_code: str,
+    xi_entries: list[dict],
+    name_to_fifa: dict | None = None,
+    lineup_source: str = "official",
+) -> None:
+    """Render one team's XI on a CSS pitch (4-2-3-1 layout)."""
+    from players_service import short_player_label
+
+    flag = flag_img_html(fifa_code=fifa_code, team_name=team_name, name_to_fifa=name_to_fifa, size="sm")
+    squad_url = internal_nav_url("/Tra_Cuu_Doi_Bong", {"team": str(fifa_code).strip().upper()})
+    formation = xi_entries[0].get("formation", "4-2-3-1") if xi_entries else "4-2-3-1"
+    caption = "Đội hình chính thức" if lineup_source == "official" else "Đội hình dự kiến (theo caps)"
+
+    players_html = ""
+    for entry in xi_entries:
+        player = entry.get("player") or {}
+        media = entry.get("media") or {}
+        search_name = entry.get("search_name") or str(player.get("player_name", ""))
+        shirt = media.get("shirt_number") or player.get("shirt_number")
+        label = short_player_label(search_name, shirt)
+        photo = str(media.get("photo_url") or "").strip()
+        badge = str(media.get("club_badge_url") or "").strip()
+        initials = str(media.get("initials") or "?")
+        x = float(entry.get("x_pct", 50))
+        y = float(entry.get("y_pct", 50))
+
+        if photo:
+            photo_inner = f'<img class="squad-pitch-photo-img" src="{html.escape(photo)}" alt="" loading="lazy" />'
+        else:
+            photo_inner = f'<span class="squad-pitch-initials">{html.escape(initials)}</span>'
+
+        badge_html = ""
+        if badge:
+            badge_html = f'<img class="squad-pitch-club-badge" src="{html.escape(badge)}" alt="" loading="lazy" />'
+
+        players_html += (
+            f'<div class="squad-pitch-player" style="left:{x}%;top:{y}%;">'
+            f'<div class="squad-pitch-photo">{photo_inner}{badge_html}</div>'
+            f'<div class="squad-pitch-label">{html.escape(label)}</div>'
+            f"</div>"
+        )
+
+    if not players_html:
+        players_html = '<div class="squad-pitch-empty">Chưa có dữ liệu đội hình</div>'
+
+    _html(
+        f'<div class="squad-pitch-wrap">'
+        f'<div class="squad-pitch-field">'
+        f'<div class="squad-pitch-markings" aria-hidden="true"></div>'
+        f"{players_html}"
+        f"</div>"
+        f'<div class="squad-pitch-footer">'
+        f'<div class="squad-pitch-footer-team">{flag}<span>{html.escape(team_name)}</span></div>'
+        f'<span class="squad-pitch-formation-badge">{html.escape(formation)}</span>'
+        f"</div>"
+        f'<div class="squad-pitch-caption">{html.escape(caption)}</div>'
+        f'<a class="squad-mini-link squad-pitch-full-link" href="{html.escape(squad_url)}">Xem đội hình đầy đủ →</a>'
+        f"</div>"
+    )
+
+
 def render_login_branding(
     title: str = "Đăng nhập",
     subtitle: str = "Nhập tên hiển thị hoặc mã ID để tham gia dự đoán World Cup 2026",

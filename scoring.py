@@ -42,6 +42,25 @@ def normalize_pred_outcome(value) -> str | None:
     return LEGACY_OUTCOME_MAP.get(text)
 
 
+def build_pred_adv_fields(
+    outcome,
+    adv_team: str,
+    is_ko: bool,
+    name_to_id: dict,
+) -> tuple[str, str]:
+    """
+    Normalize outcome and compute pred_advanced_team_id for Sheet upsert.
+    Used by pages/1_Du_Doan.py submit handler.
+    """
+    outcome_norm = normalize_pred_outcome(outcome) or ""
+    adv_id = ""
+    if is_ko and outcome_norm == "D" and adv_team and str(adv_team).strip() != "TBD":
+        raw = name_to_id.get(adv_team)
+        if raw is not None:
+            adv_id = str(raw)
+    return outcome_norm, adv_id
+
+
 def _parse_int(value, default: int = 0) -> int:
     try:
         if pd.isna(value) or str(value).strip() == "":

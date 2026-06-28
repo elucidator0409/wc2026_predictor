@@ -15,6 +15,16 @@ USERS_COLUMNS = ("user_id", "name", "password", "active_from_kickoff")
 PREDICTIONS_COLUMNS = ("user_id", "match_id", "pred_outcome", "pred_advanced_team_id", "timestamp")
 ACHIEVEMENTS_COLUMNS = ("id", "badge_name", "metric", "operator", "threshold_value", "rarity", "description")
 ACHIEVEMENTS_SHEET_NAME = "Achievements"
+LINEUPS_COLUMNS = (
+    "match_id",
+    "fifa_code",
+    "player_name",
+    "shirt_number",
+    "slot",
+    "formation",
+    "updated_at",
+)
+LINEUPS_SHEET_NAME = "lineups"
 
 # Google Sheets treats values starting with "=" as formulas — store "==" as "eq".
 _OPERATOR_TO_SHEET = {"==": "eq"}
@@ -501,3 +511,80 @@ def build_prediction_row(
         "pred_advanced_team_id": pred_advanced_team_id if pred_advanced_team_id is not None else "",
         "timestamp": timestamp or "",
     }
+
+
+def read_lineups_sheet(sh) -> pd.DataFrame:
+    """Read official lineups tab; empty DataFrame if missing."""
+    try:
+        data = sh.worksheet(LINEUPS_SHEET_NAME).get_all_values()
+    except Exception:
+        return pd.DataFrame(columns=list(LINEUPS_COLUMNS))
+
+    if not data:
+        return pd.DataFrame(columns=list(LINEUPS_COLUMNS))
+
+    expected = list(LINEUPS_COLUMNS)
+    header = _normalize_header_row(data[0])
+    offset = 1 if header == expected else 0
+
+    records = []
+    for row in data[offset:]:
+        padded = list(row) + [""] * len(LINEUPS_COLUMNS)
+        padded = padded[: len(LINEUPS_COLUMNS)]
+        if str(padded[0]).strip() and str(padded[1]).strip():
+            records.append(padded)
+
+    if not records:
+        return pd.DataFrame(columns=list(LINEUPS_COLUMNS))
+
+    return pd.DataFrame(records, columns=list(LINEUPS_COLUMNS))
+
+
+def upsert_match_lineups(
+    ws,
+    match_id: str,
+    fifa_code: str,
+    rows: list[dict],
+    timestamp: str | None = None,
+) -> int:
+    """
+    Replace all lineup rows for (match_id, fifa_code) with new rows (typically 11).
+    Returns number of rows written.
+    """
+    data = ws.get_all_values()
+    expected = list(LINEUPS_COLUMNS)
+    ts = timestamp or vietnam_timestamp()
+    mid = str(match_id).strip()
+    code = str(fifa_code).strip().upper()
+
+    if not data:
+        body: list[list] = []
+    else:
+        header = _normalize_header_row(data[0])
+        body = data[1:] if header == expected else data
+
+    kept: list[list] = [expected]
+    for row in body:
+        if len(row) >= 2 and str(row[0]).strip() == mid and str(row[1]).strip().upper() == code:
+            continue
+        kept.append(row)
+
+    for row in rows:
+        kept.append(
+            [
+                mid,
+                code,
+                str(row.get("player_name", "")).strip(),
+                str(row.get("shirt_number", "")).strip(),
+                str(row.get("slot", "")).strip().upper(),
+                str(row.get("formation", "4-2-3-1")).strip(),
+                ts,
+            ]
+        )
+
+    ws.update(
+        f"A1:{_col_letter(len(LINEUPS_COLUMNS))}{len(kept)}",
+        kept,
+        value_input_option="USER_ENTERED",
+    )
+    return len(rows)
