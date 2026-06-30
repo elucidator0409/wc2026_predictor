@@ -259,7 +259,7 @@ with tab1:
     if upcoming_matches.empty:
         st.info("Tất cả trận hiện tại đã khóa hoặc kết thúc. Không còn trận để dự đoán!")
     else:
-        upcoming_matches = upcoming_matches.sort_values(["kickoff_vn", "match_number"]).head(20)
+        upcoming_matches = upcoming_matches.sort_values(["kickoff_vn", "match_number"]).head(12)
         render_pred_page_banner(selected_user_name, len(upcoming_matches), saved_count)
         st.markdown('<div class="pred-form-actions-marker"></div>', unsafe_allow_html=True)
 
@@ -352,7 +352,7 @@ with tab2:
     else:
         display_history = pd.merge(user_history_df, matches_df, on="match_id", how="inner")
         display_history["match_number"] = pd.to_numeric(display_history["match_number"], errors="coerce")
-        display_history = display_history.sort_values(by=["kickoff_vn", "match_number"]).tail(10).iloc[::-1]
+        display_history = display_history.sort_values(by=["kickoff_vn", "match_number"]).tail(25).iloc[::-1]
 
         def _history_stage_id(row):
             try:
