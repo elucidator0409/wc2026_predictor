@@ -53,6 +53,7 @@ from team_flags import build_name_to_fifa, flag_emoji
 from scoring import _parse_stage, calculate_fines, calculate_points, format_pred_display, format_real_display, normalize_pred_outcome
 from ui_components import (
     _html,
+    _html_inline,
     apply_global_styles,
     custom_loader,
     render_analytics_guide,
@@ -178,7 +179,7 @@ chart_layout = dict(
 )
 
 with tab1:
-    _html('<div class="lb-page-marker" aria-hidden="true"></div>')
+    _html_inline('<div class="lb-page-marker" aria-hidden="true"></div>')
     leaderboard = build_leaderboard_with_dynamics(users_df, preds_df, finished_matches)
     insight = latest_match_insight(finished_matches, preds_df, users_df)
     if insight:
@@ -318,7 +319,7 @@ with tab2:
     render_badge_collection_board(collection_bundle, highlight_user_id=current_user_id)
 
 with tab3:
-    _html('<div class="lb-analytics-panel-marker" aria-hidden="true"></div>')
+    _html_inline('<div class="lb-analytics-panel-marker" aria-hidden="true"></div>')
     render_analytics_section_header(
         eyebrow="Insights",
         title="Phân tích dữ liệu hành vi",
@@ -695,7 +696,7 @@ with tab3:
             margin=dict(l=20, r=20, t=50, b=20)
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         # --- RENDER WEEKLY TREND CHART (BIỂU ĐỒ PHONG ĐỘ TUẦN) ---
         _html('<div style="margin-top: 3rem;"></div>')
@@ -760,7 +761,7 @@ with tab3:
             fig_trend.update_yaxes(title_text="Tiền phạt thu về (VNĐ)", secondary_y=False, gridcolor="rgba(255,255,255,0.06)", showticklabels=False)
             fig_trend.update_yaxes(title_text="Hit Rate Cả Nhóm (%)", secondary_y=True, showgrid=False, range=[0, 100])
             
-            st.plotly_chart(fig_trend, use_container_width=True)
+            st.plotly_chart(fig_trend, width="stretch")
             
             # Đẩy lời bình luận AI lên UI
             st.info(trend_data["insight"])

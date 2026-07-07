@@ -32,11 +32,25 @@ DISPLAY_NAME_EMOJIS = [
     "🤙", "✌️", "🥇", "🎮", "🧢", "🌟", "⚡", "🍀",
 ]
 
-def _html(content: str):
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+
+def _html_inline(content: str) -> None:
+    """CSS :has() anchors + HTML that must sit in the same DOM as Streamlit widgets."""
+    st.markdown(content, unsafe_allow_html=True)
+
+
+_html_marker = _html_inline
+
+
+def _html(content: str) -> None:
+    """Self-contained HTML panels only — never place CSS bridge markers here."""
     st.html(content)
 
 def apply_global_styles():
-    css_path = os.path.join("assets", "style.css")
+    css_path_abs = os.path.join(_PROJECT_ROOT, "assets", "style.css")
+    css_path_rel = os.path.join("assets", "style.css")
+    css_path = css_path_abs if os.path.exists(css_path_abs) else css_path_rel
     if os.path.exists(css_path):
         with open(css_path, "r", encoding="utf-8") as f:
             css = f.read()
@@ -461,7 +475,7 @@ def render_home_cta_cards(cards: list[dict[str, str]]):
             page, query_params = _internal_page_link_target(href)
             label = f"{icon}  \n**{title}**  \n{desc}  \n**{cta} →**"
             with col:
-                _html(
+                _html_inline(
                     f'<span class="home-cta-native-marker home-cta-native-marker--{html.escape(tone)}" aria-hidden="true"></span>'
                 )
                 if page:
@@ -677,7 +691,7 @@ def render_analytics_takeaway(text: str) -> None:
 
 def render_lb_main_tabs(labels: list[str]):
     """Premium pill switcher for leaderboard page main tabs."""
-    _html('<div class="lb-main-tabs-marker" aria-hidden="true"></div>')
+    _html_inline('<div class="lb-main-tabs-marker" aria-hidden="true"></div>')
     return st.tabs(labels)
 
 
@@ -695,24 +709,7 @@ def render_analytics_section_header(*, eyebrow: str, title: str, subtitle: str) 
 
 def render_analytics_sub_tabs(labels: list[str]):
     """Segmented control for analytics sub-views."""
-    _html('''
-        <style>
-        /* Vá lỗi CSS: Ép TẤT CẢ các tab (kể cả tab số 5) phải sáng lên khi Active/Hover */
-        [data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"][aria-selected="true"],
-        [data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"][aria-selected="true"] * {
-            color: #ffffff !important;
-        }
-        [data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"]:hover,
-        [data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"]:hover * {
-            color: rgba(255, 255, 255, 0.9) !important;
-        }
-        /* Phục hồi vạch kẻ dưới (border-bottom) nếu theme gốc sử dụng */
-        [data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"][aria-selected="true"] {
-            border-bottom-color: rgba(255, 255, 255, 1) !important;
-        }
-        </style>
-        <div class="lb-analytics-tabs-marker" aria-hidden="true"></div>
-    ''')
+    _html_inline('<div class="lb-analytics-tabs-marker" aria-hidden="true"></div>')
     return st.tabs(labels)
 
 
@@ -923,10 +920,7 @@ def _render_lb_hero_cards_desktop_html(lb: pd.DataFrame) -> str:
     cards = "".join(
         _render_lb_hero_card_html(**card) for card in _lb_hero_cards_payload(lb)
     )
-    return (
-        '<div class="lb-hero-desktop-marker" aria-hidden="true"></div>'
-        f'<div class="lb-hero-grid lb-hero-grid--desktop">{cards}</div>'
-    )
+    return f'<div class="lb-hero-grid lb-hero-grid--desktop">{cards}</div>'
 
 
 def _render_lb_hero_cards_mobile_compact_html(lb: pd.DataFrame) -> str:
@@ -941,16 +935,14 @@ def _render_lb_hero_cards_mobile_compact_html(lb: pd.DataFrame) -> str:
             f'<span class="lb-hero-chip-metric">{html.escape(card["metric"])}</span>'
             f"</div>"
         )
-    return (
-        '<div class="lb-hero-mobile-compact-marker" aria-hidden="true"></div>'
-        f'<div class="lb-hero-strip">{"".join(chips)}</div>'
-    )
+    return f'<div class="lb-hero-strip">{"".join(chips)}</div>'
 
 
 def render_lb_hero_cards(lb: pd.DataFrame) -> None:
     """Desktop hero cards — full size above leaderboard."""
     if lb.empty:
         return
+    _html_inline('<div class="lb-hero-desktop-marker" aria-hidden="true"></div>')
     _html(_render_lb_hero_cards_desktop_html(lb))
 
 
@@ -958,6 +950,7 @@ def render_lb_hero_cards_mobile_compact(lb: pd.DataFrame) -> None:
     """Mobile-only compact hero strip below leaderboard table."""
     if lb.empty:
         return
+    _html_inline('<div class="lb-hero-mobile-compact-marker" aria-hidden="true"></div>')
     _html(_render_lb_hero_cards_mobile_compact_html(lb))
 
 
@@ -1122,9 +1115,9 @@ def _render_leaderboard_desktop_html(
         "</div>"
         "</div>"
     )
+    _html_inline('<div class="lb-dataframe-desktop-marker" aria-hidden="true"></div>')
+    _html_inline('<div class="lb-desktop-layout-marker" aria-hidden="true"></div>')
     _html(
-        '<div class="lb-dataframe-desktop-marker" aria-hidden="true"></div>'
-        '<div class="lb-desktop-layout-marker" aria-hidden="true"></div>'
         '<div class="lb-desktop-layout">'
         f'<div class="lb-desktop-main">'
         f'<div class="lb-list lb-list--gamified-desktop">{head}{"".join(body)}</div>'
@@ -1276,10 +1269,8 @@ def render_lb_streak_cards(streaks: dict) -> None:
 def render_lb_streak_cards_mobile(streaks: dict) -> None:
     """Mobile top streak cards — replaces hero cards on small screens."""
     body = _render_lb_streak_cards_html(streaks or {}, mobile=True)
-    _html(
-        '<div class="lb-streak-mobile-marker" aria-hidden="true"></div>'
-        f'<div class="lb-streak-mobile-top">{body}</div>'
-    )
+    _html_inline('<div class="lb-streak-mobile-marker" aria-hidden="true"></div>')
+    _html(f'<div class="lb-streak-mobile-top">{body}</div>')
 
 
 def _lb_form_html(codes, *, limit: int | None = None) -> str:
@@ -1342,10 +1333,8 @@ def _render_leaderboard_mobile_html(
         "</div>"
         "</div>"
     )
-    _html(
-        '<div class="lb-dataframe-mobile-marker" aria-hidden="true"></div>'
-        f'<div class="lb-list lb-list--gamified-mobile">{head}{"".join(body)}</div>'
-    )
+    _html_inline('<div class="lb-dataframe-mobile-marker" aria-hidden="true"></div>')
+    _html(f'<div class="lb-list lb-list--gamified-mobile">{head}{"".join(body)}</div>')
 
 
 def render_leaderboard_dataframe(
@@ -1558,7 +1547,7 @@ def _render_trophy_gallery_grid(
             state, state_title = "locked", "Chưa mở khóa"
         entries.append((badge, rarity, state, state_title, description))
 
-    st.markdown('<div class="trophy-room-marker" aria-hidden="true"></div>', unsafe_allow_html=True)
+    _html_inline('<div class="trophy-room-marker" aria-hidden="true"></div>')
     st.markdown('<div class="trophy-room-grid-wrap">', unsafe_allow_html=True)
 
     for row_start in range(0, len(entries), cols):
@@ -1671,10 +1660,8 @@ def render_badge_collection_board(
         "</div></div>"
     )
 
-    _html(
-        '<div class="badge-collection-marker" aria-hidden="true"></div>'
-        f"{hero}"
-    )
+    _html_inline('<div class="badge-collection-marker" aria-hidden="true"></div>')
+    _html(hero)
 
     player_ids = [str(p.get("user_id", "")) for p in players]
     default_uid = highlight if highlight in player_ids else player_ids[0]
@@ -1991,7 +1978,7 @@ def _queue_name_draft(draft_key: str, value: str) -> None:
     st.rerun()
 
 def render_emoji_name_picker(draft_key: str, saved_name: str):
-    _html(
+    _html_inline(
         '<div class="emoji-picker-shell">'
         '<div class="emoji-picker-label">Chọn icon (bấm để thêm vào tên)</div>'
         '</div>'
@@ -2009,7 +1996,7 @@ def render_emoji_name_picker(draft_key: str, saved_name: str):
         st.session_state[idx_key] = st.session_state.get(idx_key, 0) + 1
         _queue_name_draft(draft_key, _draft_name(draft_key, saved_name) + picked)
 
-    _html('<div class="emoji-action-marker"><div class="emoji-action-title">Sửa nhanh</div></div>')
+    _html_inline('<div class="emoji-action-marker"><div class="emoji-action-title">Sửa nhanh</div></div>')
     with st.container():
         if st.button("⌫ Xóa", key=f"emoji_back_{draft_key}", width="stretch"):
             _queue_name_draft(draft_key, _draft_name(draft_key, saved_name)[:-1])
@@ -2120,7 +2107,7 @@ def render_outcome_picker(
     widget_key: str,
 ) -> str:
     """Full-width segmented A/D/B control."""
-    _html('<div class="pred-card-body"><div class="outcome-picker-shell"></div>')
+    _html_inline('<div class="pred-card-body"><div class="outcome-picker-shell"></div>')
 
     options = ["A", "D", "B"]
     default = normalize_pred_outcome(default_outcome) or "D"
@@ -2151,9 +2138,8 @@ def render_outcome_picker(
 
 
 def render_pred_confirm_checkbox(dynamic_key: str) -> bool:
-    _html('<div class="pred-confirm-marker"></div>')
+    _html_inline('<div class="pred-confirm-marker"></div>')
     confirmed = st.toggle("Chốt trận này", key=dynamic_key, width="stretch")
-    _html('</div>')
     return confirmed
 
 
@@ -2200,7 +2186,7 @@ def render_pred_match_header(
             )
         except (AttributeError, TypeError, ValueError):
             kickoff_html = ""
-    _html(
+    _html_inline(
         f'<div class="pred-card-header">'
         f'<div class="pred-card-meta">'
         f'<span class="pred-card-number">Trận {html.escape(str(match_number))}</span>'
@@ -2333,7 +2319,7 @@ def render_pred_history_mobile_list(history_df):
 
 def render_pred_history_mobile_section(history_df):
     """Mobile history: filter + safe pagination + compact list (no st.select_slider)."""
-    _html('<div class="pred-history-mobile-marker" aria-hidden="true"></div>')
+    _html_inline('<div class="pred-history-mobile-marker" aria-hidden="true"></div>')
     filt = st.radio(
         "Lọc lịch sử",
         ["Tất cả", "Chưa có kết quả", "Đã chấm điểm"],
@@ -2355,7 +2341,7 @@ def render_pred_history_mobile_section(history_df):
     if page_count > 1:
         nav_l, nav_m, nav_r = st.columns([1, 2.2, 1])
         with nav_l:
-            if st.button("◀", key="pred_hist_prev", use_container_width=True, disabled=page <= 1):
+            if st.button("◀", key="pred_hist_prev", width="stretch", disabled=page <= 1):
                 st.session_state["pred_hist_page"] = page - 1
                 st.rerun()
         with nav_m:
@@ -2364,7 +2350,7 @@ def render_pred_history_mobile_section(history_df):
                 unsafe_allow_html=True,
             )
         with nav_r:
-            if st.button("▶", key="pred_hist_next", use_container_width=True, disabled=page >= page_count):
+            if st.button("▶", key="pred_hist_next", width="stretch", disabled=page >= page_count):
                 st.session_state["pred_hist_page"] = page + 1
                 st.rerun()
     else:
@@ -2376,7 +2362,7 @@ def render_pred_history_mobile_section(history_df):
 
 def render_pred_history_desktop_table(history_df):
     """Desktop HTML table with flagcdn images (hidden on mobile via CSS)."""
-    _html('<div class="pred-history-desktop-marker" aria-hidden="true"></div>')
+    _html_inline('<div class="pred-history-desktop-marker" aria-hidden="true"></div>')
     if history_df.empty:
         _html('<div class="pred-hist-empty">Không có trận nào trong bộ lọc này.</div>')
         return
@@ -2385,7 +2371,7 @@ def render_pred_history_desktop_table(history_df):
 
 def render_pred_tabs(labels: list[str]):
     """Pill-style tabs scoped to the prediction page."""
-    _html('<div class="pred-tabs-marker" aria-hidden="true"></div>')
+    _html_inline('<div class="pred-tabs-marker" aria-hidden="true"></div>')
     return st.tabs(labels)
 
 

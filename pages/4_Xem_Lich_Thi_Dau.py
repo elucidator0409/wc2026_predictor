@@ -6,6 +6,7 @@ from schedule_service import format_date_header_vn, is_group_stage
 from scoring import _parse_int
 from team_flags import build_name_to_fifa
 from ui_components import (
+    _html_inline,
     apply_global_styles,
     custom_loader,
     render_fixture_day_header,
@@ -104,7 +105,7 @@ def render_matches_list(df: pd.DataFrame, is_finished: bool = False) -> None:
         return
 
     suffix = "done" if is_finished else "upcoming"
-    st.markdown('<div class="fixture-toolbar-marker"></div>', unsafe_allow_html=True)
+    _html_inline('<div class="fixture-toolbar-marker"></div>')
     col_search, col_filter = st.columns([2.2, 1], gap="medium")
     with col_search:
         search = st.text_input(

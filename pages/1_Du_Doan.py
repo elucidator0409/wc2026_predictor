@@ -49,6 +49,7 @@ from ui_components import (
     render_user_account_panel,
     sync_auth_session,
     _html,
+    _html_inline,
 )
 
 st.set_page_config(page_title="Dự Đoán WC 2026", page_icon="✍️", layout="wide")
@@ -100,7 +101,7 @@ if not st.session_state["authenticated_user_id"]:
     login_col = st.container()
     with login_col:
         render_login_branding(title="Đăng nhập", eyebrow="Khu vực dự đoán", icon="✍️")
-        _html('<div class="login-form-marker"></div>')
+        _html_inline('<div class="login-form-marker"></div>')
         with st.container(border=True):
             with st.form("login_form"):
                 login_id = st.text_input("Tên hiển thị hoặc Mã ID", placeholder="Ví dụ: U01 hoặc Tony")
@@ -133,6 +134,7 @@ if len(stored_password_hash) < 64 and stored_password_hash.endswith(".0"):
     stored_password_hash = stored_password_hash[:-2]
 
 def _render_one_match(row, selected_user_id, preds_df, id_to_name):
+    _html_inline('<div class="pred-match-card-root" aria-hidden="true"></div>')
     m_id = str(row["match_id"] if "match_id" in row else row["id"])
     team_a, team_b = row["team_a"], row["team_b"]
     team_a_fifa = row.get("team_a_fifa") if "team_a_fifa" in row.index else name_to_fifa.get(team_a)
@@ -226,7 +228,7 @@ def _render_one_match(row, selected_user_id, preds_df, id_to_name):
     show_pen_picker = is_knockout and outcome == "D" and team_a != "TBD" and team_b != "TBD"
 
     if show_pen_picker:
-        _html('<div class="pen-picker-shell"><span class="pen-picker-label">Đội đi tiếp sau loạt PEN</span></div>')
+        _html_inline('<div class="pen-picker-shell"><span class="pen-picker-label">Đội đi tiếp sau loạt PEN</span></div>')
         options_adv = [team_a, team_b]
         idx_adv = options_adv.index(old_adv_name) if old_adv_name in options_adv else 0
         adv_team = st.selectbox(
@@ -261,7 +263,7 @@ with tab1:
     else:
         upcoming_matches = upcoming_matches.sort_values(["kickoff_vn", "match_number"]).head(12)
         render_pred_page_banner(selected_user_name, len(upcoming_matches), saved_count)
-        st.markdown('<div class="pred-form-actions-marker"></div>', unsafe_allow_html=True)
+        _html_inline('<div class="pred-form-actions-marker"></div>')
 
         user_inputs = {}
         use_two_cols = len(upcoming_matches) >= 3
@@ -340,7 +342,7 @@ with tab1:
                 st.rerun()
 
 with tab2:
-    _html('<div class="pred-history-panel-marker" aria-hidden="true"></div>')
+    _html_inline('<div class="pred-history-panel-marker" aria-hidden="true"></div>')
     _html(
         f'<div class="pred-history-title">📜 Lịch sử — {html.escape(selected_user_name)}</div>'
         f'<div class="pred-history-caption">Số trận chính thức · chỉ hiện trận bạn đã dự đoán</div>'

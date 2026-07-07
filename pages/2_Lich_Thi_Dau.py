@@ -37,6 +37,7 @@ from ui_components import (
     render_sidebar,
     sync_auth_session,
     _html,
+    _html_inline,
 )
 
 st.set_page_config(page_title="Admin - Cập Nhật Kết Quả", page_icon="🔒", layout="wide")
@@ -50,7 +51,7 @@ if "admin_logged_in" not in st.session_state:
 
 if not st.session_state["admin_logged_in"]:
     render_page_header("⚙️ Góc của Elu", "Đăng nhập để thao túng kết quả trận đấu", variant="admin", eyebrow="Admin Panel")
-    _html('<div class="login-form-marker admin-login-marker"></div>')
+    _html_inline('<div class="login-form-marker admin-login-marker"></div>')
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login_form"):
@@ -495,7 +496,7 @@ elif active_tab == tab_options[4]:
             ws_lineups = sh.worksheet(LINEUPS_SHEET_NAME)
         except Exception:
             ws_lineups = sh.add_worksheet(title=LINEUPS_SHEET_NAME, rows=500, cols=7)
-            ws_lineups.update("A1:G1", [list(LINEUPS_COLUMNS)], value_input_option="USER_ENTERED")
+            ws_lineups.update(values=[list(LINEUPS_COLUMNS)], range_name="A1:G1", value_input_option="USER_ENTERED")
 
         existing = read_lineups_sheet(sh)
         formation = st.selectbox(
@@ -713,7 +714,7 @@ elif active_tab == tab_options[7]:
     if achievements_df.empty:
         st.info("Chưa có quy tắc nào. Thêm quy tắc đầu tiên bên dưới — tab sheet sẽ được tạo tự động.")
     else:
-        st.dataframe(achievements_df, use_container_width=True, hide_index=True)
+        st.dataframe(achievements_df, width="stretch", hide_index=True)
 
     metric_options = sorted(ALLOWED_METRICS)
     metric_labels = {m: f"{METRIC_LABELS_VN.get(m, m)} (`{m}`)" for m in metric_options}

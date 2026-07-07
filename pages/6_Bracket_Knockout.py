@@ -5,6 +5,7 @@ from data_service import init_connection, prep_matches, read_sheet
 from knockout_bracket_service import build_knockout_bracket
 from team_flags import build_name_to_fifa
 from ui_components import (
+    _html_inline,
     apply_global_styles,
     custom_loader,
     render_knockout_bracket,
@@ -58,5 +59,5 @@ st.caption(
     "Vuốt ngang trên mobile để xem toàn bộ nhánh."
 )
 
-st.markdown('<div class="ko-bracket-page-marker" data-layout="split"></div>', unsafe_allow_html=True)
+_html_inline('<div class="ko-bracket-page-marker" data-layout="split"></div>')
 render_knockout_bracket(bracket, name_to_fifa)

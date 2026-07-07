@@ -5,6 +5,7 @@ from data_service import init_connection, prep_matches, read_sheet
 from group_standings_service import compute_group_standings
 from team_flags import build_name_to_fifa
 from ui_components import (
+    _html_inline,
     apply_global_styles,
     custom_loader,
     render_group_standings_grid,
@@ -46,5 +47,5 @@ if not standings:
     st.info("Chưa có dữ liệu bảng đấu. Kết quả sẽ hiện khi admin cập nhật trận vòng bảng.")
     st.stop()
 
-st.markdown('<div class="group-standings-page-marker"></div>', unsafe_allow_html=True)
+_html_inline('<div class="group-standings-page-marker"></div>')
 render_group_standings_grid(standings, name_to_fifa=name_to_fifa)

@@ -1885,8 +1885,8 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     box-shadow: 0 4px 20px rgba(59, 130, 246, 0.08);
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header),
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)),
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) {
     padding: 0 !important;
     overflow: visible;
     background: linear-gradient(180deg, rgba(20, 31, 50, 0.98) 0%, rgba(11, 19, 33, 0.99) 100%) !important;
@@ -1897,8 +1897,8 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header):has(input[type="checkbox"]:checked),
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header):has(input[type="checkbox"]:checked) {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)):has(input[type="checkbox"]:checked),
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)):has(input[type="checkbox"]:checked) {
     border-color: rgba(16, 185, 129, 0.42) !important;
     box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.12), var(--shadow-card) !important;
 }
@@ -2118,8 +2118,8 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
 
 /* ── Outcome segmented control (Streamlit 1.58: stButtonGroup) ── */
 .pred-card-body ~ [data-testid="stElementContainer"],
-[data-testid="stVerticalBlock"]:has(.pred-card-body) [data-testid="stElementContainer"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-body) [data-testid="stElementContainer"] {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-body), :has(.pred-match-card-root)) [data-testid="stElementContainer"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-body), :has(.pred-match-card-root)) [data-testid="stElementContainer"] {
     /* padding-left: 1.1rem !important; */
     padding-right: 1.1rem !important;
     margin-left: 0 !important;
@@ -2133,24 +2133,24 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     display: none;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] > [data-testid="stWidgetLabel"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] > [data-testid="stWidgetLabel"] {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] > [data-testid="stWidgetLabel"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] > [data-testid="stWidgetLabel"] {
     display: none !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-card-body) + [data-testid="stElementContainer"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-card-body) + [data-testid="stElementContainer"] {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-card-body) + [data-testid="stElementContainer"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-card-body) + [data-testid="stElementContainer"] {
     padding-top: 0.65rem !important;
     margin-bottom: 0.55rem !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] {
     width: 100% !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] [role="radiogroup"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] [role="radiogroup"] {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] [role="radiogroup"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] [role="radiogroup"] {
     width: 100% !important;
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -2163,8 +2163,8 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     box-sizing: border-box !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] [role="radiogroup"] > button,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] [role="radiogroup"] > button {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] [role="radiogroup"] > button,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] [role="radiogroup"] > button {
     width: 100% !important;
     min-height: 2.65rem !important;
     padding: 0.5rem 0.25rem !important;
@@ -2182,23 +2182,23 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] button [data-testid="stMarkdownContainer"],
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] button [data-testid="stMarkdownContainer"] p,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] button [data-testid="stMarkdownContainer"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] button [data-testid="stMarkdownContainer"] p {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button [data-testid="stMarkdownContainer"],
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button [data-testid="stMarkdownContainer"] p,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button [data-testid="stMarkdownContainer"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button [data-testid="stMarkdownContainer"] p {
     color: inherit !important;
     margin: 0 !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_control"]:hover,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_control"]:hover {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_control"]:hover,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_control"]:hover {
     background: rgba(255, 255, 255, 0.06) !important;
     color: var(--text-primary) !important;
     border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_control"]:focus:not([data-testid="stBaseButton-segmented_controlActive"]),
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_control"]:focus:not([data-testid="stBaseButton-segmented_controlActive"]) {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_control"]:focus:not([data-testid="stBaseButton-segmented_controlActive"]),
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_control"]:focus:not([data-testid="stBaseButton-segmented_controlActive"]) {
     background: rgba(255, 255, 255, 0.04) !important;
     color: var(--text-secondary) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
@@ -2207,10 +2207,10 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
 }
 
 /* Selected — override Streamlit primaryColor (#fbbf24) via stBaseButton-segmented_controlActive */
-.stApp [data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"],
-.stApp [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"],
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"] {
+.stApp [data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"],
+.stApp [data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"],
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"] {
     background: linear-gradient(180deg, rgba(59, 130, 246, 0.5) 0%, rgba(59, 130, 246, 0.2) 100%) !important;
     color: #eff6ff !important;
     -webkit-text-fill-color: #eff6ff !important;
@@ -2218,10 +2218,10 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2), 0 4px 16px rgba(59, 130, 246, 0.22) !important;
 }
 
-.stApp [data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] [role="radiogroup"] > button[data-testid="stBaseButton-segmented_controlActive"]:nth-child(2),
-.stApp [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] [role="radiogroup"] > button[data-testid="stBaseButton-segmented_controlActive"]:nth-child(2),
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] [role="radiogroup"] > button[data-testid="stBaseButton-segmented_controlActive"]:nth-child(2),
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] [role="radiogroup"] > button[data-testid="stBaseButton-segmented_controlActive"]:nth-child(2) {
+.stApp [data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] [role="radiogroup"] > button[data-testid="stBaseButton-segmented_controlActive"]:nth-child(2),
+.stApp [data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] [role="radiogroup"] > button[data-testid="stBaseButton-segmented_controlActive"]:nth-child(2),
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] [role="radiogroup"] > button[data-testid="stBaseButton-segmented_controlActive"]:nth-child(2),
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] [role="radiogroup"] > button[data-testid="stBaseButton-segmented_controlActive"]:nth-child(2) {
     background: linear-gradient(180deg, rgba(148, 163, 184, 0.5) 0%, rgba(148, 163, 184, 0.2) 100%) !important;
     color: #f8fafc !important;
     -webkit-text-fill-color: #f8fafc !important;
@@ -2229,10 +2229,10 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.18), 0 4px 16px rgba(148, 163, 184, 0.18) !important;
 }
 
-.stApp [data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"]:hover,
-.stApp [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"]:hover,
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"]:hover,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"]:hover {
+.stApp [data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"]:hover,
+.stApp [data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"]:hover,
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"]:hover,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"]:hover {
     filter: brightness(1.06);
 }
 
@@ -2244,13 +2244,13 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     border: 1px dashed rgba(251, 191, 36, 0.3);
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) > div,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) > div {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) > div,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) > div {
     width: 100% !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) > div > [data-testid="stElementContainer"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) > div > [data-testid="stElementContainer"] {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) > div > [data-testid="stElementContainer"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) > div > [data-testid="stElementContainer"] {
     padding-left: 1.1rem !important;
     padding-right: 1.1rem !important;
     margin-left: 0 !important;
@@ -2260,8 +2260,8 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     box-sizing: border-box !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker),
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker),
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) {
     padding: 0 1.1rem !important;
     height: 0 !important;
     min-height: 0 !important;
@@ -2269,34 +2269,34 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     margin: 0 !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] {
     margin: 0 0 0.85rem !important;
     padding: 0 1.1rem 0.85rem !important;
     width: 100% !important;
     box-sizing: border-box !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] > div,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] > div {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] > div,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] > div {
     width: 100% !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header):has(input[type="checkbox"]:checked),
-[data-testid="stVerticalBlock"]:has(.pred-card-header):has(button[aria-pressed="true"][data-baseweb="checkbox"]),
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header):has(input[type="checkbox"]:checked),
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header):has(button[aria-pressed="true"][data-baseweb="checkbox"]) {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)):has(input[type="checkbox"]:checked),
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)):has(button[aria-pressed="true"][data-baseweb="checkbox"]),
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)):has(input[type="checkbox"]:checked),
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)):has(button[aria-pressed="true"][data-baseweb="checkbox"]) {
     border-color: rgba(16, 185, 129, 0.42) !important;
     box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.12), var(--shadow-card) !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stToggle"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stToggle"] {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"] {
     width: 100% !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stToggle"] > div,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stToggle"] > div {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"] > div,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"] > div {
     width: 100% !important;
     justify-content: center !important;
     padding: 0.7rem 1rem !important;
@@ -2307,37 +2307,37 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     transition: border-color 0.2s, background 0.2s;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stToggle"]:has(input:checked) > div,
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stToggle"] [data-checked="true"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stToggle"]:has(input:checked) > div,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stToggle"] [data-checked="true"] {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"]:has(input:checked) > div,
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"] [data-checked="true"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"]:has(input:checked) > div,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"] [data-checked="true"] {
     border-color: rgba(16, 185, 129, 0.55) !important;
     background: rgba(16, 185, 129, 0.1) !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stToggle"] label,
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stToggle"] [data-testid="stWidgetLabel"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stToggle"] label,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stToggle"] [data-testid="stWidgetLabel"] {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"] label,
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"] [data-testid="stWidgetLabel"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"] label,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"] [data-testid="stWidgetLabel"] {
     font-size: 0.9rem !important;
     font-weight: 700 !important;
     color: var(--text-secondary) !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stToggle"]:has(input:checked) label,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stToggle"]:has(input:checked) label {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"]:has(input:checked) label,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stToggle"]:has(input:checked) label {
     color: #86efac !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stCheckbox"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stCheckbox"] {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stCheckbox"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stCheckbox"] {
     width: 100% !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stCheckbox"] > label,
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stCheckbox"] > label,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stCheckbox"] > label,
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stCheckbox"] > label,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label {
     width: 100% !important;
     margin: 0 !important;
     padding: 0.75rem 1rem !important;
@@ -2356,28 +2356,28 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     cursor: pointer;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stCheckbox"] > label::before,
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label::before,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stCheckbox"] > label::before,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label::before {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stCheckbox"] > label::before,
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label::before,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stCheckbox"] > label::before,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label::before {
     content: "🔒";
     font-size: 0.9rem;
     line-height: 1;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stCheckbox"] > label:has(input:checked),
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label:has(input:checked),
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stCheckbox"] > label:has(input:checked),
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label:has(input:checked) {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stCheckbox"] > label:has(input:checked),
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label:has(input:checked),
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stCheckbox"] > label:has(input:checked),
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label:has(input:checked) {
     border-color: rgba(16, 185, 129, 0.55) !important;
     background: rgba(16, 185, 129, 0.12) !important;
     color: #86efac !important;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stCheckbox"] > label:has(input:checked)::before,
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label:has(input:checked)::before,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stCheckbox"] > label:has(input:checked)::before,
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label:has(input:checked)::before {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stCheckbox"] > label:has(input:checked)::before,
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label:has(input:checked)::before,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stCheckbox"] > label:has(input:checked)::before,
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-confirm-marker) + [data-testid="stElementContainer"] label:has(input:checked)::before {
     content: "✓";
     color: #86efac;
 }
@@ -2390,8 +2390,8 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     color: #fcd34d;
 }
 
-[data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stSelectbox"],
-[data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stSelectbox"] {
+[data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stSelectbox"],
+[data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stSelectbox"] {
     margin-bottom: 0.25rem;
 }
 
@@ -3151,6 +3151,34 @@ body.wc-sidebar-open [data-testid="collapsedControl"] {
     -webkit-text-fill-color: #fff7ed !important;
     border-color: rgba(251, 146, 60, 0.45) !important;
     box-shadow: 0 0 0 1px rgba(251, 146, 60, 0.14), 0 4px 12px rgba(251, 146, 60, 0.16) !important;
+}
+
+.stApp [data-testid="stElementContainer"]:has(.lb-analytics-tabs-marker) + [data-testid="stTabs"] [data-testid="stTab"]:nth-child(5)[aria-selected="true"],
+[data-testid="stElementContainer"]:has(.lb-analytics-tabs-marker) + [data-testid="stTabs"] [data-testid="stTab"]:nth-child(5)[aria-selected="true"] {
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.42) 0%, rgba(168, 85, 247, 0.12) 100%) !important;
+    color: #faf5ff !important;
+    -webkit-text-fill-color: #faf5ff !important;
+    border-color: rgba(168, 85, 247, 0.45) !important;
+    box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.14), 0 4px 12px rgba(168, 85, 247, 0.16) !important;
+}
+
+[data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"][aria-selected="true"],
+[data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"][aria-selected="true"] *,
+[data-testid="stElementContainer"]:has(.lb-analytics-tabs-marker) + [data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"],
+[data-testid="stElementContainer"]:has(.lb-analytics-tabs-marker) + [data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] * {
+    color: inherit !important;
+}
+
+[data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"]:hover,
+[data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"]:hover *,
+[data-testid="stElementContainer"]:has(.lb-analytics-tabs-marker) + [data-testid="stTabs"] button[data-baseweb="tab"]:hover:not([aria-selected="true"]),
+[data-testid="stElementContainer"]:has(.lb-analytics-tabs-marker) + [data-testid="stTabs"] button[data-baseweb="tab"]:hover:not([aria-selected="true"]) * {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-testid="stVerticalBlock"]:has(.lb-analytics-tabs-marker) button[data-baseweb="tab"][aria-selected="true"],
+[data-testid="stElementContainer"]:has(.lb-analytics-tabs-marker) + [data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
+    border-bottom-color: rgba(255, 255, 255, 0.85) !important;
 }
 
 [data-testid="stElementContainer"]:has(.lb-analytics-tabs-marker) + [data-testid="stTabs"] [data-baseweb="tab-panel"] {
@@ -7002,8 +7030,8 @@ section.main {
         flex: 1 1 100% !important;
     }
 
-    [data-testid="stVerticalBlock"]:has(.pred-card-header),
-    [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) {
+    [data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)),
+    [data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) {
         width: 100% !important;
         max-width: 100% !important;
         margin-bottom: 1.25rem !important;
@@ -7044,15 +7072,15 @@ section.main {
         height: 2.25rem;
     }
 
-    [data-testid="stVerticalBlock"]:has(.pred-card-header) [data-testid="stButtonGroup"] [role="radiogroup"] > button,
-    [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stButtonGroup"] [role="radiogroup"] > button {
+    [data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] [role="radiogroup"] > button,
+    [data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stButtonGroup"] [role="radiogroup"] > button {
         min-height: 2.5rem !important;
         padding: 0.45rem 0.2rem !important;
         font-size: 0.66rem !important;
     }
 
-    [data-testid="stVerticalBlock"]:has(.pred-card-header) > div > [data-testid="stElementContainer"],
-    [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) > div > [data-testid="stElementContainer"] {
+    [data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) > div > [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) > div > [data-testid="stElementContainer"] {
         padding-left: 0.85rem !important;
         padding-right: 0.85rem !important;
     }
@@ -7203,8 +7231,8 @@ section.main {
 }
 
 @media (min-width: 901px) and (max-width: 1100px) {
-    [data-testid="stVerticalBlock"]:has(.pred-card-header),
-    [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) {
+    [data-testid="stVerticalBlock"]:is(:has(.pred-card-header), :has(.pred-match-card-root)),
+    [data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) {
         overflow: visible !important;
     }
 
@@ -7270,14 +7298,14 @@ section.main {
         width: 100% !important;
     }
 
-    [data-testid="stForm"]:has(.pred-form-actions) [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) {
+    [data-testid="stForm"]:has(.pred-form-actions) [data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) {
         flex: 1 1 auto !important;
         height: 100% !important;
         display: flex !important;
         flex-direction: column !important;
     }
 
-    [data-testid="stForm"]:has(.pred-form-actions) [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) > [data-testid="stVerticalBlock"] {
+    [data-testid="stForm"]:has(.pred-form-actions) [data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) > [data-testid="stVerticalBlock"] {
         flex: 1 1 auto !important;
         display: flex !important;
         flex-direction: column !important;
@@ -7285,7 +7313,7 @@ section.main {
         min-height: 100% !important;
     }
 
-    [data-testid="stVerticalBlockBorderWrapper"]:has(.pred-card-header) [data-testid="stElementContainer"]:has(.pred-card-body) + [data-testid="stElementContainer"] {
+    [data-testid="stVerticalBlockBorderWrapper"]:is(:has(.pred-card-header), :has(.pred-match-card-root)) [data-testid="stElementContainer"]:has(.pred-card-body) + [data-testid="stElementContainer"] {
         margin-top: auto !important;
     }
 
