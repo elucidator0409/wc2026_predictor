@@ -4,6 +4,17 @@
 
 **Demo:** [wc2026-elu.streamlit.app](https://wc2026-elu.streamlit.app)
 
+### Tài liệu kỹ thuật cốt lõi
+
+Hai file dưới đây là **bản đồ chính** của dự án — một file cho **toàn bộ quá trình phát triển** (data → logic → UI), một file cho **luồng phân tích nâng cao** (file Python, DataFrame, biểu đồ Plotly). Nên đọc Roadmap trước để nắm bức tranh toàn cảnh, rồi mở Analytics Flow khi đi sâu tab *Phân tích dữ liệu hành vi*.
+
+| | **develop_roadmap.md** | **05_Behavior_Analytics_Flow.md** |
+|---|------------------------|-----------------------------------|
+| **Vai trò** | Vòng đời dự án — 5 giai đoạn pipeline | Walkthrough code — khả năng xử lý analytics |
+| **Nội dung** | Seed CSV / chuẩn hóa → gspread & cache → chấm điểm & BXH → analytics → MVC & HTML/CSS render | Controller → `build_analytics_bundle` → 5 sub-tab: Momentum, Accuracy, Lead Time, Risk Bias, Fund Forecast |
+| **Module chính** | `data_service.py`, `scoring.py`, `leaderboard_service.py`, `achievement_service.py`, `pages/`, `ui_components.py` | `analytics_service.py`, `pages/3_Bang_Xep_Hang.py`, `scoring.py`, Plotly Express |
+| **Đọc ngay** | [docs/develop_roadmap.md](docs/develop_roadmap.md) | [docs/workflows/05_Behavior_Analytics_Flow.md](docs/workflows/05_Behavior_Analytics_Flow.md) |
+
 ---
 
 ## 1. Lời mở đầu
@@ -67,7 +78,7 @@ flowchart LR
 2. Admin nhập tỉ số và khóa trận → cập nhật tab `matches`.
 3. Sau mỗi lần ghi, cache được xóa và trang tự tải lại — báo cáo luôn khớp dữ liệu mới nhất.
 
-Chi tiết code-level: [`docs/workflows/01_Data_Pipeline_Flow.md`](docs/workflows/01_Data_Pipeline_Flow.md).
+Chi tiết code-level theo từng giai đoạn: [docs/develop_roadmap.md](docs/develop_roadmap.md) (mục 2–5). Luồng analytics & Plotly: [docs/workflows/05_Behavior_Analytics_Flow.md](docs/workflows/05_Behavior_Analytics_Flow.md).
 
 ---
 
@@ -112,7 +123,7 @@ Dữ liệu nguồn nằm trên Google Sheets (các tab chính: `users`, `predic
 
 | Trang | Đường dẫn | Chức năng |
 |-------|-----------|-----------|
-| Trang chủ | `/` | Thể lệ, tóm tắt điểm/phạt |
+| Trang chủ | `/` | Thể lệ, bracket knock-out, tóm tắt điểm/phạt |
 | Khu vực dự đoán | `/Du_Doan` | Đăng nhập, chốt và lưu dự đoán |
 | Bảng xếp hạng | `/Bang_Xep_Hang` | Điểm, quỹ phạt, phân tích, danh hiệu |
 | Lịch thi đấu | `/Xem_Lich_Thi_Dau` | 104 trận, lọc vòng bảng / knock-out |
@@ -147,7 +158,8 @@ PYTHONPATH=. pytest -q
 
 ## Tài liệu liên quan
 
-- [Hướng dẫn sử dụng Dự đoán](docs/HUONG_DAN_DU_DOAN.md) — dành cho thành viên nhóm
-- [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) — kiến trúc, schema Sheet, gamification
-- [Luồng dữ liệu (walkthrough)](docs/workflows/01_Data_Pipeline_Flow.md) — chi tiết từng bước trong code
-- [Phân tích dữ liệu hành vi](docs/workflows/05_Behavior_Analytics_Flow.md) — 5 sub-tab analytics, Fund Forecast
+| Tài liệu | Mục đích |
+|----------|----------|
+| [develop_roadmap.md](docs/develop_roadmap.md) | Roadmap 5 giai đoạn — seed data → ingestion → scoring → analytics → render |
+| [05_Behavior_Analytics_Flow.md](docs/workflows/05_Behavior_Analytics_Flow.md) | Luồng phân tích hành vi — Pandas, Plotly, 5 sub-tab BXH |
+| [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) | Kiến trúc MVC, schema Sheet, gamification (HP, badges) |
