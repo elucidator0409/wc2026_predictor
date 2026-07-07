@@ -69,6 +69,14 @@ def load_wc_schedule(path: Path | None = None) -> pd.DataFrame:
     return df
 
 
+def _parse_kickoff_at_vn(series: pd.Series) -> pd.Series:
+    """Parse Sheet ``kickoff_at`` values stored as Vietnam wall-clock time."""
+    parsed = pd.to_datetime(series, format="mixed", errors="coerce")
+    if parsed.dt.tz is None:
+        return parsed.dt.tz_localize(VN_TZ)
+    return parsed.dt.tz_convert(VN_TZ)
+
+
 def kickoff_vn_storage_value(kickoff_vn) -> str | None:
     """Format UTC+7 kickoff for matches.csv / Google Sheets (`YYYY-MM-DD HH:MM`)."""
     if kickoff_vn is None or (isinstance(kickoff_vn, float) and pd.isna(kickoff_vn)):
@@ -269,13 +277,10 @@ def enrich_matches_with_schedule(
     merged["match_number"] = pd.to_numeric(merged["match_number"], errors="coerce").astype(int)
     merged = merged.merge(sched, on="match_number", how="left", suffixes=("", "_sched"))
 
+    schedule_kickoff_vn = merged["kickoff_vn"]
     if "kickoff_at" in merged.columns:
-        fallback = pd.to_datetime(merged["kickoff_at"], errors="coerce")
-        if fallback.dt.tz is None:
-            fallback = fallback.dt.tz_localize(VN_TZ)
-        else:
-            fallback = fallback.dt.tz_convert(VN_TZ)
-        merged["kickoff_vn"] = merged["kickoff_vn"].fillna(fallback)
+        sheet_kickoff_vn = _parse_kickoff_at_vn(merged["kickoff_at"])
+        merged["kickoff_vn"] = sheet_kickoff_vn.combine_first(schedule_kickoff_vn)
 
     merged["kickoff_vn_date"] = merged["kickoff_vn"].apply(
         lambda x: x.date() if pd.notna(x) and hasattr(x, "date") else pd.NA

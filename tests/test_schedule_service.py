@@ -84,7 +84,7 @@ def test_match_round_color():
     assert match_round_color(stage_id=7) == "#fbbf24"
 
 
-def test_enrich_matches_with_schedule():
+def test_enrich_matches_with_schedule_sheet_overrides_csv():
     matches = pd.DataFrame(
         {
             "match_number": [1, 2],
@@ -100,5 +100,24 @@ def test_enrich_matches_with_schedule():
     enriched = enrich_matches_with_schedule(matches)
     assert "kickoff_vn" in enriched.columns
     assert "venue_line" in enriched.columns
+    assert enriched.iloc[0]["kickoff_vn"].hour == 4
+    assert enriched.iloc[0]["kickoff_at"] == "2026-06-12 04:00"
+    assert enriched.iloc[1]["kickoff_vn"].hour == 11
+
+
+def test_enrich_matches_with_schedule_csv_fallback_when_sheet_empty():
+    matches = pd.DataFrame(
+        {
+            "match_number": [1],
+            "team_a": ["Mexico"],
+            "team_b": ["South Africa"],
+            "stage_id": [1],
+            "match_label": ["Group A"],
+            "real_score_a": [pd.NA],
+            "real_score_b": [pd.NA],
+            "kickoff_at": [pd.NA],
+        }
+    )
+    enriched = enrich_matches_with_schedule(matches)
     assert enriched.iloc[0]["kickoff_vn"].hour == 2
     assert enriched.iloc[0]["kickoff_at"] == "2026-06-12 02:00"
