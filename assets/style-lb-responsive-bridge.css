@@ -1,0 +1,87 @@
+/* LB responsive bridge — marker (_html_inline) vs payload (st.html) split fix */
+
+@media (min-width: 1025px) {
+    /* Mobile leaderboard payload after inline marker */
+    [data-testid="stElementContainer"]:has(.lb-dataframe-mobile-marker) + [data-testid="stElementContainer"],
+    [data-testid="stElementContainer"]:has(.lb-dataframe-mobile-marker) ~ [data-testid="stElementContainer"]:has(iframe),
+    .stApp [data-testid="stVerticalBlock"]:has(.lb-dataframe-mobile-marker) [data-testid="stElementContainer"]:has(.lb-dataframe-mobile-marker) + [data-testid="stElementContainer"],
+    .stApp [data-testid="stVerticalBlockBorderWrapper"]:has(.lb-dataframe-mobile-marker) [data-testid="stElementContainer"]:has(.lb-dataframe-mobile-marker) + [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlock"]:has(.lb-dataframe-mobile-marker) [data-testid="stElementContainer"]:has(.lb-dataframe-mobile-marker) + [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.lb-dataframe-mobile-marker) [data-testid="stElementContainer"]:has(.lb-dataframe-mobile-marker) + [data-testid="stElementContainer"] {
+        display: none !important;
+    }
+
+    /* Mobile streak strip + compact hero */
+    [data-testid="stElementContainer"]:has(.lb-streak-mobile-marker) + [data-testid="stElementContainer"],
+    [data-testid="stElementContainer"]:has(.lb-streak-mobile-marker) ~ [data-testid="stElementContainer"]:has(iframe),
+    .stApp [data-testid="stVerticalBlock"]:has(.lb-streak-mobile-marker) [data-testid="stElementContainer"]:has(.lb-streak-mobile-marker) + [data-testid="stElementContainer"],
+    .stApp [data-testid="stVerticalBlockBorderWrapper"]:has(.lb-streak-mobile-marker) [data-testid="stElementContainer"]:has(.lb-streak-mobile-marker) + [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlock"]:has(.lb-streak-mobile-marker) [data-testid="stElementContainer"]:has(.lb-streak-mobile-marker) + [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.lb-streak-mobile-marker) [data-testid="stElementContainer"]:has(.lb-streak-mobile-marker) + [data-testid="stElementContainer"],
+    [data-testid="stElementContainer"]:has(.lb-hero-mobile-compact-marker) + [data-testid="stElementContainer"],
+    [data-testid="stElementContainer"]:has(.lb-hero-mobile-compact-marker) ~ [data-testid="stElementContainer"]:has(iframe),
+    .stApp [data-testid="stVerticalBlock"]:has(.lb-hero-mobile-compact-marker) [data-testid="stElementContainer"]:has(.lb-hero-mobile-compact-marker) + [data-testid="stElementContainer"],
+    .stApp [data-testid="stVerticalBlockBorderWrapper"]:has(.lb-hero-mobile-compact-marker) [data-testid="stElementContainer"]:has(.lb-hero-mobile-compact-marker) + [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlock"]:has(.lb-hero-mobile-compact-marker) [data-testid="stElementContainer"]:has(.lb-hero-mobile-compact-marker) + [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.lb-hero-mobile-compact-marker) [data-testid="stElementContainer"]:has(.lb-hero-mobile-compact-marker) + [data-testid="stElementContainer"] {
+        display: none !important;
+    }
+
+    /* Class fallback when styles reach st.html payload */
+    .lb-list--gamified-mobile,
+    .lb-streak-mobile-top,
+    .lb-hero-strip {
+        display: none !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    /* Desktop layout payload after layout marker (second inline marker) */
+    [data-testid="stElementContainer"]:has(.lb-desktop-layout-marker) + [data-testid="stElementContainer"],
+    [data-testid="stElementContainer"]:has(.lb-desktop-layout-marker) ~ [data-testid="stElementContainer"]:has(iframe),
+    .stApp [data-testid="stVerticalBlock"]:has(.lb-desktop-layout-marker) [data-testid="stElementContainer"]:has(.lb-desktop-layout-marker) + [data-testid="stElementContainer"],
+    .stApp [data-testid="stVerticalBlockBorderWrapper"]:has(.lb-desktop-layout-marker) [data-testid="stElementContainer"]:has(.lb-desktop-layout-marker) + [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlock"]:has(.lb-desktop-layout-marker) [data-testid="stElementContainer"]:has(.lb-desktop-layout-marker) + [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.lb-desktop-layout-marker) [data-testid="stElementContainer"]:has(.lb-desktop-layout-marker) + [data-testid="stElementContainer"],
+    [data-testid="stElementContainer"]:has(.lb-hero-desktop-marker) + [data-testid="stElementContainer"],
+    [data-testid="stElementContainer"]:has(.lb-hero-desktop-marker) ~ [data-testid="stElementContainer"]:has(iframe),
+    .stApp [data-testid="stVerticalBlock"]:has(.lb-hero-desktop-marker) [data-testid="stElementContainer"]:has(.lb-hero-desktop-marker) + [data-testid="stElementContainer"],
+    .stApp [data-testid="stVerticalBlockBorderWrapper"]:has(.lb-hero-desktop-marker) [data-testid="stElementContainer"]:has(.lb-hero-desktop-marker) + [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlock"]:has(.lb-hero-desktop-marker) [data-testid="stElementContainer"]:has(.lb-hero-desktop-marker) + [data-testid="stElementContainer"],
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.lb-hero-desktop-marker) [data-testid="stElementContainer"]:has(.lb-hero-desktop-marker) + [data-testid="stElementContainer"] {
+        display: none !important;
+    }
+
+    .lb-desktop-layout,
+    .lb-hero-grid--desktop {
+        display: none !important;
+    }
+}
+
+/* Desktop sidebar — streak history overflow */
+@media (min-width: 1025px) {
+    .lb-desktop-sidebar .lb-streak-card {
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .lb-desktop-sidebar .lb-streak-card-history {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: wrap;
+        gap: 0.28rem 0.4rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+
+    .lb-desktop-sidebar .lb-streak-card-history .pred-hist-pick-line {
+        white-space: normal;
+        flex-wrap: wrap;
+        max-width: 100%;
+    }
+
+    .lb-desktop-sidebar .lb-streak-pick-draw .pred-hist-matchup-line {
+        flex-wrap: wrap;
+    }
+}

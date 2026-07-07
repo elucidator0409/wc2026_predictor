@@ -47,16 +47,36 @@ def _html(content: str) -> None:
     """Self-contained HTML panels only — never place CSS bridge markers here."""
     st.html(content)
 
+def _read_asset_text(*filenames: str) -> str:
+    parts: list[str] = []
+    for name in filenames:
+        path = os.path.join(_PROJECT_ROOT, "assets", name)
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                parts.append(f.read())
+    return "\n\n".join(parts)
+
+
+_CSS_BUNDLE_VERSION = "20260707e"
+
+
 def apply_global_styles():
-    css_path_abs = os.path.join(_PROJECT_ROOT, "assets", "style.css")
-    css_path_rel = os.path.join("assets", "style.css")
-    css_path = css_path_abs if os.path.exists(css_path_abs) else css_path_rel
-    if os.path.exists(css_path):
-        with open(css_path, "r", encoding="utf-8") as f:
-            css = f.read()
-        st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+    full_css = _read_asset_text(
+        "style.css",
+        "style-cloud-bridge.css",
+        "style-pred-segmented-bridge.css",
+        "style-lb-responsive-bridge.css",
+        "style-tabs-layout-bridge.css",
+    )
+    if full_css:
+        st.markdown(f"<style>{full_css}</style>", unsafe_allow_html=True)
     else:
         st.warning("⚠️ Không tìm thấy file assets/style.css")
+
+    st.markdown(
+        f'<link rel="stylesheet" href="app/static/style.css?v={_CSS_BUNDLE_VERSION}">',
+        unsafe_allow_html=True,
+    )
 
     _SIDEBAR_OVERLAY_BOOT = """
 <script>
@@ -423,6 +443,7 @@ def render_sidebar():
             "</div>"
             "</div>"
         )
+        st.caption(f"UI bundle v{_CSS_BUNDLE_VERSION} · Streamlit {st.__version__}")
 
 def render_page_header(title, subtitle="", variant="default", eyebrow=""):
     variant_class = f"page-header--{variant}" if variant != "default" else ""
@@ -691,8 +712,9 @@ def render_analytics_takeaway(text: str) -> None:
 
 def render_lb_main_tabs(labels: list[str]):
     """Premium pill switcher for leaderboard page main tabs."""
-    _html_inline('<div class="lb-main-tabs-marker" aria-hidden="true"></div>')
-    return st.tabs(labels)
+    with st.container():
+        _html_inline('<div class="lb-main-tabs-marker" aria-hidden="true"></div>')
+        return st.tabs(labels)
 
 
 def render_analytics_section_header(*, eyebrow: str, title: str, subtitle: str) -> None:
@@ -709,8 +731,9 @@ def render_analytics_section_header(*, eyebrow: str, title: str, subtitle: str) 
 
 def render_analytics_sub_tabs(labels: list[str]):
     """Segmented control for analytics sub-views."""
-    _html_inline('<div class="lb-analytics-tabs-marker" aria-hidden="true"></div>')
-    return st.tabs(labels)
+    with st.container():
+        _html_inline('<div class="lb-analytics-tabs-marker" aria-hidden="true"></div>')
+        return st.tabs(labels)
 
 
 def render_leaderboard_podium(entries: list[dict]) -> None:
@@ -2107,7 +2130,9 @@ def render_outcome_picker(
     widget_key: str,
 ) -> str:
     """Full-width segmented A/D/B control."""
-    _html_inline('<div class="pred-card-body"><div class="outcome-picker-shell"></div>')
+    _html_inline(
+        '<div class="pred-card-body"><div class="outcome-picker-shell" aria-hidden="true"></div></div>'
+    )
 
     options = ["A", "D", "B"]
     default = normalize_pred_outcome(default_outcome) or "D"
@@ -2371,8 +2396,9 @@ def render_pred_history_desktop_table(history_df):
 
 def render_pred_tabs(labels: list[str]):
     """Pill-style tabs scoped to the prediction page."""
-    _html_inline('<div class="pred-tabs-marker" aria-hidden="true"></div>')
-    return st.tabs(labels)
+    with st.container():
+        _html_inline('<div class="pred-tabs-marker" aria-hidden="true"></div>')
+        return st.tabs(labels)
 
 
 def render_pred_page_banner(user_name: str, open_count: int, saved_count: int):
@@ -2553,3 +2579,40 @@ def render_knockout_bracket(bracket_data: dict, name_to_fifa: dict | None = None
         f'<div class="ko-half ko-half--right">{right_html}</div>'
         f"</div></div>"
     )
+
+
+def render_home_knockout_bracket(
+    matches_df: pd.DataFrame,
+    teams_df: pd.DataFrame,
+    *,
+    stop_on_empty: bool = False,
+) -> None:
+    """Embed knockout bracket (caption + split layout) — shared by Home and Bracket page."""
+    from knockout_bracket_service import build_knockout_bracket
+    from team_flags import build_name_to_fifa
+
+    _html_inline('<div class="home-knockout-embed" aria-hidden="true"></div>')
+    name_to_fifa = build_name_to_fifa(teams_df)
+    bracket = build_knockout_bracket(matches_df)
+
+    if not bracket.get("has_data"):
+        st.info("Chưa có trận knock-out. Admin cài đặt cặp đấu tại **Góc của Elu → Vòng Knock-out**.")
+        if stop_on_empty:
+            st.stop()
+        return
+
+    ko_matches = matches_df[matches_df["stage_id"].apply(lambda x: int(float(x)) > 1 if pd.notna(x) else False)]
+    assigned = ko_matches[
+        ((ko_matches["team_a"].notna()) & (ko_matches["team_a"] != "TBD"))
+        | ((ko_matches["team_b"].notna()) & (ko_matches["team_b"] != "TBD"))
+    ]
+    finished = ko_matches[ko_matches["real_score_a"].notna() & ko_matches["real_score_b"].notna()]
+
+    st.caption(
+        f"**{len(assigned)}** trận đã gán đội · **{len(finished)}** trận đã có kết quả · "
+        "Vuốt ngang trên mobile để xem toàn bộ nhánh."
+    )
+
+    _html_inline('<div class="ko-bracket-page-marker" data-layout="split"></div>')
+    render_knockout_bracket(bracket, name_to_fifa)
+    _html_inline('<div class="home-knockout-spacer" aria-hidden="true"></div>')

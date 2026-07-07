@@ -1,8 +1,12 @@
+import pandas as pd
 import streamlit as st
 
+from data_service import init_connection, prep_matches, read_sheet
 from ui_components import (
     apply_global_styles,
+    custom_loader,
     render_home_cta_cards,
+    render_home_knockout_bracket,
     render_hero_home,
     render_sidebar,
     render_stat_cards,
@@ -74,16 +78,29 @@ def render_home_rules_section():
     )
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def load_home_data():
+    sh = init_connection()
+    matches_raw = read_sheet(sh, "matches")
+    teams_df = read_sheet(sh, "teams")
+    teams_df.replace("", pd.NA, inplace=True)
+    return prep_matches(matches_raw, teams_df), teams_df
+
+
 render_hero_home()
 
 render_stat_cards([
     ("+3", "Điểm / đúng kết quả"),
-    ("+1", "Điểm / đúng PEN"),
+    ("+1", "Điểm / đúng đội đi tiếp"),
     ("10k", "Phạt / sai kết quả"),
     ("104", "Trận đấu WC 2026"),
 ])
 
 render_home_rules_section()
+
+with custom_loader("Đang dựng bracket..."):
+    matches_df, teams_df = load_home_data()
+render_home_knockout_bracket(matches_df, teams_df)
 
 st.markdown('<div class="section-title">🚀 Bắt đầu ngay</div>', unsafe_allow_html=True)
 st.caption("Chọn nhanh khu vực bạn muốn vào. Sidebar vẫn luôn có sẵn nếu cần điều hướng chi tiết.")

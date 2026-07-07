@@ -228,7 +228,7 @@ def _render_one_match(row, selected_user_id, preds_df, id_to_name):
     show_pen_picker = is_knockout and outcome == "D" and team_a != "TBD" and team_b != "TBD"
 
     if show_pen_picker:
-        _html_inline('<div class="pen-picker-shell"><span class="pen-picker-label">Đội đi tiếp sau loạt PEN</span></div>')
+        _html_inline('<div class="pen-picker-shell"><span class="pen-picker-label">Chọn đội đi tiếp sau hiệp phụ và luân lưu</span></div>')
         options_adv = [team_a, team_b]
         idx_adv = options_adv.index(old_adv_name) if old_adv_name in options_adv else 0
         adv_team = st.selectbox(

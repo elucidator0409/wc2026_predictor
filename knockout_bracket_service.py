@@ -63,7 +63,7 @@ def _score_display(row, side: str, winner_side: str | None) -> str:
     score = ra if side == "a" else rb
     if ra == rb and winner_side:
         if winner_side == side:
-            return f"{score} PEN"
+            return f"{score} "
         return str(score)
     return str(score)
 

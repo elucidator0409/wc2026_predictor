@@ -1,0 +1,29 @@
+/* Tab pill layout — st.container() paths + desktop row / mobile column */
+
+@media (min-width: 770px) {
+    [data-testid="stElementContainer"]:has(.lb-main-tabs-marker) + [data-testid="stElementContainer"] [data-testid="stTabs"] [data-baseweb="tab-list"],
+    [data-testid="stElementContainer"]:has(.lb-analytics-tabs-marker) + [data-testid="stElementContainer"] [data-testid="stTabs"] [data-baseweb="tab-list"],
+    [data-testid="stElementContainer"]:has(.pred-tabs-marker) + [data-testid="stElementContainer"] [data-testid="stTabs"] [data-baseweb="tab-list"],
+    .stApp [data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"]:has(.lb-main-tabs-marker)) [data-testid="stTabs"] [data-baseweb="tab-list"],
+    .stApp [data-testid="stVerticalBlockBorderWrapper"]:has(> [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:has(.lb-main-tabs-marker)) [data-testid="stTabs"] [data-baseweb="tab-list"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: stretch !important;
+        width: 100% !important;
+    }
+
+    [data-testid="stElementContainer"]:has(.lb-main-tabs-marker) + [data-testid="stElementContainer"] [data-testid="stTabs"] [data-testid="stTab"],
+    .stApp [data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"]:has(.lb-main-tabs-marker)) [data-testid="stTabs"] [data-testid="stTab"] {
+        flex: 1 1 0 !important;
+        width: auto !important;
+        max-width: none !important;
+    }
+
+    /* Undo page-wide analytics flex:100% leaking to main tabs on desktop */
+    [data-testid="stVerticalBlock"]:has(.lb-main-tabs-marker) [data-testid="stTabs"] [data-testid="stTab"] {
+        flex: 1 1 0 !important;
+        width: auto !important;
+        max-width: none !important;
+    }
+}

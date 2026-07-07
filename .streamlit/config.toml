@@ -2,6 +2,9 @@
 showSidebarNavigation = false
 toolbarMode = "viewer"
 
+[server]
+enableStaticServing = true
+
 [ui]
 hideTopBar = true
 
