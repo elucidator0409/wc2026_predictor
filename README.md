@@ -4,6 +4,8 @@
 
 **Demo:** [wc2026-elu.streamlit.app](https://wc2026-elu.streamlit.app)
 
+**GGsheet data:**[WC2026-database](https://docs.google.com/spreadsheets/d/1zSQ5ewWTy75ptpTLArZ0bFUFz-jbPs2677rKCpxjtsQ/edit?usp=sharing) (liên hệ admin nếu cần truy cập vào file data)
+
 ### Tài liệu kỹ thuật cốt lõi
 
 Hai file dưới đây là **bản đồ chính** của dự án — một file cho **toàn bộ quá trình phát triển** (data → logic → UI), một file cho **luồng phân tích nâng cao** (file Python, DataFrame, biểu đồ Plotly). Nên đọc Roadmap trước để nắm bức tranh toàn cảnh, rồi mở Analytics Flow khi đi sâu tab *Phân tích dữ liệu hành vi*.
@@ -82,9 +84,9 @@ Chi tiết code-level theo từng giai đoạn: [docs/develop_roadmap.md](docs/d
 
 ---
 
-## 4. Logic nghiệp vụ
+## 4. Logic
 
-Thể lệ do tôi thiết kế và mã hóa trong [`scoring.py`](scoring.py):
+Thể lệ thiết kế và mã hóa trong [`scoring.py`](scoring.py):
 
 | Hành động | Điểm / phạt |
 |-----------|-------------|
