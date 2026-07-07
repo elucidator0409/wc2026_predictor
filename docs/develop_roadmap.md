@@ -38,8 +38,8 @@ Mọi thao tác đọc/ghi dữ liệu thời gian thực được tập trung x
 
 ```mermaid
 flowchart LR
-    GS[Google Sheets API] -->|gspread.read| DS[data_service.py]
-    DS -->|@st.cache_data| PC[Cached DataFrames]
+    GS[Google Sheets API] -->|"gspread.read"| DS[data_service.py]
+    DS -->|"st.cache_data"| PC[Cached DataFrames]
 ```
 
 ### Cơ chế Đọc & Tối ưu bộ nhớ (Caching Mechanism)
@@ -101,11 +101,11 @@ Khi người dùng truy cập Tab "Phân tích dữ liệu hành vi", hệ thố
 
 ```mermaid
 flowchart TD
-    PD[preds_df] & MD[matches_df] --> build_analytics_bundle
-    build_analytics_bundle --> S1[scored_df -> Confusion Matrix]
-    build_analytics_bundle --> S2[cumulative_df -> Momentum Line]
-    build_analytics_bundle --> S3[lead_df -> Lead Time Analysis]
-    build_analytics_bundle --> S4[risk_profile_df -> Risk Bias Chart]
+    PD[preds_df] & MD[matches_df] --> Bundle[build_analytics_bundle]
+    Bundle --> S1["scored_df · Confusion Matrix"]
+    Bundle --> S2["cumulative_df · Momentum Line"]
+    Bundle --> S3["lead_df · Lead Time Analysis"]
+    Bundle --> S4["risk_profile_df · Risk Bias Chart"]
     LB[leaderboard] & M_DF[merged_df] --> S5[Fund Forecast Processing]
 ```
 
