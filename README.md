@@ -2,9 +2,10 @@
 
 Ứng dụng web dự đoán kết quả **104 trận** FIFA World Cup 2026 cho nhóm nội bộ khoảng 14 người. Trước đây, mỗi vòng đấu đều lặp lại cùng một quy trình thủ công trên Google Sheets và Excel: thu thập dự đoán, admin nhập tỉ số, kéo công thức tính điểm và quỹ phạt, rồi cập nhật bảng xếp hạng. 
 
-**Demo:** [wc2026-elu.streamlit.app](https://wc2026-elu.streamlit.app)
+**Demo:** [wc2026-elu.streamlit.app](https://wc2026-elu.streamlit.app) 
+**Test user cho tab "Dự đoán":** ID: testUser , Password: 12345
 
-**GGsheet data:**[WC2026-database](https://docs.google.com/spreadsheets/d/1zSQ5ewWTy75ptpTLArZ0bFUFz-jbPs2677rKCpxjtsQ/edit?usp=sharing) (liên hệ admin nếu cần truy cập vào file data)
+**GGsheet data:**[WC2026-database](https://docs.google.com/spreadsheets/d/1zSQ5ewWTy75ptpTLArZ0bFUFz-jbPs2677rKCpxjtsQ/edit?usp=sharing) (liên hệ admin nếu cần truy cập vào file data và password truy cập vào tab Admin của webapp)
 
 ### Tài liệu kỹ thuật cốt lõi
 
